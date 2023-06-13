@@ -39,7 +39,7 @@ INSTALL_OWNER = -o $(install_uid) -g $(install_gid)
 INSTALL_BACKUP = @INSTALL_BACKUP@
 
 # Libraries
-LT_LIBS = $(top_builddir)/lib/util/libsudo_util.la
+LT_LIBS = $(top_builddir)/lib/util/libutsudo_util.la
 LIBS = $(LT_LIBS)
 
 # C preprocessor flags
