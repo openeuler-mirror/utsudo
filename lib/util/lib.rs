@@ -3,6 +3,10 @@
  *
  * SPDX-License-Identifier: MulanPSL-2.0
  */
+
+//#![feature(c_variadic)]
+#[warn(unused_unsafe)]
+#[macro_use]
 mod sudo_debug_macro;
 mod arc4random;
 mod arc4random_uniform;
