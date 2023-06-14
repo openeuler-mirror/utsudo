@@ -15,6 +15,10 @@ extern "C" {
     fn gethostname(__name: *mut libc::c_char, __len: size_t) -> libc::c_int;
 }
 
+pub type size_t = libc::c_ulong;
+pub type C2RustUnnamed = libc::c_uint;
+pub const _SC_HOST_NAME_MAX: C2RustUnnamed = 180;
+
 #[no_mangle]
 pub unsafe extern "C" fn sudo_gethostname_v1() -> *mut libc::c_char {
     let mut hname: *mut libc::c_char = 0 as *mut libc::c_char;
