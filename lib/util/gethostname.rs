@@ -1,3 +1,14 @@
+/*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
+
+#![allow(unused_imports, unused_assignments, non_camel_case_types)]
+use std::ffi::CStr;
+use std::string::String;
+
+
 #[no_mangle]
 pub unsafe extern "C" fn sudo_gethostname_v1() -> *mut libc::c_char {
     let mut hname: *mut libc::c_char = 0 as *mut libc::c_char;
