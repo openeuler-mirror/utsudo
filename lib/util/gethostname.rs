@@ -8,6 +8,12 @@
 use std::ffi::CStr;
 use std::string::String;
 
+extern "C" {
+    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn free(__ptr: *mut libc::c_void);
+    fn sysconf(__name: libc::c_int) -> libc::c_long;
+    fn gethostname(__name: *mut libc::c_char, __len: size_t) -> libc::c_int;
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_gethostname_v1() -> *mut libc::c_char {
