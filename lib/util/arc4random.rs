@@ -525,5 +525,21 @@ pub unsafe fn chacha_encrypt_bytes(
     } //116 for(;;)
 }
 
+//function chacha_ivsetup
+#[no_mangle]
+pub unsafe fn chacha_ivsetup(mut x: *mut chacha_ctx, mut iv: *mut u8) {
+    (*x).input[12] = 0;
+    (*x).input[13] = 0;
+    (*x).input[14] = U8TO32_LITTLE!(iv, 0);
+    (*x).input[15] = U8TO32_LITTLE!(iv, 4);
+}
+
+
+
+
+
+
+
+
 
 
