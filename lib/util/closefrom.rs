@@ -61,4 +61,37 @@ pub struct dirent {
     pub d_name: [libc::c_char; 256],
 }
 
+#[no_mangle]
+fn sudo_closefrom(lowfd: libc::c_int) {
+    let path: *const libc::c_char;
+    let dirp: *mut DIR;
+    path = b"/proc/self/fd\0" as *const u8 as *const libc::c_char;
 
+    dirp = unsafe { opendir(path) };
+    if !dirp.is_null() {
+        let mut dent: *mut dirent;
+        loop {
+            dent = unsafe { readdir(dirp) };
+            if dent.is_null() {
+                break;
+            }
+            let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+            let fd: libc::c_int;
+
+            fd = unsafe {
+                sudo_strtonum(
+                    ((*dent).d_name).as_mut_ptr(),
+                    lowfd as libc::c_longlong,
+                    INT_MAX!() as libc::c_longlong,
+                    &mut errstr,
+                ) as libc::c_int
+            };
+            if errstr.is_null() && fd != unsafe { dirfd(dirp) } {
+                unsafe { close(fd as libc::c_int) };
+            }
+        }
+        unsafe { closedir(dirp as *mut DIR) };
+        return;
+    }
+    closefrom_fallback(lowfd as libc::c_int);
+}
