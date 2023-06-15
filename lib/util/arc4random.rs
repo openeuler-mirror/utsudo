@@ -41,9 +41,57 @@ pub struct _rs {
     pub rs_count: size_t,
 }
 
+//line 78
+static mut rs: *mut _rs = 0 as *const _rs as *mut _rs;
 
+//line 81
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _rsx {
+    pub rs_chacha: chacha_ctx,
+    pub rs_buf: [libc::c_uchar; 1024],
+}
 
+//line 82 included line81
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct chacha_ctx {
+    pub input: [u32; 16],
+}
 
+//line 84
+static mut rsx: *mut _rsx = 0 as *const _rsx as *mut _rsx;
+
+//called by struct __pthread_mutex_s -> __pthread_list_t
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct __pthread_internal_list {
+    pub __prev: *mut __pthread_internal_list,
+    pub __next: *mut __pthread_internal_list,
+}
+
+//called by union pthread_mutex_t
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct __pthread_mutex_s {
+    pub __lock: libc::c_int,
+    pub __count: libc::c_uint,
+    pub __owner: libc::c_int,
+    pub __nusers: libc::c_uint,
+    pub __kind: libc::c_int,
+    pub __spins: libc::c_short,
+    pub __elision: libc::c_short,
+    pub __list: __pthread_list_t,
+}
+
+//called by _ARC4_LOCK
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union pthread_mutex_t {
+    pub __data: __pthread_mutex_s,
+    pub __size: [libc::c_char; __SIZEOF_PTHREAD_MUTEX_T],
+    pub __align: libc::c_long,
+}
 
 
 
