@@ -47,3 +47,21 @@ unsafe extern "C" fn sudo_ev_deactivate_all(mut base: *mut sudo_event_base) {
         sudo_debug_subsys,
     );
 }
+
+unsafe extern "C" fn sudo_ev_activate_sigevents(mut base: *mut sudo_event_base) {
+    let mut ev: *mut sudo_event = 0 as *mut sudo_event;
+    let mut set: sigset_t = sigset_t { __val: [0; 16] };
+    let mut oset: sigset_t = sigset_t { __val: [0; 16] };
+    let mut i: libc::c_int = 0;
+    let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
+    sudo_debug_enter_v1(
+        (*::core::mem::transmute::<&[u8; 27], &[libc::c_char; 27]>(
+            b"sudo_ev_activate_sigevents\0",
+        ))
+        .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        107 as libc::c_int,
+        sudo_debug_subsys,
+    );
+
+}
