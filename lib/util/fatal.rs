@@ -14,3 +14,10 @@
 )]
 use crate::__LC_MESSAGES;
 use libc::FILE;
+
+#[macro_export]
+macro_rules! __LC_MESSAGES {
+    () => {
+        5
+    };
+}
