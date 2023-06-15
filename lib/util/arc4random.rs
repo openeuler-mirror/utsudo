@@ -296,6 +296,36 @@ static mut sigma: [libc::c_char; 16] =
 static mut tau: [libc::c_char; 16] =
     unsafe { *::std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"expand 16-byte k") };
 
+#[no_mangle]
+pub unsafe fn chacha_keysetup(
+    mut x: *mut chacha_ctx,
+    mut k: *const u8,
+    mut kbits: u32,
+    mut ivbits: u32,
+) {
+    let mut constants: *const libc::c_char = 0 as *const libc::c_char;
+
+    (*x).input[4] = U8TO32_LITTLE!(k, 0);
+    (*x).input[5] = U8TO32_LITTLE!(k, 4);
+    (*x).input[6] = U8TO32_LITTLE!(k, 8);
+    (*x).input[7] = U8TO32_LITTLE!(k, 12);
+
+    if kbits == 256 {
+        k = k.offset(16);
+        constants = sigma.as_ptr();
+    } else {
+        constants = tau.as_ptr();
+    }
+
+    (*x).input[8] = U8TO32_LITTLE!(k, 0);
+    (*x).input[9] = U8TO32_LITTLE!(k, 4);
+    (*x).input[10] = U8TO32_LITTLE!(k, 8);
+    (*x).input[11] = U8TO32_LITTLE!(k, 12);
+    (*x).input[0] = U8TO32_LITTLE!(constants, 0);
+    (*x).input[1] = U8TO32_LITTLE!(constants, 4);
+    (*x).input[2] = U8TO32_LITTLE!(constants, 8);
+    (*x).input[3] = U8TO32_LITTLE!(constants, 12);
+}
 
 
 
