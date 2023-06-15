@@ -17,6 +17,20 @@
 //call libc_func
 use libc::abort;
 
+//define
+pub const RSBUFSZ: i32 = 1024;
+pub const __SIZEOF_PTHREAD_MUTEX_T: usize = 40;
+pub const KEYSZ: i32 = 32;
+pub const IVSZ: i32 = 8;
+
+
+
+
+
+
+
+
+
 
 
 
