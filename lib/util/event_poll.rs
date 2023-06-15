@@ -30,3 +30,9 @@ pub type __time_t = libc::c_long;
 pub type __syscall_slong_t = libc::c_long;
 pub type size_t = libc::c_ulong;
 pub type nfds_t = libc::c_ulong;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sigset_t {
+    pub __val: [libc::c_ulong; 16],
+}
