@@ -34,7 +34,12 @@ pub type __sig_atomic_t = libc::c_int;
 pub type u8 = libc::c_uchar;
 pub type u32 = libc::c_uint;
 
-
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _rs {
+    pub rs_have: size_t,
+    pub rs_count: size_t,
+}
 
 
 
