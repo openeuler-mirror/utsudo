@@ -23,6 +23,23 @@ pub const __SIZEOF_PTHREAD_MUTEX_T: usize = 40;
 pub const KEYSZ: i32 = 32;
 pub const IVSZ: i32 = 8;
 
+//aliase of type
+pub type pid_t = libc::c_int;
+pub type uint32_t = libc::c_uint;
+pub type size_t = libc::c_ulong;
+pub type __off_t = libc::c_long;
+pub type __pthread_list_t = __pthread_internal_list;
+pub type sig_atomic_t = __sig_atomic_t;
+pub type __sig_atomic_t = libc::c_int;
+pub type u8 = libc::c_uchar;
+pub type u32 = libc::c_uint;
+
+
+
+
+
+
+
 
 
 
