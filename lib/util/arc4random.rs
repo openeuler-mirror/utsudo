@@ -208,8 +208,67 @@ pub unsafe fn _rs_forkdetect() {
     }
 }
 
+//function _rs_allocate
+pub const PROT_READ: libc::c_short = 0x1;
+pub const PROT_WRITE: libc::c_short = 0x2;
+pub const MAP_ANON: libc::c_short = 0x20;
+pub const MAP_FAILED: libc::c_int = -1;
+pub const MAP_PRIVATE: libc::c_short = 0x02;
+pub const MADV_WIPEONFORK: libc::c_int = 18;
+use libc::madvise;
+use libc::pthread_atfork;
+pub unsafe extern "C" fn _rs_forkhandler() {
+    _rs_forked = 1;
+}
+pub unsafe fn _rs_allocate(mut rsp: *mut *mut _rs, mut rsxp: *mut *mut _rsx) -> libc::c_int {
+    *rsp = mmap(
+        0 as *mut libc::c_void,
+        (::std::mem::size_of::<_rs>()) as size_t,
+        PROT_READ as libc::c_int | PROT_WRITE as libc::c_int,
+        MAP_ANON as libc::c_int | MAP_PRIVATE as libc::c_int,
+        -(1 as libc::c_int),
+        0,
+    ) as *mut _rs;
+    if *rsp == MAP_FAILED as *mut _rs {
+        return -1;
+    }
+    *rsxp = mmap(
+        0 as *mut libc::c_void,
+        (::std::mem::size_of::<_rsx>()) as size_t,
+        PROT_READ as libc::c_int | PROT_WRITE as libc::c_int,
+        MAP_ANON as libc::c_int | MAP_PRIVATE as libc::c_int,
+        -(1 as libc::c_int),
+        0,
+    ) as *mut _rsx;
+   if *rsxp == MAP_FAILED as *mut _rsx {
+        munmap(
+            *rsp as *mut libc::c_void,
+            ::std::mem::size_of::<_rsx>() as size_t,
+        );
+        *rsp = 0 as *mut _rs;
+        return -1;
+    }
+    if (madvise(
+        *rsp as *mut libc::c_void,
+        ::std::mem::size_of::<_rs>(),
+        MADV_WIPEONFORK,
+    ) == 0)
+        && (madvise(
+            *rsxp as *mut libc::c_void,
+            ::std::mem::size_of::<_rsx>(),
+            MADV_WIPEONFORK,
+        ) == 0)
+    {
+        wipeonfork = 1;
+    }
 
-
+    pthread_atfork(
+        None,
+        None,
+        Some(_rs_forkhandler as unsafe extern "C" fn() -> ()),
+    );
+    return 0;
+}
 
 
 
