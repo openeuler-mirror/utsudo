@@ -291,7 +291,10 @@ macro_rules! U8TO32_LITTLE {
     }};
 }
 
-
+static mut sigma: [libc::c_char; 16] =
+    unsafe { *::std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"expand 32-byte k") };
+static mut tau: [libc::c_char; 16] =
+    unsafe { *::std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"expand 16-byte k") };
 
 
 
