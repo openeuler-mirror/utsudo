@@ -26,3 +26,29 @@ extern "C" {
     fn closedir(__dirp: *mut DIR) -> libc::c_int;
 }
 
+#[no_mangle]
+fn closefrom_fallback(lowfd: libc::c_int) {
+    let lowfd: libc::c_int = 0;
+    let mut _fd: libc::c_long = 0;
+    let mut maxfd: libc::c_long;
+
+    #[macro_export]
+    macro_rules! _POSIX_OPEN_MAX {
+        () => {
+            20
+        };
+    }
+
+    maxfd = unsafe { sysconf(_SC_OPEN_MAX) };
+
+    if maxfd < 0 {
+        maxfd = _POSIX_OPEN_MAX!();
+    } else {
+        let mut fd = lowfd;
+        while i64::from(fd) < maxfd {
+            unsafe { close(fd) };
+            fd += 1;
+        }
+    }
+}
+
