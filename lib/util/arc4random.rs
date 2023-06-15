@@ -93,7 +93,28 @@ pub union pthread_mutex_t {
     pub __align: libc::c_long,
 }
 
-
+//arc4random.h_line34,init arc4random_mtx,called by 208
+static mut arc4random_mtx: pthread_mutex_t = pthread_mutex_t {
+    __data: {
+        let mut init = __pthread_mutex_s {
+            __lock: 0 as libc::c_int,
+            __count: 0 as libc::c_uint,
+            __owner: 0 as libc::c_int,
+            __nusers: 0 as libc::c_uint,
+            __kind: 0 as libc::c_int,
+            __spins: 0 as libc::c_short,
+            __elision: 0 as libc::c_short,
+            __list: {
+                let mut init = __pthread_internal_list {
+                    __prev: 0 as *mut __pthread_internal_list,
+                    __next: 0 as *mut __pthread_internal_list,
+                };
+                init
+            },
+        };
+        init
+    },
+};
 
 
 
