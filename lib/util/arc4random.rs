@@ -598,7 +598,32 @@ unsafe fn _rs_rekey(mut dat: *mut libc::c_uchar, mut datlen: size_t) {
         - IVSZ as size_t;
 }
 
+//line 190
+#[inline]
+unsafe fn _rs_random_u32(mut val: *mut libc::c_uint) {
+    let mut keystream: *mut libc::c_uchar = 0 as *mut libc::c_uchar;
 
+    _rs_stir_if_needed(::std::mem::size_of::<uint32_t>() as libc::c_ulong);
+    if (*rs).rs_have < ::std::mem::size_of::<uint32_t>() as libc::c_ulong {
+        _rs_rekey(0 as *mut libc::c_uchar, 0);
+    }
+    keystream = (*rsx)
+        .rs_buf
+        .as_mut_ptr()
+        .offset(::std::mem::size_of::<[libc::c_uchar; 1024]>() as isize)
+        .offset(-((*rs).rs_have as isize));
+    memcpy(
+        val as *mut libc::c_void,
+        keystream as *const libc::c_void,
+        ::std::mem::size_of::<uint32_t>() as size_t,
+    );
+    memset(
+        keystream as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<uint32_t>() as size_t,
+    );
+    (*rs).rs_have -= ::std::mem::size_of::<uint32_t>() as size_t;
+}
 
 
 
