@@ -31,4 +31,19 @@ unsafe extern "C" fn sudo_ev_deactivate_all(mut base: *mut sudo_event_base) {
         89 as libc::c_int,
         sudo_debug_subsys,
     );
+
+        loop {
+        ev = (*base).active.tqh_first;
+        if ev.is_null() {
+            break;
+        }
+        sudo_ev_deactivate(base, ev);
+    }
+    sudo_debug_exit_v1(
+        (*::core::mem::transmute::<&[u8; 23], &[libc::c_char; 23]>(b"sudo_ev_deactivate_all\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        94 as libc::c_int,
+        sudo_debug_subsys,
+    );
 }
