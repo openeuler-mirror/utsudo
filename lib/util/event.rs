@@ -64,4 +64,50 @@ unsafe extern "C" fn sudo_ev_activate_sigevents(mut base: *mut sudo_event_base) 
         sudo_debug_subsys,
     );
 
+        sigfillset(&mut set);
+    sigprocmask(0 as libc::c_int, &mut set, &mut oset);
+    (*base).signal_caught = 0 as libc::c_int;
+    i = 0 as libc::c_int;
+    while i < 64 as libc::c_int + 1 as libc::c_int {
+        if !((*base).signal_pending[i as usize] == 0) {
+            (*base).signal_pending[i as usize] = 0 as libc::c_int;
+            ev = (*base).signals[i as usize].tqh_first;
+            while !ev.is_null() {
+                if (*ev).events as libc::c_int & 0x20 as libc::c_int != 0 {
+                    let mut sc: *mut sudo_ev_siginfo_container =
+                        (*ev).closure as *mut sudo_ev_siginfo_container;
+                    if (*(*base).siginfo[i as usize]).si_signo == 0 as libc::c_int {
+                        (*sc).siginfo = 0 as *mut siginfo_t;
+                    } else {
+                        (*sc).siginfo = ((*sc).si_buf).as_mut_ptr() as *mut siginfo_t;
+                        memcpy(
+                            (*sc).siginfo as *mut libc::c_void,
+                            (*base).siginfo[i as usize] as *const libc::c_void,
+                            ::core::mem::size_of::<siginfo_t>() as libc::c_ulong,
+                        );
+                    }
+                }
+                (*ev).revents = ((*ev).events as libc::c_int
+                    & (0x10 as libc::c_int | 0x20 as libc::c_int))
+                    as libc::c_short;
+                (*ev).active_entries.tqe_next = 0 as *mut sudo_event;
+                (*ev).active_entries.tqe_prev = (*base).active.tqh_last;
+                *(*base).active.tqh_last = ev;
+                (*base).active.tqh_last = &mut (*ev).active_entries.tqe_next;
+                (*ev).flags = ((*ev).flags as libc::c_int | 0x2 as libc::c_int) as libc::c_short;
+                ev = (*ev).entries.tqe_next;
+            }
+        }
+        i += 1;
+    }
+    sigprocmask(2 as libc::c_int, &mut oset, 0 as *mut sigset_t);
+    sudo_debug_exit_v1(
+        (*::core::mem::transmute::<&[u8; 27], &[libc::c_char; 27]>(
+            b"sudo_ev_activate_sigevents\0",
+        ))
+        .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        139 as libc::c_int,
+        sudo_debug_subsys,
+    );
 }
