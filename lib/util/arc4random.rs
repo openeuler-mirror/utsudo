@@ -327,6 +327,50 @@ pub unsafe fn chacha_keysetup(
     (*x).input[3] = U8TO32_LITTLE!(constants, 12);
 }
 
+//function chacha_encrypt_bytes    u32=libc::c_uint
+macro_rules! PLUS {
+    ($a:expr,$b:expr) => {
+        ($a + $b) & 0xffffffff as libc::c_uint
+    };
+}
+
+macro_rules! ROTATE {
+    ($c:expr,$d:expr) => {
+        $c << $d & 0xffffffff | $c >> 32 - $d
+    };
+}
+
+macro_rules! XOR {
+    ($e:expr,$f:expr) => {
+        ($e ^ $f)
+    };
+}
+
+macro_rules! QUARTERROUND {
+    ($a1:expr,$b1:expr,$c1:expr,$d1:expr) => {
+        $a1 = PLUS!($a1, $b1);
+        $d1 = ROTATE!(XOR!($d1, $a1), 16);
+        $c1 = PLUS!($c1, $d1);
+        $b1 = ROTATE!(XOR!($b1, $c1), 12);
+        $a1 = PLUS!($a1, $b1);
+        $d1 = ROTATE!(XOR!($d1, $a1), 8);
+        $c1 = PLUS!($c1, $d1);
+        $b1 = ROTATE!(XOR!($b1, $c1), 7);
+    };
+}
+
+macro_rules! U32TO8_LITTLE {
+    ($a:expr,$b:expr,$c:expr) => {
+        *$a.offset($c as isize).offset(0 as isize) = ($b & 0xff) as u8;
+        *$a.offset($c as isize).offset(1 as isize) = (($b >> 8) & 0xff) as u8;
+        *$a.offset($c as isize).offset(2 as isize) = (($b >> 16) & 0xff) as u8;
+        *$a.offset($c as isize).offset(3 as isize) = (($b >> 24) & 0xff) as u8;
+    };
+}
+
+
+
+
 
 
 
