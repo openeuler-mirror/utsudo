@@ -534,7 +534,20 @@ pub unsafe fn chacha_ivsetup(mut x: *mut chacha_ctx, mut iv: *mut u8) {
     (*x).input[15] = U8TO32_LITTLE!(iv, 4);
 }
 
-
+//line 93
+#[inline]
+unsafe fn _rs_init(mut buf: *mut libc::c_uchar, mut n: size_t) {
+    if n < (KEYSZ + IVSZ) as libc::c_ulong {
+        return;
+    }
+    if rs.is_null() {
+        if _rs_allocate(&mut rs, &mut rsx) == -1 {
+            abort();
+        }
+    }
+    chacha_keysetup(&mut (*rsx).rs_chacha, buf, (KEYSZ * 8) as libc::c_uint, 0);
+    chacha_ivsetup(&mut (*rsx).rs_chacha, buf.offset(KEYSZ as isize));
+}
 
 
 
