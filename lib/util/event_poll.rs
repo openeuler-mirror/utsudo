@@ -26,3 +26,7 @@ use crate::sudo_debug_macro::SUDO_DEBUG_EVENT;
 use crate::sudo_debug_macro::SUDO_DEBUG_INFO;
 use crate::sudo_debug_macro::SUDO_DEBUG_LINENO;
 
+pub type __time_t = libc::c_long;
+pub type __syscall_slong_t = libc::c_long;
+pub type size_t = libc::c_ulong;
+pub type nfds_t = libc::c_ulong;
