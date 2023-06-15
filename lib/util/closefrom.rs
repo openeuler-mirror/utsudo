@@ -52,3 +52,13 @@ fn closefrom_fallback(lowfd: libc::c_int) {
     }
 }
 
+#[repr(C)]
+pub struct dirent {
+    pub d_ino: __ino_t,
+    pub d_off: __off_t,
+    pub d_reclen: libc::c_short,
+    pub d_type: libc::c_char,
+    pub d_name: [libc::c_char; 256],
+}
+
+
