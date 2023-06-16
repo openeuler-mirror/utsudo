@@ -18,6 +18,11 @@ use crate::sha2::sudo_SHA512Final;
 use crate::sha2::sudo_SHA512Init;
 use crate::sha2::sudo_SHA512Update;
 use crate::sha2::SHA2_CTX;
+use crate::sudo_debug::sudo_debug_enter_v1;
+use crate::sudo_debug::sudo_debug_exit_int_v1;
+use crate::sudo_debug::sudo_debug_exit_ptr_v1;
+use crate::sudo_debug::sudo_debug_exit_v1;
+use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
 pub struct digest_function {
     pub init: Option<unsafe extern "C" fn(*mut SHA2_CTX) -> ()>,
