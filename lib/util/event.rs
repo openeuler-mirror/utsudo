@@ -128,4 +128,26 @@ unsafe extern "C" fn signal_pipe_cb(
         sudo_debug_subsys,
     );
 
+        loop {
+        nread = read(
+            fd,
+            &mut ch as *mut libc::c_uchar as *mut libc::c_void,
+            1 as libc::c_int as size_t,
+        );
+        if !(nread > 0 as libc::c_int as libc::c_long) {
+            break;
+        }
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"signal_pipe_cb\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            160 as libc::c_int,
+            6 as libc::c_int | sudo_debug_subsys,
+            b"%s: received signal %d\0" as *const u8 as *const libc::c_char,
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"signal_pipe_cb\0"))
+                .as_ptr(),
+            ch as libc::c_int,
+        );
+    }
+
 }
