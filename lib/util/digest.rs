@@ -31,6 +31,10 @@ pub struct sudo_digest {
 }
 
 #[no_mangle]
-unsafe fn sudo_digest_free_v1() {
+unsafe fn sudo_digest_free_v1(mut dig: *mut sudo_digest) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    free(dig as *mut libc::c_void);
+
     debug_return!()
 }
