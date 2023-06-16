@@ -61,3 +61,9 @@ unsafe fn sudo_digest_reset_v1(mut dig: *mut sudo_digest) {
 
     debug_return!()
 }
+
+#[no_mangle]
+unsafe fn sudo_digest_getlen_v1(mut digest_type: libc::c_int) -> libc::c_int {
+    //line 154
+    debug_return_int!(-1)
+}
