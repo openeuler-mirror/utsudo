@@ -25,6 +25,10 @@ pub struct digest_function {
     pub final_0: Option<unsafe extern "C" fn(*mut libc::c_uchar, *mut SHA2_CTX) -> ()>,
 }
 
+pub struct sudo_digest {
+    pub func: *mut digest_function,
+    pub ctx: SHA2_CTX,
+}
 
 #[no_mangle]
 unsafe fn sudo_digest_free_v1() {
