@@ -270,6 +270,27 @@ pub unsafe fn _rs_allocate(mut rsp: *mut *mut _rs, mut rsxp: *mut *mut _rsx) -> 
     return 0;
 }
 
+//function chacha_keysetup
+macro_rules! U8TO32_LITTLE {
+    ($a:expr,$b:expr) => {{
+        (*$a.offset($b as libc::c_int as isize)
+            .offset(0 as libc::c_int as isize) as libc::c_uint)
+            << 0 as libc::c_int
+            | (*$a
+                .offset($b as libc::c_int as isize)
+                .offset(1 as libc::c_int as isize) as libc::c_uint)
+                << 8 as libc::c_int
+            | (*$a
+                .offset($b as libc::c_int as isize)
+                .offset(2 as libc::c_int as isize) as libc::c_uint)
+                << 16 as libc::c_int
+            | (*$a
+                .offset($b as libc::c_int as isize)
+                .offset(3 as libc::c_int as isize) as libc::c_uint)
+                << 24 as libc::c_int
+    }};
+}
+
 
 
 
