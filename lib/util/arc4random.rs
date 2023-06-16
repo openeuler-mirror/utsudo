@@ -179,7 +179,34 @@ extern "C" {
     fn munmap(__addr: *mut libc::c_void, __len: size_t) -> libc::c_int;
 }
 
+//function _getentropy_fail
+use libc::raise;
+pub const SIGKILL: libc::c_int = 9;
+pub unsafe fn _getentropy_fail() {
+    raise(SIGKILL);
+}
 
+//function _rs_forkdetect
+static mut wipeonfork: libc::c_int = 0;
+use libc::getpid;
+static mut _rs_forked: __sig_atomic_t = 0;
+pub unsafe fn _rs_forkdetect() {
+    if wipeonfork == 0 {
+        static mut _rs_pid: pid_t = 0;
+        let mut pid: pid_t = getpid();
+        if _rs_pid == 0 || _rs_pid != pid || _rs_forked != 0 {
+            _rs_pid = pid;
+            _rs_forked = 0;
+            if !rs.is_null() {
+                memset(
+                    rs as *mut libc::c_void,
+                    0,
+                    ::std::mem::size_of::<_rs>() as size_t,
+                );
+            }
+        }
+    }
+}
 
 
 
