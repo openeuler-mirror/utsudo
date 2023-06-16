@@ -111,3 +111,9 @@ unsafe extern "C" fn sudo_ev_activate_sigevents(mut base: *mut sudo_event_base) 
         sudo_debug_subsys,
     );
 }
+
+unsafe extern "C" fn signal_pipe_cb(
+    mut fd: libc::c_int,
+    mut _what: libc::c_int,
+    mut v: *mut libc::c_void,
+){}
