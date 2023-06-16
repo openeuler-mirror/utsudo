@@ -14,8 +14,8 @@
     unused_assignments
 )]
 
-
-
+//call libc_func
+use libc::abort;
 
 
 
