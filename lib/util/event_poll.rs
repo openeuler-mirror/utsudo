@@ -36,3 +36,8 @@ pub type nfds_t = libc::c_ulong;
 pub struct sigset_t {
     pub __val: [libc::c_ulong; 16],
 }
+
+#[no_mangle]
+unsafe fn sudo_ev_base_alloc_impl(mut base: *mut sudo_event_base) -> libc::c_int {
+    debug_return_int!(0)
+}
