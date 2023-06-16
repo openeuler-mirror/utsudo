@@ -1,3 +1,4 @@
+static mut progname: *const libc::c_char = b"\0" as *const u8 as *const libc::c_char; //*progname = ""
 #[no_mangle]
 pub unsafe extern "C" fn initprogname(mut name: *const libc::c_char) {
     if !__progname.is_null() && *__progname as libc::c_int != '\u{0}' as i32 {
