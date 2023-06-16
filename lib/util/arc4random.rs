@@ -549,7 +549,19 @@ unsafe fn _rs_init(mut buf: *mut libc::c_uchar, mut n: size_t) {
     chacha_ivsetup(&mut (*rsx).rs_chacha, buf.offset(KEYSZ as isize));
 }
 
-
+//line 129-138
+#[inline]
+unsafe fn _rs_stir_if_needed(mut len: size_t) {
+    _rs_forkdetect();
+    if rs.is_null() || (*rs).rs_count <= len {
+        _rs_stir();
+    }
+    if (*rs).rs_count <= len {
+        (*rs).rs_count = 0;
+    } else {
+        (*rs).rs_count -= len;
+    }
+}
 
 
 
