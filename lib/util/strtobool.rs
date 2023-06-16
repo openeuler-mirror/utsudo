@@ -61,6 +61,11 @@ pub unsafe extern "C" fn sudo_strtobool_v1(mut str: *const libc::c_char) -> libc
         _ => {}
     }
 
+    sudo_debug_printf!(
+        SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+        b"invalid boolean value \"%s\"\0" as *const u8 as *const libc::c_char,
+        str
+    );
 }
 
 
