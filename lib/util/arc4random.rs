@@ -157,6 +157,37 @@ unsafe fn _rs_stir() {
     (*rs).rs_count = 1600000;
 }
 
+extern "C" {
+    fn mmap(
+        __addr: *mut libc::c_void,
+        __len: size_t,
+        __prot: libc::c_int,
+        __flags: libc::c_int,
+        __fd: libc::c_int,
+        __offset: __off_t,
+    ) -> *mut libc::c_void;
+    fn getentropy(__buffer: *mut libc::c_void, __length: size_t) -> libc::c_int;
+    fn sudo_memset_s(v: *mut libc::c_void, smax: size_t, c: libc::c_int, n: size_t) -> libc::c_int;
+    fn memset(__s: *mut libc::c_void, __s2: libc::c_int, __n: libc::c_ulong) -> *mut libc::c_void;
+    fn memcpy(
+        __dest: *mut libc::c_void,
+        __rsc: *const libc::c_void,
+        __n: size_t,
+    ) -> *mut libc::c_void;
+    fn pthread_mutex_lock(__mutex: *mut pthread_mutex_t) -> libc::c_int;
+    fn pthread_mutex_unlock(__mutex: *mut pthread_mutex_t) -> libc::c_int;
+    fn munmap(__addr: *mut libc::c_void, __len: size_t) -> libc::c_int;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
