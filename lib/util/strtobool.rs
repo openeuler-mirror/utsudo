@@ -22,7 +22,8 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_strtobool_v1(mut str: *const libc::c_char) -> libc::c_int {
-
+    
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
     match *str as u8 as char {
         '0' | '1' => {
             if *str.offset(1 as isize) as libc::c_int == '\u{0}' as i32 {
@@ -60,6 +61,11 @@ pub unsafe extern "C" fn sudo_strtobool_v1(mut str: *const libc::c_char) -> libc
         _ => {}
     }
 
+    sudo_debug_printf!(
+        SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+        b"invalid boolean value \"%s\"\0" as *const u8 as *const libc::c_char,
+        str
+    );
 }
 
 
