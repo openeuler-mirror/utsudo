@@ -10,9 +10,10 @@ extern "C" {
     fn __errno_location() -> *mut libc::c_int;
     fn setgroups(__n: size_t, __groups: *const gid_t) -> libc::c_int;
 }
- 
+
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_int_v1;
+use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
 pub type gid_t = libc::c_uint;
 pub type size_t = libc::c_ulong;
@@ -30,4 +31,8 @@ unsafe extern "C" fn sudo_setgroups_v1(
 
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
     ret = setgroups(ngids as size_t, gids as *mut gid_t);
+    
+    if *__errno_location() == EINVAL as libc::c_int {
+    //max
+    }
 }
