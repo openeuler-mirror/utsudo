@@ -175,3 +175,15 @@ unsafe extern "C" fn signal_pipe_cb(
     );
 
 }
+
+unsafe extern "C" fn sudo_ev_base_init(mut base: *mut sudo_event_base) -> libc::c_int{
+    let mut i: libc::c_int = 0;
+    let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
+    sudo_debug_enter_v1(
+        (*::core::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"sudo_ev_base_init\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        177 as libc::c_int,
+        sudo_debug_subsys,
+    );
+}
