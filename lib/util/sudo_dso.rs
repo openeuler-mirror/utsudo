@@ -13,3 +13,11 @@
     unused_assignments,
     unused_mut
 )]
+
+#[macro_export]
+macro_rules! SUDO_DSO_LAZY {
+    () => {
+        0x1
+    };
+}
+
