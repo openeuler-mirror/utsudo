@@ -12,4 +12,10 @@
     dead_code
 )]
 
+use crate::sudo_debug::sudo_debug_enter_v1;
+use crate::sudo_debug::sudo_debug_exit_bool_v1;
+use crate::sudo_debug::sudo_debug_exit_v1;
+use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
+use crate::sudo_debug_macro::SUDO_DEBUG_LINENO;
+use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
