@@ -368,13 +368,162 @@ macro_rules! U32TO8_LITTLE {
     };
 }
 
+#[no_mangle]
+pub unsafe fn chacha_encrypt_bytes(
+    mut x: *mut chacha_ctx,
+    mut m: *const u8,
+    mut c: *mut u8,
+    mut bytes: u32,
+) {
+    let mut x0: u32 = 0;
+    let mut x1: u32 = 0;
+    let mut x2: u32 = 0;
+    let mut x3: u32 = 0;
+    let mut x4: u32 = 0;
+    let mut x5: u32 = 0;
+    let mut x6: u32 = 0;
+    let mut x7: u32 = 0;
+    let mut x8: u32 = 0;
+    let mut x9: u32 = 0;
+    let mut x10: u32 = 0;
+    let mut x11: u32 = 0;
+    let mut x12: u32 = 0;
+    let mut x13: u32 = 0;
+    let mut x14: u32 = 0;
+    let mut x15: u32 = 0;
+    let mut j0: u32 = 0;
+    let mut j1: u32 = 0;
+    let mut j2: u32 = 0;
+    let mut j3: u32 = 0;
+    let mut j4: u32 = 0;
+    let mut j5: u32 = 0;
+    let mut j6: u32 = 0;
+    let mut j7: u32 = 0;
+    let mut j8: u32 = 0;
+    let mut j9: u32 = 0;
+    let mut j10: u32 = 0;
+    let mut j11: u32 = 0;
+    let mut j12: u32 = 0;
+    let mut j13: u32 = 0;
+    let mut j14: u32 = 0;
+    let mut j15: u32 = 0;
+    let mut ctarget: *mut u8 = 0 as *mut u8;
+    let mut tmp: [u8; 64] = [0; 64];
+    let mut i: libc::c_uint = 0;
 
+    if bytes == 0 {
+        return;
+    }
 
+    j0 = (*x).input[0];
+    j1 = (*x).input[1];
+    j2 = (*x).input[2];
+    j3 = (*x).input[3];
+    j4 = (*x).input[4];
+    j5 = (*x).input[5];
+    j6 = (*x).input[6];
+    j7 = (*x).input[7];
+    j8 = (*x).input[8];
+    j9 = (*x).input[9];
+    j10 = (*x).input[10];
+    j11 = (*x).input[11];
+    j12 = (*x).input[12];
+    j13 = (*x).input[13];
+    j14 = (*x).input[14];
+    j15 = (*x).input[15];
 
+    loop {
+        if bytes < 64 {
+            while i < bytes {
+                tmp[i as usize] = *m.offset(i as isize);
+                i += 1;
+            }
+            m = tmp.as_mut_ptr();
+            ctarget = c;
+            c = tmp.as_mut_ptr();
+        }
+        x0 = j0;
+        x1 = j1;
+        x2 = j2;
+        x3 = j3;
+        x4 = j4;
+        x5 = j5;
+        x6 = j6;
+        x7 = j7;
+        x8 = j8;
+        x9 = j9;
+        x10 = j10;
+        x11 = j11;
+        x12 = j12;
+        x13 = j13;
+        x14 = j14;
+        x15 = j15;
+     i = 20;
+        while i > 0 {
+            QUARTERROUND!(x0, x4, x8, x12);
+            QUARTERROUND!(x1, x5, x9, x13);
+            QUARTERROUND!(x2, x6, x10, x14);
+            QUARTERROUND!(x3, x7, x11, x15);
+            QUARTERROUND!(x0, x5, x10, x15);
+            QUARTERROUND!(x1, x6, x11, x12);
+            QUARTERROUND!(x2, x7, x8, x13);
+            QUARTERROUND!(x3, x4, x9, x14);
+            i -= 2;
+        }
+        x0 = PLUS!(x0, j0);
+        x1 = PLUS!(x1, j1);
+        x2 = PLUS!(x2, j2);
+        x3 = PLUS!(x3, j3);
+        x4 = PLUS!(x4, j4);
+        x5 = PLUS!(x5, j5);
+        x6 = PLUS!(x6, j6);
+        x7 = PLUS!(x7, j7);
+        x8 = PLUS!(x8, j8);
+        x9 = PLUS!(x9, j9);
+        x10 = PLUS!(x10, j10);
+        x11 = PLUS!(x11, j11);
+        x12 = PLUS!(x12, j12);
+        x13 = PLUS!(x13, j13);
+        x14 = PLUS!(x14, j14);
+        x15 = PLUS!(x15, j15);
+   //line 185-187
+        j12 = PLUS!(j12, 1);
+        if j12 == 0 {
+            j13 = PLUS!(j13, 1);
+        }
 
-
-
-
+        U32TO8_LITTLE!(c, x0, 0);
+        U32TO8_LITTLE!(c, x1, 4);
+        U32TO8_LITTLE!(c, x2, 8);
+        U32TO8_LITTLE!(c, x3, 12);
+        U32TO8_LITTLE!(c, x4, 16);
+        U32TO8_LITTLE!(c, x5, 20);
+        U32TO8_LITTLE!(c, x6, 24);
+        U32TO8_LITTLE!(c, x7, 28);
+        U32TO8_LITTLE!(c, x8, 32);
+        U32TO8_LITTLE!(c, x9, 36);
+        U32TO8_LITTLE!(c, x10, 40);
+        U32TO8_LITTLE!(c, x11, 44);
+        U32TO8_LITTLE!(c, x12, 48);
+        U32TO8_LITTLE!(c, x13, 52);
+        U32TO8_LITTLE!(c, x14, 56);
+        U32TO8_LITTLE!(c, x15, 60);
+      if bytes <= 64 {
+            if bytes < 64 {
+                i = 0;
+                while i < bytes {
+                    *ctarget.offset(i as isize) = *c.offset(i as isize);
+                    i += 1;
+                }
+            }
+            (*x).input[12] = j12;
+            (*x).input[13] = j13;
+            return;
+        }
+        bytes -= 64;
+        c = c.offset(64);
+    } //116 for(;;)
+}
 
 
 
