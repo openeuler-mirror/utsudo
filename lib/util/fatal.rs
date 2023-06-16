@@ -21,3 +21,11 @@ macro_rules! __LC_MESSAGES {
         5
     };
 }
+
+
+pub type ssize_t = libc::c_long;
+pub type sudo_fatal_callback_t = Option<unsafe extern "C" fn()>;
+static mut sudo_warn_conversation: sudo_conv_t = None;
+static mut sudo_warn_setlocale: Option<unsafe extern "C" fn(bool, *mut libc::c_int) -> bool> = None;
+static mut sudo_warn_setlocale_prev: Option<unsafe extern "C" fn(bool, *mut libc::c_int) -> bool> =
+    None;
