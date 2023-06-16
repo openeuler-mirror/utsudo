@@ -43,3 +43,9 @@ unsafe fn sudo_digest_free_v1(mut dig: *mut sudo_digest) {
 
     debug_return!()
 }
+
+#[no_mangle]
+unsafe fn sudo_digest_reset_v1() {
+
+    debug_return!()
+}
