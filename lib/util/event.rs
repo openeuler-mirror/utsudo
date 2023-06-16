@@ -150,4 +150,28 @@ unsafe extern "C" fn signal_pipe_cb(
         );
     }
 
+        if nread == -(1 as libc::c_int) as libc::c_long && *__errno_location() != 11 as libc::c_int {
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"signal_pipe_cb\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            164 as libc::c_int,
+            2 as libc::c_int
+                | (1 as libc::c_int) << 5 as libc::c_int
+                | (1 as libc::c_int) << 4 as libc::c_int
+                | sudo_debug_subsys,
+            b"%s: error reading from signal pipe fd %d\0" as *const u8 as *const libc::c_char,
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"signal_pipe_cb\0"))
+                .as_ptr(),
+            fd,
+        );
+    }
+    sudo_ev_activate_sigevents(base);
+    sudo_debug_exit_v1(
+        (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"signal_pipe_cb\0")).as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        170 as libc::c_int,
+        sudo_debug_subsys,
+    );
+
 }
