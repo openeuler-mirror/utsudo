@@ -21,3 +21,9 @@ macro_rules! SUDO_DSO_LAZY {
     };
 }
 
+#[macro_export]
+macro_rules! SUDO_DSO_NOW {
+    () => {
+        0x2
+    };
+}
