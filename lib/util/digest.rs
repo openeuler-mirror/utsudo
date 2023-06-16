@@ -26,6 +26,13 @@ use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 use libc::free;
 use libc::malloc;
 
+//define
+pub const EINVAL: libc::c_int = 22;
+
+extern "C" {
+    fn __errno_location() -> *mut libc::c_int;
+}
+
 pub struct digest_function {
     pub init: Option<unsafe extern "C" fn(*mut SHA2_CTX) -> ()>,
     pub update: Option<unsafe extern "C" fn(*mut SHA2_CTX, *const libc::c_uchar, size_t) -> ()>,
