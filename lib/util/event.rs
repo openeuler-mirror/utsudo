@@ -111,3 +111,21 @@ unsafe extern "C" fn sudo_ev_activate_sigevents(mut base: *mut sudo_event_base) 
         sudo_debug_subsys,
     );
 }
+
+unsafe extern "C" fn signal_pipe_cb(
+    mut fd: libc::c_int,
+    mut _what: libc::c_int,
+    mut v: *mut libc::c_void,
+){
+    let mut base: *mut sudo_event_base = v as *mut sudo_event_base;
+    let mut ch: libc::c_uchar = 0;
+    let mut nread: ssize_t = 0;
+    let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
+    sudo_debug_enter_v1(
+        (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"signal_pipe_cb\0")).as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        151 as libc::c_int,
+        sudo_debug_subsys,
+    );
+
+}
