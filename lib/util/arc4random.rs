@@ -563,6 +563,42 @@ unsafe fn _rs_stir_if_needed(mut len: size_t) {
     }
 }
 
+//line 141-161
+unsafe fn _rs_rekey(mut dat: *mut libc::c_uchar, mut datlen: size_t) {
+    chacha_encrypt_bytes(
+        &mut (*rsx).rs_chacha,
+        ((*rsx).rs_buf).as_mut_ptr(),
+        ((*rsx).rs_buf).as_mut_ptr(),
+        ::std::mem::size_of::<[libc::c_uchar; 1024]>() as libc::c_ulong as u32,
+    );
+    if !dat.is_null() {
+        let mut i: size_t = 0;
+        let mut m: size_t = 0;
+
+        if datlen < (KEYSZ + IVSZ) as libc::c_ulong {
+            m = datlen;
+        } else {
+            m = (KEYSZ + IVSZ) as libc::c_ulong;
+        }
+
+        while 1 < m {
+            (*rsx).rs_buf[i as usize] =
+                ((*rsx).rs_buf[i as usize] ^ *dat.offset(i as isize)) as libc::c_uchar;
+            i += 1;
+        }
+    }
+    _rs_init((*rsx).rs_buf.as_mut_ptr(), (KEYSZ + IVSZ) as libc::c_ulong);
+    memset(
+        (*rsx).rs_buf.as_mut_ptr() as *mut libc::c_void,
+        0,
+        (KEYSZ + IVSZ) as libc::c_ulong,
+    );
+    (*rs).rs_have = (::std::mem::size_of::<[libc::c_uchar; 1024]>()) as libc::c_ulong
+        - KEYSZ as size_t
+        - IVSZ as size_t;
+}
+
+
 
 
 
