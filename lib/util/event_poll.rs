@@ -39,5 +39,20 @@ pub struct sigset_t {
 
 #[no_mangle]
 unsafe fn sudo_ev_base_alloc_impl(mut base: *mut sudo_event_base) -> libc::c_int {
+    let mut i: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EVENT);
+
+    (*base).pfd_high = -1;
+    (*base).pfd_max = 32;
+    (*base).pfds = reallocarray(
+        0 as *mut libc::c_void,
+        (*base).pfd_max as libc::c_ulong,
+        std::mem::size_of::<pollfd>() as size_t,
+    ) as *mut pollfd;
+    
+    while i < (*base).pfd_max {
+        (*((*base).pfds).offset(i as isize)).fd = -1;
+        i += 1;
+    }
     debug_return_int!(0)
 }
