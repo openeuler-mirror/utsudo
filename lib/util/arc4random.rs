@@ -625,7 +625,16 @@ unsafe fn _rs_random_u32(mut val: *mut libc::c_uint) {
     (*rs).rs_have -= ::std::mem::size_of::<uint32_t>() as size_t;
 }
 
-
-
+//line 204
+#[no_mangle]
+pub fn sudo_arc4random() -> libc::c_uint {
+    let mut val: libc::c_uint = 0;
+    unsafe {
+        pthread_mutex_lock(&mut arc4random_mtx);
+        _rs_random_u32(&mut val);
+        pthread_mutex_unlock(&mut arc4random_mtx);
+    }
+    return val;
+}
 
 
