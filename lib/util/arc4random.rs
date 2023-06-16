@@ -116,8 +116,46 @@ static mut arc4random_mtx: pthread_mutex_t = pthread_mutex_t {
     },
 };
 
+#[no_mangle]
+unsafe fn _rs_stir() {
+    let mut rnd: [libc::c_uchar; (KEYSZ + IVSZ) as usize] = [0; (KEYSZ + IVSZ) as usize];
 
+    if getentropy(
+        rnd.as_mut_ptr() as *mut libc::c_void,
+        ::std::mem::size_of::<[libc::c_uchar; (KEYSZ + IVSZ) as usize]>() as libc::c_ulong,
+    ) == -1
+    {
+        _getentropy_fail();
+    }
 
+    if rs.is_null() {
+        _rs_init(
+            rnd.as_mut_ptr(),
+            ::std::mem::size_of::<[libc::c_uchar; (KEYSZ + IVSZ) as usize]>() as libc::c_ulong,
+        );
+    } else {
+        _rs_rekey(
+            rnd.as_mut_ptr(),
+            ::std::mem::size_of::<[libc::c_uchar; (KEYSZ + IVSZ) as usize]>() as libc::c_ulong,
+        );
+    }
+
+    sudo_memset_s(
+        rnd.as_mut_ptr() as *mut libc::c_void,
+        ::std::mem::size_of::<[libc::c_uchar; (KEYSZ + IVSZ) as usize]>() as libc::c_ulong,
+        0,
+        ::std::mem::size_of::<[libc::c_uchar; (KEYSZ + IVSZ) as usize]>() as libc::c_ulong,
+    );
+
+    (*rs).rs_have = 0;
+
+    memset(
+        (*rsx).rs_buf.as_mut_ptr() as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<[libc::c_uchar; (16 * RSBUFSZ) as usize]>() as libc::c_ulong,
+    );
+    (*rs).rs_count = 1600000;
+}
 
 
 
