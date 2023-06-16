@@ -1,3 +1,15 @@
+/*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
+
+#![allow(dead_code, non_upper_case_globals, unused_mut)]
+
+extern "C" {
+    fn strrchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
+    static mut __progname: *const libc::c_char;
+}
 static mut progname: *const libc::c_char = b"\0" as *const u8 as *const libc::c_char; //*progname = ""
 #[no_mangle]
 pub unsafe extern "C" fn initprogname(mut name: *const libc::c_char) {
