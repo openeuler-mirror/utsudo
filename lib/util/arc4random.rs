@@ -296,6 +296,80 @@ static mut sigma: [libc::c_char; 16] =
 static mut tau: [libc::c_char; 16] =
     unsafe { *::std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"expand 16-byte k") };
 
+#[no_mangle]
+pub unsafe fn chacha_keysetup(
+    mut x: *mut chacha_ctx,
+    mut k: *const u8,
+    mut kbits: u32,
+    mut ivbits: u32,
+) {
+    let mut constants: *const libc::c_char = 0 as *const libc::c_char;
+
+    (*x).input[4] = U8TO32_LITTLE!(k, 0);
+    (*x).input[5] = U8TO32_LITTLE!(k, 4);
+    (*x).input[6] = U8TO32_LITTLE!(k, 8);
+    (*x).input[7] = U8TO32_LITTLE!(k, 12);
+
+    if kbits == 256 {
+        k = k.offset(16);
+        constants = sigma.as_ptr();
+    } else {
+        constants = tau.as_ptr();
+    }
+
+    (*x).input[8] = U8TO32_LITTLE!(k, 0);
+    (*x).input[9] = U8TO32_LITTLE!(k, 4);
+    (*x).input[10] = U8TO32_LITTLE!(k, 8);
+    (*x).input[11] = U8TO32_LITTLE!(k, 12);
+    (*x).input[0] = U8TO32_LITTLE!(constants, 0);
+    (*x).input[1] = U8TO32_LITTLE!(constants, 4);
+    (*x).input[2] = U8TO32_LITTLE!(constants, 8);
+    (*x).input[3] = U8TO32_LITTLE!(constants, 12);
+}
+
+//function chacha_encrypt_bytes    u32=libc::c_uint
+macro_rules! PLUS {
+    ($a:expr,$b:expr) => {
+        ($a + $b) & 0xffffffff as libc::c_uint
+    };
+}
+
+macro_rules! ROTATE {
+    ($c:expr,$d:expr) => {
+        $c << $d & 0xffffffff | $c >> 32 - $d
+    };
+}
+
+macro_rules! XOR {
+    ($e:expr,$f:expr) => {
+        ($e ^ $f)
+    };
+}
+
+macro_rules! QUARTERROUND {
+    ($a1:expr,$b1:expr,$c1:expr,$d1:expr) => {
+        $a1 = PLUS!($a1, $b1);
+        $d1 = ROTATE!(XOR!($d1, $a1), 16);
+        $c1 = PLUS!($c1, $d1);
+        $b1 = ROTATE!(XOR!($b1, $c1), 12);
+        $a1 = PLUS!($a1, $b1);
+        $d1 = ROTATE!(XOR!($d1, $a1), 8);
+        $c1 = PLUS!($c1, $d1);
+        $b1 = ROTATE!(XOR!($b1, $c1), 7);
+    };
+}
+
+macro_rules! U32TO8_LITTLE {
+    ($a:expr,$b:expr,$c:expr) => {
+        *$a.offset($c as isize).offset(0 as isize) = ($b & 0xff) as u8;
+        *$a.offset($c as isize).offset(1 as isize) = (($b >> 8) & 0xff) as u8;
+        *$a.offset($c as isize).offset(2 as isize) = (($b >> 16) & 0xff) as u8;
+        *$a.offset($c as isize).offset(3 as isize) = (($b >> 24) & 0xff) as u8;
+    };
+}
+
+
+
 
 
 
