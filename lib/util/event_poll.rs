@@ -109,6 +109,22 @@ unsafe fn sudo_ev_base_free_impl(mut base: *mut sudo_event_base) {
     debug_return!()
 }
 
+#[no_mangle]
+unsafe fn sudo_ev_del_impl(mut base: *mut sudo_event_base, mut ev: *mut sudo_event) -> libc::c_int {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EVENT);
+
+    /* Mark pfd entry unused, add to free list and adjust high slot. */
+    (*((*base).pfds).offset((*ev).pfd_idx as isize)).fd = -1;
+    if ((*ev).pfd_idx as libc::c_int) < (*base).pfd_free {
+        (*base).pfd_free = (*ev).pfd_idx as libc::c_int;
+    }
+
+    while ((*base).pfd_high >= 0) && (*((*base).pfds).offset((*base).pfd_high as isize)).fd == -1 {
+        (*base).pfd_high -= 1;
+    }
+    debug_return_int!(0)
+}
+
 unsafe fn sudo_ev_poll(
     mut fds: *mut pollfd,
     mut nfds: nfds_t,
