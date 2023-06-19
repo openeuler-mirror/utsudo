@@ -257,3 +257,16 @@ unsafe extern "C" fn sudo_ev_base_init(mut base: *mut sudo_event_base) -> libc::
     );
     return sudo_debug_ret_0;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ev_base_alloc_v1() -> *mut sudo_event_base {
+    let mut base: *mut sudo_event_base = 0 as *mut sudo_event_base;
+    let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
+    sudo_debug_enter_v1(
+        (*::core::mem::transmute::<&[u8; 22], &[libc::c_char; 22]>(b"sudo_ev_base_alloc_v1\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        207 as libc::c_int,
+        sudo_debug_subsys,
+    );
+}
