@@ -26,51 +26,94 @@ pub union sigval {
 pub type __sigval_t = sigval;
 
 pub struct siginfo_t {
+    pub si_signo: libc::c_int,
+    pub si_errno: libc::c_int,
+    pub si_code: libc::c_int,
 }
 
 pub struct kill_struct {
+    pub si_pid: __pid_t,
+    pub si_uid: __uid_t,
 }
 
 pub struct timer_struct {
+    pub si_tid: libc::c_int,
+    pub si_sigval: __sigval_t,
 }
 
 pub struct rt_struct {
+    pub si_pid: __pid_t,
+    pub si_uid: __uid_t,
+    pub si_sigval: __sigval_t,
 }
 
 pub struct sigchld_struct {
+    pub si_pid: __pid_t,
+    pub si_uid: __uid_t,
+    pub si_status: libc::c_int,
+    pub si_utime: __clock_t,
+    pub si_stime: __clock_t,
 }
 
 pub struct sigfault_struct {
+    pub si_addr_lsb: libc::c_short,
+    pub _bounds: bounds_struct,
 }
 
 pub struct sigpoll_struct {
+    pub si_band: libc::c_long,
+    pub si_fd: libc::c_int,
 }
 
 pub struct sigsys_struct {
+    pub _call_addr: *mut libc::c_void,
+    pub _syscall: libc::c_int,
+    pub _arch: libc::c_uint,
 }
 
 pub union sifields_union {
 }
 
 pub struct bounds_struct {
+    pub _addr_bnd: addr_bnd_struct,
+    pub _key: __uint32_t,
 }
 
 pub struct addr_bnd_struct {
+    pub _lower: *mut libc::c_void,
+    pub _upper: *mut libc::c_void,
 }
 
 pub struct __sigset_t {
+    pub __val: [libc::c_ulong; 16],
 }
 
 pub union __sigaction_handler_union {
 }
 
 pub struct sigaction {
+    pub __sigaction_handler: __sigaction_handler_union,
+    pub sa_mask: sigset_t,
+    pub sa_flags: libc::c_int,
+    pub sa_restorer: Option<unsafe extern "C" fn() -> ()>,
 }
 
 pub struct termios {
+    c_iflag: tcflag_t, 
+    c_oflag: tcflag_t, 
+    c_cflag: tcflag_t, 
+    c_lflag: tcflag_t, 
+    c_line: cc_t, 
+    c_cc: [cc_t; NCCS as usize], 
+    c_ispeed: speed_t,  
+    c_ospeed: speed_t, 
 }
 
 pub struct winsize {
+    ws_row: libc::c_ushort,
+    ws_col: libc::c_ushort,
+    ws_xpixel: libc::c_ushort,
+    ws_ypixel: libc::c_ushort,
 }
 
 
