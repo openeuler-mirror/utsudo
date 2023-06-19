@@ -13,6 +13,19 @@
     unused_mut,
     unused_variables
 )]
+pub type __dev_t = libc::c_ulong;
+pub type __uid_t = libc::c_uint;
+pub type __gid_t = libc::c_uint;
+pub type __ino_t = libc::c_ulong;
+pub type __mode_t = libc::c_uint;
+pub type __nlink_t = libc::c_ulong;
+pub type __off_t = libc::c_long;
+pub type __time_t = libc::c_long;
+pub type __blksize_t = libc::c_long;
+pub type __blkcnt_t = libc::c_long;
+pub type __syscall_slong_t = libc::c_long;
+pub type gid_t = __gid_t;
+pub type uid_t = __uid_t;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
