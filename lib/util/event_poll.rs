@@ -64,6 +64,23 @@ pub struct timespec {
     pub tv_nsec: __syscall_slong_t,
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_event {
+    pub entries: mid_struct_1,
+    pub active_entries: mid_struct_2,
+    pub timeouts_entries: mid_struct_3,
+    pub base: *mut sudo_event_base,
+    pub fd: libc::c_int,
+    pub events: libc::c_short,
+    pub revents: libc::c_short,
+    pub flags: libc::c_short,
+    pub pfd_idx: libc::c_short,
+    pub callback: sudo_ev_callback_t,
+    pub timeout: timespec,
+    pub closure: *mut libc::c_void,
+}
+
 #[no_mangle]
 unsafe fn sudo_ev_base_alloc_impl(mut base: *mut sudo_event_base) -> libc::c_int {
     let mut i: libc::c_int = 0;
