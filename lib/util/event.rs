@@ -245,4 +245,15 @@ unsafe extern "C" fn sudo_ev_base_init(mut base: *mut sudo_event_base) -> libc::
         );
         return sudo_debug_ret;
     }
+        sudo_ev_base_free_impl(base);
+    let mut sudo_debug_ret_0: libc::c_int = -(1 as libc::c_int);
+    sudo_debug_exit_int_v1(
+        (*::core::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"sudo_ev_base_init\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        200 as libc::c_int,
+        sudo_debug_subsys,
+        sudo_debug_ret_0,
+    );
+    return sudo_debug_ret_0;
 }
