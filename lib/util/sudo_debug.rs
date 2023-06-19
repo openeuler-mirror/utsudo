@@ -46,3 +46,18 @@ static mut sudo_debug_priorities: [*const libc::c_char; 9] = [
     0 as *const u8 as *const libc::c_char,
 ];
 
+
+#[macro_export]
+macro_rules! O_WRONLY {
+    () => {
+        01
+    };
+}
+
+#[macro_export]
+macro_rules! O_APPEND {
+    () => {
+        02000
+    };
+}
+
