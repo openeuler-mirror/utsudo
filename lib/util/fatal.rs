@@ -61,3 +61,8 @@ pub struct STRUCT_unnamed {
     pub sle_next: *mut sudo_fatal_callback,
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_fatal_callback_list {
+    pub slh_first: *mut sudo_fatal_callback,
+}
