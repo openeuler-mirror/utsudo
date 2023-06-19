@@ -80,3 +80,14 @@ unsafe fn sudo_digest_getlen_v1(mut digest_type: libc::c_int) -> libc::c_int {
     //line 154
     debug_return_int!(-1)
 }
+
+
+//line168
+#[no_mangle]
+unsafe fn sudo_digest_final_v1(mut dig: *mut sudo_digest, mut md: *mut libc::c_uchar) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    ((*(*dig).func).final_0).expect("is not func point")(md, &mut (*dig).ctx);
+
+    debug_return!()
+}
