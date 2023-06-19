@@ -197,4 +197,52 @@ unsafe extern "C" fn sudo_ev_base_init(mut base: *mut sudo_event_base) -> libc::
             &mut (*((*base).signals).as_mut_ptr().offset(i as isize)).tqh_first;
         i += 1;
     }
+        if sudo_ev_base_alloc_impl(base) != 0 as libc::c_int {
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"sudo_ev_base_init\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            185 as libc::c_int,
+            2 as libc::c_int | sudo_debug_subsys,
+            b"%s: unable to allocate impl base\0" as *const u8 as *const libc::c_char,
+            (*::core::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"sudo_ev_base_init\0"))
+                .as_ptr(),
+        );
+    } else if pipe2(
+        ((*base).signal_pipe).as_mut_ptr(),
+        0o4000 as libc::c_int | 0o2000000 as libc::c_int,
+    ) != 0 as libc::c_int
+    {
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"sudo_ev_base_init\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            190 as libc::c_int,
+            2 as libc::c_int | sudo_debug_subsys,
+            b"%s: unable to create signal pipe\0" as *const u8 as *const libc::c_char,
+            (*::core::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"sudo_ev_base_init\0"))
+                .as_ptr(),
+        );
+    } else {
+        sudo_ev_init(
+            &mut (*base).signal_event,
+            (*base).signal_pipe[0 as libc::c_int as usize],
+            (0x2 as libc::c_int | 0x8 as libc::c_int) as libc::c_short,
+            Some(
+                signal_pipe_cb
+                    as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+            ),
+            base as *mut libc::c_void,
+        );
+        let mut sudo_debug_ret: libc::c_int = 0 as libc::c_int;
+        sudo_debug_exit_int_v1(
+            (*::core::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"sudo_ev_base_init\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            196 as libc::c_int,
+            sudo_debug_subsys,
+            sudo_debug_ret,
+        );
+        return sudo_debug_ret;
+    }
 }
