@@ -12,5 +12,13 @@ pub type size_t = libc::c_ulong;
 pub const SIZE_MAX: libc::c_ulong = 18446744073709551615;
 pub const RSIZE_MAX: libc::c_ulong = SIZE_MAX >> 1;
 
-pub fn sudo_memset_s()
+pub fn sudo_memset_s(
+    mut v: *mut libc::c_void,
+    mut smax: size_t,
+    mut c: libc::c_int,
+    mut n: size_t,
+) -> libc::c_int {
+    let mut ret = 0;
+    return ret;
+}
 
