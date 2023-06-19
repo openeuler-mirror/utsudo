@@ -269,4 +269,30 @@ pub unsafe extern "C" fn sudo_ev_base_alloc_v1() -> *mut sudo_event_base {
         207 as libc::c_int,
         sudo_debug_subsys,
     );
+        base = calloc(
+        1 as libc::c_int as libc::c_ulong,
+        ::core::mem::size_of::<sudo_event_base>() as libc::c_ulong,
+    ) as *mut sudo_event_base;
+    if base.is_null() {
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 22], &[libc::c_char; 22]>(b"sudo_ev_base_alloc_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            212 as libc::c_int,
+            2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys,
+            b"%s: unable to allocate base\0" as *const u8 as *const libc::c_char,
+            (*::core::mem::transmute::<&[u8; 22], &[libc::c_char; 22]>(b"sudo_ev_base_alloc_v1\0"))
+                .as_ptr(),
+        );
+        let mut sudo_debug_ret: *mut libc::c_void = 0 as *mut libc::c_void;
+        sudo_debug_exit_ptr_v1(
+            (*::core::mem::transmute::<&[u8; 22], &[libc::c_char; 22]>(b"sudo_ev_base_alloc_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            213 as libc::c_int,
+            sudo_debug_subsys,
+            sudo_debug_ret,
+        );
+        return sudo_debug_ret as *mut sudo_event_base;
+    }
 }
