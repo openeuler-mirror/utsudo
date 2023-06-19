@@ -186,4 +186,15 @@ unsafe extern "C" fn sudo_ev_base_init(mut base: *mut sudo_event_base) -> libc::
         177 as libc::c_int,
         sudo_debug_subsys,
     );
+    (*base).events.tqh_first = 0 as *mut sudo_event;
+    (*base).events.tqh_last = &mut (*base).events.tqh_first;
+    (*base).timeouts.tqh_first = 0 as *mut sudo_event;
+    (*base).timeouts.tqh_last = &mut (*base).timeouts.tqh_first;
+    i = 0 as libc::c_int;
+    while i < 64 as libc::c_int + 1 as libc::c_int {
+        (*base).signals[i as usize].tqh_first = 0 as *mut sudo_event;
+        (*base).signals[i as usize].tqh_last =
+            &mut (*((*base).signals).as_mut_ptr().offset(i as isize)).tqh_first;
+        i += 1;
+    }
 }
