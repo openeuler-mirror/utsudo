@@ -19,6 +19,12 @@ pub fn sudo_memset_s(
     mut n: size_t,
 ) -> libc::c_int {
     let mut ret = 0;
+    let mut s: *mut libc::c_uchar = v as *mut libc::c_uchar;
+
+    if s.is_null() {
+        let ref mut fresh0 = unsafe { *__errno_location() };
+    } else {
+    }
     return ret;
 }
 
