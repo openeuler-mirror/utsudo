@@ -28,3 +28,35 @@ pub type GETGROUPS_T = gid_t; //#define GETGROUPS_T gid_t
 pub type size_t = libc::c_ulong;
 pub type id_t = libc::c_uint;
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_parse_gids_v1(
+    mut gidstr: *const libc::c_char,
+    mut basegid: *const gid_t,
+    mut gidsp: *mut *mut GETGROUPS_T,
+) -> libc::c_int {
+    let mut ngids: libc::c_int = 0;
+    let mut gids: *mut GETGROUPS_T = 0 as *mut GETGROUPS_T;
+    let mut cp: *const libc::c_char = gidstr;
+    let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+    let mut ep: *mut libc::c_char = 0 as *mut libc::c_char;
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    if *cp as libc::c_int != '\0' as i32 {
+        ngids += 1; //ngids++
+        loop {
+            if *cp as libc::c_int == ',' as i32 {
+                ngids += 1;
+            }
+            cp = cp.offset(1);
+
+            if *cp as libc::c_int != '\0' as i32 {
+                break;
+            }
+        }
+    }
+    if !basegid.is_null() {
+        ngids += 1;
+    }
+}
+
