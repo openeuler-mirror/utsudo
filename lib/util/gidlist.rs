@@ -21,3 +21,10 @@ extern "C" {
     fn free(__ptr: *mut libc::c_void);
     fn sudo_warnx_nodebug_v1(fmt: *const libc::c_char, _: ...);
 }
+
+pub type __gid_t = libc::c_uint; //typedef __gid_t gid_t;
+pub type gid_t = __gid_t;
+pub type GETGROUPS_T = gid_t; //#define GETGROUPS_T gid_t
+pub type size_t = libc::c_ulong;
+pub type id_t = libc::c_uint;
+
