@@ -29,3 +29,10 @@ static mut sudo_warn_conversation: sudo_conv_t = None;
 static mut sudo_warn_setlocale: Option<unsafe extern "C" fn(bool, *mut libc::c_int) -> bool> = None;
 static mut sudo_warn_setlocale_prev: Option<unsafe extern "C" fn(bool, *mut libc::c_int) -> bool> =
     None;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_fatal_callback {
+    pub entries: STRUCT_unnamed,
+    pub func: Option<unsafe extern "C" fn() -> ()>,
+}
