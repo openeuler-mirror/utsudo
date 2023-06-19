@@ -58,14 +58,9 @@ pub struct timeval {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct sudo_fatal_callback_list {
-    pub slh_first: *mut sudo_fatal_callback,
-}
-
-
-#[derive(Copy, Clone)]
-#[repr(C)]
 pub struct timezone {
     pub tz_minuteswest: libc::c_int,
     pub tz_dsttime: libc::c_int,
 }
+
+pub type __timezone_ptr_t = *mut timezone;
