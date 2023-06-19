@@ -36,3 +36,9 @@ pub struct sudo_fatal_callback {
     pub entries: STRUCT_unnamed,
     pub func: Option<unsafe extern "C" fn() -> ()>,
 }
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct STRUCT_unnamed {
+    pub sle_next: *mut sudo_fatal_callback,
+}
