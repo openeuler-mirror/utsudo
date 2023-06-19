@@ -81,6 +81,27 @@ pub struct sudo_event {
     pub closure: *mut libc::c_void,
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_event_base {
+    pub events: sudo_event_list,
+    pub active: sudo_event_list,
+    pub timeouts: sudo_event_list,
+    pub signal_event: sudo_event,
+    pub signals: [sudo_event_list; NSIG as usize],
+    pub orig_handlers: [*mut sigaction; NSIG as usize],
+    pub siginfo: [*mut siginfo_t; NSIG as usize],
+    pub signal_pending: [sig_atomic_t; NSIG as usize],
+    pub signal_caught: sig_atomic_t,
+    pub num_handlers: libc::c_int,
+    pub signal_pipe: [libc::c_int; 2],
+    pub pfds: *mut pollfd,
+    pub pfd_max: libc::c_int,
+    pub pfd_high: libc::c_int,
+    pub pfd_free: libc::c_int,
+    pub flags: libc::c_uint,
+}
+
 #[no_mangle]
 unsafe fn sudo_ev_base_alloc_impl(mut base: *mut sudo_event_base) -> libc::c_int {
     let mut i: libc::c_int = 0;
