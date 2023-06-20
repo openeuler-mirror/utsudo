@@ -14,3 +14,13 @@
     unused_variables,
     unused_macros
 )]
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct passwd {
+    pub pw_name: *mut libc::c_char,
+    pub pw_passwd: *mut libc::c_char,
+    pub pw_uid: __uid_t,
+    pub pw_gid: __gid_t,
+    pub pw_dir: *mut libc::c_char,
+}
