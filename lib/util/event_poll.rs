@@ -65,3 +65,12 @@ unsafe fn sudo_ev_base_free_impl(mut base: *mut sudo_event_base) {
     free((*base).pfds as *mut libc::c_void);
     debug_return!()
 }
+
+unsafe fn sudo_ev_poll(
+    mut fds: *mut pollfd,
+    mut nfds: nfds_t,
+    mut timo: *mut timespec,
+) -> libc::c_int {
+    return ppoll(fds, nfds, timo, 0 as *const sigset_t);
+}
+
