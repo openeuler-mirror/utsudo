@@ -56,4 +56,10 @@ pub struct timeval {
     pub tv_usec: __suseconds_t,
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_fatal_callback_list {
+    pub slh_first: *mut sudo_fatal_callback,
+}
+
 
