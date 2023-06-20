@@ -161,6 +161,55 @@ unsafe fn sudo_ev_base_free_impl(mut base: *mut sudo_event_base) {
 }
 
 #[no_mangle]
+unsafe fn sudo_ev_add_impl(mut base: *mut sudo_event_base, mut ev: *mut sudo_event) -> libc::c_int {
+    let mut pfd: *mut pollfd = 0 as *mut pollfd;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EVENT);
+
+    /* If out of space in pfds array, realloc. */
+    if (*base).pfd_free == (*base).pfd_max {
+        let mut pfds: *mut pollfd = 0 as *mut pollfd;
+        let mut i: libc::c_int = 0;
+
+        pfds = reallocarray(
+            (*base).pfds as *mut libc::c_void,
+            (*base).pfd_max as size_t,
+            ((2 as libc::c_ulong).wrapping_mul(::std::mem::size_of::<pollfd>() as libc::c_ulong))
+                as size_t,
+        ) as *mut pollfd;
+
+        (*base).pfds = pfds;
+        (*base).pfd_max *= 4;
+
+        i = (*base).pfd_free;
+        while i < (*base).pfd_max {
+            (*((*base).pfds).offset(i as isize)).fd = -1;
+            i += 1;
+        }
+    }
+
+    /* Fill in pfd entry. */
+    (*ev).pfd_idx = (*base).pfd_free as libc::c_short;
+    pfd = &mut *((*base).pfds).offset((*ev).pfd_idx as isize);
+    (*pfd).fd = (*ev).fd;
+
+    /* Update pfd_high and pfd_free. */
+    if (*ev).pfd_idx as libc::c_int > (*base).pfd_high {
+        (*base).pfd_high = (*ev).pfd_idx as libc::c_int;
+    }
+    loop {
+        (*base).pfd_free += 1;
+        if (*base).pfd_free == (*base).pfd_max {
+            break;
+        }
+        if (*((*base).pfds).offset((*base).pfd_free as isize)).fd == -1 {
+            break;
+        }
+    }
+    debug_return_int!(0)
+}
+
+
+#[no_mangle]
 unsafe fn sudo_ev_del_impl(mut base: *mut sudo_event_base, mut ev: *mut sudo_event) -> libc::c_int {
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EVENT);
 
