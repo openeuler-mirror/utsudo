@@ -104,6 +104,13 @@ pub struct sudo_event {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub struct sudo_event_list {
+    pub tqh_first: *mut sudo_event,
+    pub tqh_last: *mut *mut sudo_event,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub struct sudo_event_base {
     pub events: sudo_event_list,
     pub active: sudo_event_list,
