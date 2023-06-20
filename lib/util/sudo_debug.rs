@@ -62,6 +62,13 @@ macro_rules! O_APPEND {
 }
 
 
+macro_rules! sudo_setbit {
+    ($_a:expr, $_i:expr) => {{
+        (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
+    }};
+}
+
+
 #[macro_export]
 macro_rules! SUDO_DEBUG_LINENO {
     () => {
