@@ -32,6 +32,14 @@ pub struct _IO_wide_data {
     _unused: [u8; 0],
 }
 
+extern "C" {
+    fn strchr()
+    fn __ctype_b_loc()
+    fn realloc()
+    fn free()
+    fn memcpy()
+    fn sudo_debug_printf2_v1()
+}
 
 pub type __SIZE_TYPE__ = libc::c_ulong;
 pub type size_t = __SIZE_TYPE__;
