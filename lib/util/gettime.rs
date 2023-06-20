@@ -64,3 +64,5 @@ pub struct timezone {
 }
 
 pub type __timezone_ptr_t = *mut timezone;
+
+pub const CLOCK_REALTIME: libc::c_int = 0;
