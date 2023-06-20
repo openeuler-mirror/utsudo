@@ -17,6 +17,7 @@
 use crate::event::sudo_ev_callback_t;
 use crate::sudo_debug::sudo_debug_exit_v1;
 // use crate::sudo_debug::sudo_debug_printf2_v1;
+use libc::free;
 
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_int_v1;
@@ -59,6 +60,8 @@ unsafe fn sudo_ev_base_alloc_impl(mut base: *mut sudo_event_base) -> libc::c_int
 
 #[no_mangle]
 unsafe fn sudo_ev_base_free_impl(mut base: *mut sudo_event_base) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EVENT);
 
+    free((*base).pfds as *mut libc::c_void);
     debug_return!()
 }
