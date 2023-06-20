@@ -34,6 +34,11 @@ pub fn sudo_memset_s(
             if !(fresh2 != 0) {
                 break;
             }
+            let fresh3 = s;
+            unsafe {
+                s = s.offset(1); //*s++
+                ::std::ptr::write_volatile(fresh3, c);
+            }
         }
     }
     return ret;
