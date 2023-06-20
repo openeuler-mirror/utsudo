@@ -19,3 +19,17 @@ use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
 use crate::sudo_debug_macro::SUDO_DEBUG_LINENO;
 use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
+
+pub const _ISblank: libc::c_uint = 1;
+
+pub struct sudo_lbuf {
+    pub output: Option<unsafe extern "C" fn(*const libc::c_char) -> libc::c_int>, //int (*output)(const char *);
+    pub buf: *mut libc::c_char,
+    pub continuation: *const libc::c_char,
+    pub indent: libc::c_int,
+    pub len: libc::c_int,
+    pub size: libc::c_int,
+    pub cols: libc::c_short,
+    pub error: libc::c_short,
+}
+
