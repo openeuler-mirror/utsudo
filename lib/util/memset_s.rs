@@ -24,6 +24,11 @@ pub fn sudo_memset_s(
     if s.is_null() {
         let ref mut fresh0 = unsafe { *__errno_location() };
     } else {
+	if n > smax {
+            n = smax;
+            let ref mut fresh1 = unsafe { *__errno_location() };
+            ret = *fresh1;
+        }
     }
     return ret;
 }
