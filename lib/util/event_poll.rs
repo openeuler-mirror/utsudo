@@ -66,6 +66,27 @@ pub struct timespec {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub struct mid_struct_1 {
+    pub tqe_next: *mut sudo_event,
+    pub tqe_prev: *mut *mut sudo_event,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct mid_struct_2 {
+    pub tqe_next: *mut sudo_event,
+    pub tqe_prev: *mut *mut sudo_event,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct mid_struct_3 {
+    pub tqe_next: *mut sudo_event,
+    pub tqe_prev: *mut *mut sudo_event,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub struct sudo_event {
     pub entries: mid_struct_1,
     pub active_entries: mid_struct_2,
