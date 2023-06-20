@@ -15,6 +15,9 @@
     unused_macros
 )]
 
+pub type __uid_t = libc::c_uint;
+pub type __gid_t = libc::c_uint;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct passwd {
