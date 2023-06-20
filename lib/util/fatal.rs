@@ -66,3 +66,10 @@ pub struct STRUCT_unnamed {
 pub struct sudo_fatal_callback_list {
     pub slh_first: *mut sudo_fatal_callback,
 }
+
+static mut callbacks: sudo_fatal_callback_list = {
+    let mut init = sudo_fatal_callback_list {
+        slh_first: 0 as *const sudo_fatal_callback as *mut sudo_fatal_callback,
+    };
+    init
+};
