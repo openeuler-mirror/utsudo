@@ -34,6 +34,16 @@ pub type __syscall_slong_t = libc::c_long;
 pub type size_t = libc::c_ulong;
 pub type nfds_t = libc::c_ulong;
 
+pub const __SIGRTMIN: libc::c_uint = 64;
+pub const NSIG: libc::c_uint = __SIGRTMIN + 1;
+pub const SUDO_EV_READ: libc::c_short = 0x02;
+pub const POLLIN: libc::c_short = 0x001;
+pub const POLLHUP: libc::c_short = 0x010;
+pub const POLLNVAL: libc::c_short = 0x020;
+pub const POLLERR: libc::c_short = 0x008;
+pub const SUDO_EV_WRITE: libc::c_short = 0x04;
+pub const POLLOUT: libc::c_short = 0x004;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sigset_t {
