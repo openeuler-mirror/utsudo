@@ -42,6 +42,8 @@ pub struct sigset_t {
 
 
 extern "C" {
+    fn reallocarray(__ptr: *mut libc::c_void, __nmemb: size_t, __size: size_t)
+        -> *mut libc::c_void;
     fn ppoll(
         __fds: *mut pollfd,
         __nfds: nfds_t,
