@@ -8,6 +8,7 @@
 
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_bool_v1;
+use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
 extern "C" {
     fn lockf(__fd: libc::c_int, __cmd: libc::c_int, __len: off_t) -> libc::c_int;
