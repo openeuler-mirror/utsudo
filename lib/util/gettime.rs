@@ -66,7 +66,8 @@ pub struct timezone {
 pub type __timezone_ptr_t = *mut timezone;
 
 pub const CLOCK_REALTIME: libc::c_int = 0;
-
+pub const SUDO_CLOCK_BOOTTIME: libc::c_int = 7;
+pub const SUDO_CLOCK_UPTIME: libc::c_int = 1;
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_gettime_real_v1(mut ts: *mut timespec) -> libc::c_int {
