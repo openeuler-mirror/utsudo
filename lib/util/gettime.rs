@@ -63,3 +63,9 @@ pub struct sudo_fatal_callback_list {
 }
 
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct timezone {
+    pub tz_minuteswest: libc::c_int,
+    pub tz_dsttime: libc::c_int,
+}
