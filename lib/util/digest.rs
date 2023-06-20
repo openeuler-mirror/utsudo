@@ -40,6 +40,48 @@ pub struct digest_function {
     pub final_0: Option<unsafe extern "C" fn(*mut libc::c_uchar, *mut SHA2_CTX) -> ()>,
 }
 
+static mut digest_functions: [digest_function; 3] = {
+    [
+        {
+            let mut init = digest_function {
+                digest_len: SHA256_DIGEST_LENGTH as libc::c_uint,
+                init: Some(sudo_SHA256Init as unsafe extern "C" fn(*mut SHA2_CTX)),
+                update: Some(
+                    sudo_SHA256Update
+                        as unsafe extern "C" fn(*mut SHA2_CTX, *const uint8_t, size_t),
+                ),
+                final_0: Some(
+                    sudo_SHA256Final as unsafe extern "C" fn(*mut uint8_t, *mut SHA2_CTX),
+                ),
+            };
+            init
+        },
+        {
+            let mut init = digest_function {
+                digest_len: SHA512_DIGEST_LENGTH as libc::c_uint,
+                init: Some(sudo_SHA512Init as unsafe extern "C" fn(*mut SHA2_CTX)),
+                update: Some(
+                    sudo_SHA512Update
+                        as unsafe extern "C" fn(*mut SHA2_CTX, *const uint8_t, size_t),
+                ),
+                final_0: Some(
+                    sudo_SHA512Final as unsafe extern "C" fn(*mut uint8_t, *mut SHA2_CTX),
+                ),
+            };
+            init
+        },
+        {
+            let mut init = digest_function {
+                digest_len: 0 as libc::c_uint,
+                init: None,
+                update: None,
+                final_0: None,
+            };
+            init
+        },
+    ]
+};
+
 pub struct sudo_digest {
     pub func: *mut digest_function,
     pub ctx: SHA2_CTX,
