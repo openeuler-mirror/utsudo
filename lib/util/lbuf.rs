@@ -72,3 +72,13 @@ pub unsafe extern "C" fn sudo_lbuf_init_v1(
     debug_return!()
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_lbuf_destroy_v1(mut lbuf: *mut sudo_lbuf) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    free((*lbuf).buf as *mut libc::c_void);
+    (*lbuf).buf = 0 as *mut libc::c_char;
+
+    debug_return!()
+}
+
