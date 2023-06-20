@@ -27,3 +27,13 @@ extern "C" {
 // define
 pub const _SC_NGROUPS_MAX: libc::c_uint = 3;
 pub const NGROUPS_MAX: libc::c_uint = 65536;
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_getgrouplist2_v1(
+    mut name: *const libc::c_char,
+    mut basegid: gid_t,
+    mut groupsp: *mut *mut gid_t,
+    mut ngroupsp: *mut libc::c_int,
+) -> libc::c_int {
+    
+}
