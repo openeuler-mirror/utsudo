@@ -26,3 +26,23 @@ pub type ssize_t = __ssize_t;
 pub type __id_t = libc::c_uint;
 pub type id_t = __id_t;
 
+
+/*
+ * The debug priorities and subsystems are currently hard-coded.
+ * In the future we might consider allowing plugins to register their
+ * own subsystems and provide direct access to the debugging API.
+ */
+
+/* Note: this must match the order in sudo_debug.h */
+static mut sudo_debug_priorities: [*const libc::c_char; 9] = [
+    b"crit\0" as *const u8 as *const libc::c_char,
+    b"err\0" as *const u8 as *const libc::c_char,
+    b"warn\0" as *const u8 as *const libc::c_char,
+    b"notice\0" as *const u8 as *const libc::c_char,
+    b"diag\0" as *const u8 as *const libc::c_char,
+    b"info\0" as *const u8 as *const libc::c_char,
+    b"trace\0" as *const u8 as *const libc::c_char,
+    b"debug\0" as *const u8 as *const libc::c_char,
+    0 as *const u8 as *const libc::c_char,
+];
+
