@@ -29,6 +29,12 @@ pub fn sudo_memset_s(
             let ref mut fresh1 = unsafe { *__errno_location() };
             ret = *fresh1;
         }
+        loop {
+            let fresh2 = n.wrapping_sub(1);
+            if !(fresh2 != 0) {
+                break;
+            }
+        }
     }
     return ret;
 }
