@@ -19,6 +19,23 @@ use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
 use crate::sudo_debug_macro::SUDO_DEBUG_LINENO;
 use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
+extern "C" {
+    fn free(__ptr: *mut libc::c_void);
+    fn realloc(_: *mut libc::c_void, _: size_t) -> *mut libc::c_void;
+    fn strlen(__s: *const libc::c_char) -> libc::c_ulong;
+    fn __ctype_b_loc() -> *mut *const libc::c_ushort;
+    fn memchr(_: *const libc::c_void, _: libc::c_int, _: libc::c_ulong) -> *mut libc::c_void;
+    fn memrchr(__s: *const libc::c_void, __c: libc::c_int, __n: size_t) -> *mut libc::c_void;
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        lineno: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
+}
+
 
 pub const _ISblank: libc::c_uint = 1;
 
