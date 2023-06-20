@@ -47,4 +47,8 @@ pub unsafe extern "C" fn sudo_getgrouplist2_v1(
 
     //line91
     grpsize = sysconf(_SC_NGROUPS_MAX as libc::c_int) as libc::c_int;
+
+    //line94
+    grpsize += 1;
+
 }
