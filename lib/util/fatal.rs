@@ -73,3 +73,6 @@ static mut callbacks: sudo_fatal_callback_list = {
     };
     init
 };
+
+pub const SUDO_CONV_PROMPT_ECHO_OFF: libc::c_int = 1;
+pub const SUDO_CONV_PROMPT_ECHO_ON: libc::c_int = 2;
