@@ -1,3 +1,15 @@
+pub type __uint32_t = libc::c_uint;
+pub type __uid_t = libc::c_uint;
+pub type __pid_t = libc::c_int;
+pub type __clock_t = libc::c_long;
+pub type __time_t = libc::c_long;
+pub type __suseconds_t = libc::c_long;
+pub type __ssize_t = libc::c_long;
+pub type __syscall_slong_t = libc::c_long;
+pub type __sig_atomic_t = libc::c_int;
+pub type ssize_t = __ssize_t;
+pub type size_t = libc::c_ulong;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct __sigset_t {
