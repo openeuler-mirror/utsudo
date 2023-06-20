@@ -17,6 +17,8 @@
 use crate::event::sudo_ev_callback_t;
 use crate::sudo_debug::sudo_debug_exit_v1;
 // use crate::sudo_debug::sudo_debug_printf2_v1;
+use crate::term::__sigset_t;
+
 use libc::free;
 
 use crate::sudo_debug::sudo_debug_enter_v1;
@@ -36,6 +38,30 @@ pub type nfds_t = libc::c_ulong;
 #[repr(C)]
 pub struct sigset_t {
     pub __val: [libc::c_ulong; 16],
+}
+
+
+extern "C" {
+    fn ppoll(
+        __fds: *mut pollfd,
+        __nfds: nfds_t,
+        __timeout: *const timespec,
+        __ss: *const sigset_t,
+    ) -> libc::c_int;
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct pollfd {
+    pub fd: libc::c_int,
+    pub events: libc::c_short,
+    pub revents: libc::c_short,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct timespec {
+    pub tv_sec: __time_t,
+    pub tv_nsec: __syscall_slong_t,
 }
 
 #[no_mangle]
