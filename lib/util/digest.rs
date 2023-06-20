@@ -34,6 +34,7 @@ extern "C" {
 }
 
 pub struct digest_function {
+    pub digest_len: libc::c_uint,
     pub init: Option<unsafe extern "C" fn(*mut SHA2_CTX) -> ()>,
     pub update: Option<unsafe extern "C" fn(*mut SHA2_CTX, *const libc::c_uchar, size_t) -> ()>,
     pub final_0: Option<unsafe extern "C" fn(*mut libc::c_uchar, *mut SHA2_CTX) -> ()>,
@@ -64,6 +65,18 @@ unsafe fn sudo_digest_reset_v1(mut dig: *mut sudo_digest) {
 
 #[no_mangle]
 unsafe fn sudo_digest_getlen_v1(mut digest_type: libc::c_int) -> libc::c_int {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    let mut i: libc::c_int = 0;
+
+    //line 149
+    while digest_functions[i as usize].digest_len != 0 {
+        if digest_type == i {
+            debug_return_int!(digest_functions[i as usize].digest_len as libc::c_int);
+        }
+        i += 1;
+    }
+
     //line 154
     debug_return_int!(-1)
 }
