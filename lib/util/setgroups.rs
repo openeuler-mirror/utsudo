@@ -4,7 +4,13 @@
  * SPDX-License-Identifier: MulanPSL-2.0
  */
 
-//allow
+#![allow(
+    unused_variables,
+    non_camel_case_types,
+    unused_variables,
+    unused_assignments,
+    unused_mut
+)]
 
 extern "C" {
     fn sysconf(__name: libc::c_int) -> libc::c_long;
@@ -16,7 +22,7 @@ extern "C" {
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_int_v1;
 use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
- 
+
 pub type gid_t = libc::c_uint;
 pub type size_t = libc::c_ulong;
 
@@ -29,7 +35,8 @@ pub const NGROUPS_MAX: libc::c_int = 65536;
 unsafe extern "C" fn sudo_setgroups_v1(
     mut ngids: libc::c_int,
     mut gids: *const gid_t,
-@@ -30,9 +34,13 @@ unsafe extern "C" fn sudo_setgroups_v1(
+) -> libc::c_int {
+    let mut maxgids: libc::c_int = 0;
     let mut ret: libc::c_int = 0;
 
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
@@ -43,3 +50,4 @@ unsafe extern "C" fn sudo_setgroups_v1(
     //max
     }
 }
+
