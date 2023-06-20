@@ -26,8 +26,13 @@ use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 use libc::free;
 use libc::malloc;
 
+pub type size_t = libc::c_ulong;
+pub type uint8_t = libc::c_uchar;
+
 //define
 pub const EINVAL: libc::c_int = 22;
+pub const SHA256_DIGEST_LENGTH: libc::c_uint = 32;
+pub const SHA512_DIGEST_LENGTH: libc::c_uint = 64;
 
 extern "C" {
     fn __errno_location() -> *mut libc::c_int;
