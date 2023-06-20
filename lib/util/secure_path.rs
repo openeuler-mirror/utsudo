@@ -29,6 +29,13 @@ pub type uid_t = __uid_t;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub struct timespec {
+    pub tv_sec: __time_t,
+    pub tv_nsec: __syscall_slong_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub struct stat {
     pub st_dev: __dev_t,     /* Device.  */
     pub st_ino: __ino_t,     /* File serial number.	*/
