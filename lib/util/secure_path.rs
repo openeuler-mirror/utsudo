@@ -69,3 +69,15 @@ unsafe extern "C" fn stat(
 ) -> libc::c_int {
     return __xstat(1 as libc::c_int, __path, __statbuf);
 }
+
+/*
+ * Verify that path is the right type and not writable by other users.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_secure_path(
+    mut path: *const libc::c_char,
+    mut c_type: libc::c_uint,
+    mut uid: uid_t,
+    mut gid: gid_t,
+    mut sbp: *mut stat,
+) -> libc::c_int {}
