@@ -128,6 +128,24 @@ unsafe fn sudo_digest_getlen_v1(mut digest_type: libc::c_int) -> libc::c_int {
     debug_return_int!(-1)
 }
 
+#[no_mangle]
+unsafe fn sudo_digest_update_v1(
+    mut dig: *mut sudo_digest,
+    mut data: *const libc::c_void,
+    mut len: size_t,
+) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    //162
+    ((*(*dig).func).update).expect("is not null func point")(
+        &mut (*dig).ctx,
+        data as *const libc::c_uchar,
+        len,
+    );
+
+    //line164
+    debug_return!()
+}
 
 //line168
 #[no_mangle]
@@ -138,3 +156,4 @@ unsafe fn sudo_digest_final_v1(mut dig: *mut sudo_digest, mut md: *mut libc::c_u
 
     debug_return!()
 }
+
