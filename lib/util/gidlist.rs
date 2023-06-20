@@ -58,5 +58,28 @@ pub unsafe extern "C" fn sudo_parse_gids_v1(
     if !basegid.is_null() {
         ngids += 1;
     }
+
+    if ngids != 0 {
+        gids = reallocarray(
+            0 as *mut libc::c_void,
+            ngids as size_t,
+            ::std::mem::size_of::<GETGROUPS_T>() as libc::c_ulong, //sizeof(GETGROUPS_T)
+        ) as *mut GETGROUPS_T;
+        if gids.is_null() {
+            sudo_warnx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"unable to allocate memor0" as *const u8 as *const libc::c_char
+            );
+            debug_return_int!(-1);
+        }
+        ngids = 0;
+        if !basegid.is_null() {
+            *gids.offset(ngids as isize) = *basegid;
+            ngids += 1;
+        }
+
+        cp = gidstr;
+
 }
 
