@@ -23,4 +23,7 @@ extern "C" {
 	fn reallocarray(__ptr: *mut libc::c_void, __nmemb: size_t, __size: size_t)
 	    -> *mut libc::c_void;
     }
-    
+
+// define
+pub const _SC_NGROUPS_MAX: libc::c_uint = 3;
+pub const NGROUPS_MAX: libc::c_uint = 65536;
