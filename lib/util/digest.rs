@@ -92,6 +92,38 @@ pub struct sudo_digest {
     pub ctx: SHA2_CTX,
 }
 
+//line 97
+#[no_mangle]
+unsafe extern "C" fn sudo_digest_alloc_v1(mut digest_type: libc::c_int) -> *mut sudo_digest {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    //line 100
+    let mut func: *mut digest_function = 0 as *mut digest_function;
+    let mut dig: *mut sudo_digest = 0 as *mut sudo_digest;
+    let mut i: libc::c_int = 0;
+
+    //line104-109
+    // i = 0;
+    while digest_functions[i as usize].digest_len != 0 {
+        if digest_type == i {
+            func = &mut *digest_functions.as_mut_ptr().offset(i as isize) as *mut digest_function;
+            break;
+        } else {
+            i += 1;
+        }
+    }
+
+    //115
+    dig = malloc(::std::mem::size_of::<sudo_digest>() as libc::size_t) as *mut sudo_digest;
+
+    //line 117 118
+    ((*func).init).expect("is not a function pointer")(&mut (*dig).ctx);
+    (*dig).func = func;
+
+    //line 120
+    debug_return_ptr!(dig);
+}
+
 #[no_mangle]
 unsafe fn sudo_digest_free_v1(mut dig: *mut sudo_digest) {
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
