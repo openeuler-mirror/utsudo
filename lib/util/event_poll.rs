@@ -50,6 +50,14 @@ extern "C" {
         __timeout: *const timespec,
         __ss: *const sigset_t,
     ) -> libc::c_int;
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        lineno: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
