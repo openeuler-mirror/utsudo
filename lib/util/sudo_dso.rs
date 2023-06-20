@@ -27,3 +27,12 @@ macro_rules! SUDO_DSO_NOW {
         0x2
     };
 }
+
+#[macro_export]
+macro_rules! SUDO_DSO_GLOBAL {
+    () => {
+        0x3
+    };
+}
+
+
