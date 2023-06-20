@@ -25,7 +25,9 @@ pub const F_ULOCK: libc::c_int = 0;
 pub const F_LOCK: libc::c_int = 1;
 pub const F_TLOCK: libc::c_int = 2;
 
-unsafe extern "C" fn sudo_lock_file_v1()
+unsafe extern "C" fn sudo_lock_file_v1(mut fd: libc::c_int, mut type_0: libc::c_int) -> bool {
+    //return lockf(fd, op, len) == 0);
+}
 
 unsafe extern "C" fn sudo_lock_region_v1(
     mut fd: libc::c_int,
