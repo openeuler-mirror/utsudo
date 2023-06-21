@@ -81,5 +81,29 @@ pub unsafe extern "C" fn sudo_parse_gids_v1(
 
         cp = gidstr;
 
+        loop {
+            *gids.offset(ngids as isize) = sudo_strtoidx_v1(
+                cp,
+                b",\0" as *const u8 as *const libc::c_char,
+                &mut ep,
+                &mut errstr,
+            );
+            if !errstr.is_null() {
+                sudo_warnx!(b"%s: %s\0" as *const u8 as *const libc::c_char, cp, errstr);
+                free(gids as *mut libc::c_void);
+                debug_return_int!(-1);
+            }
+
+            if basegid.is_null() || *gids.offset(ngids as isize) != *basegid {
+                ngids += 1;
+            }
+            cp = ep.offset(1 as isize);
+            if !(*ep as libc::c_int != '\0' as i32) {
+                break;
+            }
+        }
+        *gidsp = gids;
+    }
+    debug_return_int!(ngids)
 }
 
