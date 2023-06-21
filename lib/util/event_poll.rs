@@ -263,6 +263,7 @@ unsafe fn sudo_ev_scan_impl(mut base: *mut sudo_event_base, mut flags: libc::c_i
     };
     let mut timeout: *mut timespec = 0 as *mut timespec;
     let mut ev: *mut sudo_event = 0 as *mut sudo_event;
+    let mut nready: libc::c_int;
 
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EVENT);
 
@@ -327,6 +328,15 @@ unsafe fn sudo_ev_scan_impl(mut base: *mut sudo_event_base, mut flags: libc::c_i
                     {
                         what |= ((*ev).events as libc::c_int & SUDO_EV_WRITE as libc::c_int);
                     }
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_DEBUG,
+                        b"%s: polled fd %d, events %d, activating %p\0" as *const u8
+                            as *const libc::c_char,
+                        stdext::function_name!().as_ptr(),
+                        (*ev).fd,
+                        what,
+                        ev
+                    );
 
                     (*ev).revents = what as libc::c_short;
                     sudo_ev_activate(base, ev);
