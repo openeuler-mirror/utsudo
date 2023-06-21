@@ -395,4 +395,15 @@ pub unsafe extern "C" fn sudo_ev_base_free_v1(mut base: *mut sudo_event_base) {
         free((*base).orig_handlers[i as usize] as *mut libc::c_void);
         i += 1;
     }
+    sudo_ev_base_free_impl(base);
+    close((*base).signal_pipe[0 as libc::c_int as usize]);
+    close((*base).signal_pipe[1 as libc::c_int as usize]);
+    free(base as *mut libc::c_void);
+    sudo_debug_exit_v1(
+        (*::core::mem::transmute::<&[u8; 21], &[libc::c_char; 21]>(b"sudo_ev_base_free_v1\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        252 as libc::c_int,
+        sudo_debug_subsys,
+    );
 }
