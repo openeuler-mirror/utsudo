@@ -27,6 +27,7 @@ extern "C" {
 
 pub type __uid_t = libc::c_uint;
 pub type __gid_t = libc::c_uint;
+pub type size_t = libc::c_ulong;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
