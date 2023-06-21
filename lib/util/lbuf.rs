@@ -50,3 +50,25 @@ pub struct sudo_lbuf {
     pub error: libc::c_short,
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_lbuf_init_v1(
+    mut lbuf: *mut sudo_lbuf,
+    mut output: sudo_lbuf_output_t,
+    mut indent: libc::c_int,
+    mut continuation: *const libc::c_char,
+    mut cols: libc::c_int,
+) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    (*lbuf).output = output;
+    (*lbuf).continuation = continuation;
+    (*lbuf).indent = indent;
+    (*lbuf).cols = cols as libc::c_short;
+    (*lbuf).error = 0 as libc::c_short;
+    (*lbuf).len = 0;
+    (*lbuf).size = 0;
+    (*lbuf).buf = 0 as *mut libc::c_char;
+
+    debug_return!()
+}
+
