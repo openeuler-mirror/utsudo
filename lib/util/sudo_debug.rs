@@ -93,6 +93,21 @@ macro_rules! S_IRUSR {
     };
 }
 
+#[macro_export]
+macro_rules! IGNORE_RESULT {
+    ($x:expr) => {
+        __typeof__(x) y = (x);
+       (void)y;
+    };
+}
+
+#[macro_export]
+macro_rules! F_SETFD {
+    () => {
+        2
+    };
+}
+
 macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
