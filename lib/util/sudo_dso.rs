@@ -45,4 +45,12 @@ macro_rules! RTLD_LAZY {
     };
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_preload_table {
+    pub path: *const libc::c_char,
+    pub handle: *mut libc::c_void,
+    pub symbols: *mut sudo_preload_symbol,
+}
+
 
