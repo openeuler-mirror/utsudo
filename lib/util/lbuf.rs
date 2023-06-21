@@ -115,3 +115,19 @@ unsafe extern "C" fn sudo_lbuf_expand(mut lbuf: *mut sudo_lbuf, mut extra: libc:
     debug_return_bool!(true)
 }
 
+/* XXX - check output function return value */
+unsafe extern "C" fn sudo_lbuf_println(
+    mut lbuf: *mut sudo_lbuf,
+    mut line: *mut libc::c_char,
+    mut len: libc::c_int,
+) {
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut save: libc::c_char = 0;
+    let mut i: libc::c_int = 0;
+    let mut have: libc::c_int = 0;
+    let mut contlen: libc::c_int = 0;
+    let mut indent: libc::c_int = (*lbuf).indent;
+    let mut is_comment: bool = false;
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+}
