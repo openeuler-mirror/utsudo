@@ -45,6 +45,17 @@ macro_rules! RTLD_LAZY {
     };
 }
 
+
+extern "C" {
+    fn dlerror() -> *mut libc::c_char;
+    fn dlclose(__handle: *mut libc::c_void) -> libc::c_int;
+    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
+    fn dlopen(__file: *const libc::c_char, __mode: libc::c_int) -> *mut libc::c_void;
+    fn dlsym(__handle: *mut libc::c_void, __name: *const libc::c_char) -> *mut libc::c_void;
+    fn __errno_location() -> *mut libc::c_int;
+}
+
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_preload_table {
