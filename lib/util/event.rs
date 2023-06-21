@@ -295,4 +295,18 @@ pub unsafe extern "C" fn sudo_ev_base_alloc_v1() -> *mut sudo_event_base {
         );
         return sudo_debug_ret as *mut sudo_event_base;
     }
+
+    if sudo_ev_base_init(base) != 0 as libc::c_int {
+        free(base as *mut libc::c_void);
+        let mut sudo_debug_ret_0: *mut libc::c_void = 0 as *mut libc::c_void;
+        sudo_debug_exit_ptr_v1(
+            (*::core::mem::transmute::<&[u8; 22], &[libc::c_char; 22]>(b"sudo_ev_base_alloc_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            217 as libc::c_int,
+            sudo_debug_subsys,
+            sudo_debug_ret_0,
+        );
+        return sudo_debug_ret_0 as *mut sudo_event_base;
+    }
 }
