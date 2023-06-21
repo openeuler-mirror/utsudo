@@ -58,6 +58,10 @@ pub unsafe extern "C" fn sudo_pw_dup(mut pw: *const passwd) -> *mut passwd {
             .wrapping_add(1 as libc::c_int as libc::c_ulong);
         total = (total as libc::c_ulong).wrapping_add(psize) as size_t as size_t;
     }
+    if !((*pw).pw_gecos).is_null() {
+        gsize = (strlen((*pw).pw_gecos)).wrapping_add(1 as libc::c_int as libc::c_ulong);
+        total = (total as libc::c_ulong).wrapping_add(gsize) as size_t as size_t;
+    }
     cp = malloc(total) as *mut libc::c_char;
     if cp.is_null() {
         return 0 as *mut passwd;
@@ -78,6 +82,11 @@ pub unsafe extern "C" fn sudo_pw_dup(mut pw: *const passwd) -> *mut passwd {
         memcpy(cp as *mut libc::c_void, (*pw).pw_passwd as *const libc::c_void, psize);
         (*newpw).pw_passwd = cp;
         cp = cp.offset(psize as isize);
+    }
+    if !((*pw).pw_gecos).is_null() {
+        memcpy(cp as *mut libc::c_void, (*pw).pw_gecos as *const libc::c_void, gsize);
+        (*newpw).pw_gecos = cp;
+        cp = cp.offset(gsize as isize);
     }
     return newpw;
 }
