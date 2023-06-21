@@ -40,6 +40,14 @@ macro_rules! _S_IFREG {
     };
 }
 
+// #define	__S_IFDIR	0040000	/* Directory.  */
+#[macro_export]
+macro_rules! _S_IFDIR {
+    () => {
+        0o40000
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
