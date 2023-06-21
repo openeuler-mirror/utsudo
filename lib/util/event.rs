@@ -360,4 +360,39 @@ pub unsafe extern "C" fn sudo_ev_base_free_v1(mut base: *mut sudo_event_base) {
         227 as libc::c_int,
         sudo_debug_subsys,
     );
+    if base.is_null() {
+        sudo_debug_exit_v1(
+            (*::core::mem::transmute::<&[u8; 21], &[libc::c_char; 21]>(b"sudo_ev_base_free_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            230 as libc::c_int,
+            sudo_debug_subsys,
+        );
+        return;
+    }
+    if default_base == base {
+        default_base = 0 as *mut sudo_event_base;
+    }
+    ev = (*base).events.tqh_first;
+    while !ev.is_null() && {
+        next = (*ev).entries.tqe_next;
+        1 as libc::c_int != 0
+    } {
+        sudo_ev_del_v1(base, ev);
+        ev = next;
+    }
+    i = 0 as libc::c_int;
+    while i < 64 as libc::c_int + 1 as libc::c_int {
+        ev = (*base).signals[i as usize].tqh_first;
+        while !ev.is_null() && {
+            next = (*ev).entries.tqe_next;
+            1 as libc::c_int != 0
+        } {
+            sudo_ev_del_v1(base, ev);
+            ev = next;
+        }
+        free((*base).siginfo[i as usize] as *mut libc::c_void);
+        free((*base).orig_handlers[i as usize] as *mut libc::c_void);
+        i += 1;
+    }
 }
