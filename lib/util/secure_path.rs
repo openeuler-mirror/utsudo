@@ -48,6 +48,14 @@ macro_rules! _S_IFDIR {
     };
 }
 
+// #define SUDO_PATH_MISSING		-1
+#[macro_export]
+macro_rules! SUDO_PATH_MISSING {
+    () => {
+        -1
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
