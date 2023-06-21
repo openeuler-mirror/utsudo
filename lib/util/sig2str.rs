@@ -17,6 +17,17 @@
 pub type size_t = libc::c_ulong;
 pub type __int32_t = libc::c_int;
 
+extern "C" {
+    fn __errno_location()
+    fn __libc_current_sigrtmin()
+    fn __libc_current_sigrtmax()
+    fn sysconf(__name: libc::c_int)
+    fn snprintf()
+    fn sudo_strlcpy()
+    fn __ctype_toupper_loc()
+    fn __ctype_b_loc()
+}
+
 pub unsafe extern "C" fn toupper()
 
 pub unsafe extern "C" fn sudo_sig2str()
