@@ -251,3 +251,30 @@ unsafe fn sudo_ev_poll(
     return ppoll(fds, nfds, timo, 0 as *const sigset_t);
 }
 
+#[no_mangle]
+unsafe fn sudo_ev_scan_impl(mut base: *mut sudo_event_base, mut flags: libc::c_int) -> libc::c_int {
+    let mut now: timespec = timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    let mut ts: timespec = timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    let mut timeout: *mut timespec = 0 as *mut timespec;
+    let mut ev: *mut sudo_event = 0 as *mut sudo_event;
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EVENT);
+
+    ev = (*base).timeouts.tqh_first;
+    if !ev.is_null() {
+        sudo_gettime_mono_v1(&mut now);
+        ts.tv_sec = (*ev).timeout.tv_sec - now.tv_sec;
+        ts.tv_nsec = (*ev).timeout.tv_nsec - now.tv_nsec;
+        while ts.tv_nsec < 0 {
+            ts.tv_sec -= 1;
+            ts.tv_nsec += 1000000000;
+        }
+        timeout = &mut ts;
+    }
+}
