@@ -69,6 +69,7 @@ pub struct sigchld_struct {
 }
 
 pub struct sigfault_struct {
+    pub si_addr: *mut libc::c_void,
     pub si_addr_lsb: libc::c_short,
     pub _bounds: bounds_struct,
 }
@@ -100,6 +101,7 @@ pub struct addr_bnd_struct {
 pub struct __sigset_t {
     pub __val: [libc::c_ulong; 16],
 }
+pub type sigset_t = __sigset_t;
 
 pub union __sigaction_handler_union {
 }
