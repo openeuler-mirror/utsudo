@@ -122,6 +122,20 @@ macro_rules! SUDO_DEBUG_LINENO {
     };
 }
 
+#[macro_export]
+macro_rules! SUDO_DEBUG_ERRNO {
+    () => {
+        (1 << 4)
+    };
+}
+
+#[macro_export]
+macro_rules! SUDO_DEBUG_LINENO {
+    () => {
+        (1 << 5)
+    };
+}
+
 
 /* Initializer for instance index to indicate that debugging is not setup. */
 // #define SUDO_DEBUG_INSTANCE_INITIALIZER      -1
