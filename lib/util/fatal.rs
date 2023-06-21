@@ -85,3 +85,8 @@ pub struct sudo_conv_message {
     pub timeout: libc::c_int,
     pub msg: *const libc::c_char,
 }
+
+
+pub struct sudo_conv_reply {
+    pub reply: *mut libc::c_char,
+}
