@@ -32,6 +32,8 @@ pub static mut sudo_term_erase: libc::c_int = 0;
 pub static mut sudo_term_kill: libc::c_int = 0;
 
 pub union sigval {
+    pub sival_int: libc::c_int,
+    pub sival_ptr: *mut libc::c_void,
 }
 
 pub type __sigval_t = sigval;
