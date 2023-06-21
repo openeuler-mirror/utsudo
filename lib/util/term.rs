@@ -4,6 +4,17 @@
  * SPDX-License-Identifier: MulanPSL-2.0
  */
 
+#![allow(
+    dead_code,
+    mutable_transmutes,
+    non_camel_case_types,
+    non_snake_case,
+    non_upper_case_globals,
+    unused_assignments,
+    unused_mut,
+    clashing_extern_declarations
+)]
+
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_bool_v1;
 
