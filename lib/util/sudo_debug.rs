@@ -62,6 +62,14 @@ macro_rules! O_APPEND {
 }
 
 
+#[macro_export]
+macro_rules! SUDO_DEBUG_LINENO {
+    () => {
+        (1 << 5)
+    };
+}
+
+
 /* Initializer for instance index to indicate that debugging is not setup. */
 // #define SUDO_DEBUG_INSTANCE_INITIALIZER      -1
 #[macro_export]
