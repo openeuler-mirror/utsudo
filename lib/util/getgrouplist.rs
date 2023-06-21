@@ -28,6 +28,7 @@ extern "C" {
 pub const _SC_NGROUPS_MAX: libc::c_uint = 3;
 pub const NGROUPS_MAX: libc::c_uint = 65536;
 
+//line_72
 #[no_mangle]
 pub unsafe extern "C" fn sudo_getgrouplist2_v1(
     mut name: *const libc::c_char,
@@ -47,6 +48,11 @@ pub unsafe extern "C" fn sudo_getgrouplist2_v1(
 
     //line91
     grpsize = sysconf(_SC_NGROUPS_MAX as libc::c_int) as libc::c_int;
+
+    //line92
+    if grpsize < 0 as libc::c_int {
+	grpsize = NGROUPS_MAX as libc::c_int;
+    }
 
     //line94
     grpsize += 1;
