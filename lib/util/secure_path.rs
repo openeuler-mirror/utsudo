@@ -27,6 +27,10 @@ pub type __syscall_slong_t = libc::c_long;
 pub type gid_t = __gid_t;
 pub type uid_t = __uid_t;
 
+use crate::sudo_debug::sudo_debug_enter_v1;
+use crate::sudo_debug::sudo_debug_exit_int_v1;
+use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
