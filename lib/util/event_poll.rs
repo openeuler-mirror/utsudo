@@ -275,6 +275,18 @@ unsafe fn sudo_ev_scan_impl(mut base: *mut sudo_event_base, mut flags: libc::c_i
             ts.tv_sec -= 1;
             ts.tv_nsec += 1000000000;
         }
+        if ts.tv_sec < 0 {
+            ts.tv_nsec = 0;
+            ts.tv_sec = 0;
+        }
         timeout = &mut ts;
+    }else {
+        if (flags & 0x02) != 0 {
+            ts.tv_nsec = 0;
+            ts.tv_sec = 0;
+            timeout = &mut ts;
+        } else {
+            timeout = 0 as *mut timespec;
+        }
     }
 }
