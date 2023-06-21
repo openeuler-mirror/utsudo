@@ -44,10 +44,7 @@ macro_rules! EINVAL {
         22
     };
 }
-
-
-
-
+type id_t = u32;
 
 
 
