@@ -55,6 +55,13 @@ extern "C" {
     fn __errno_location() -> *mut libc::c_int;
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_preload_symbol {
+    pub name: *const libc::c_char,
+    pub addr: *mut libc::c_void,
+}
+
 
 #[derive(Copy, Clone)]
 #[repr(C)]
