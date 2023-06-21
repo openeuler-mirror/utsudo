@@ -61,6 +61,19 @@ macro_rules! O_APPEND {
     };
 }
 
+#[macro_export]
+macro_rules! O_CREAT {
+    () => {
+        0100
+    };
+}
+
+#[macro_export]
+macro_rules! S_IRUSR {
+    () => {
+        0400
+    };
+}
 
 macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
