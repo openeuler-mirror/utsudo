@@ -76,3 +76,10 @@ static mut callbacks: sudo_fatal_callback_list = {
 
 pub const SUDO_CONV_PROMPT_ECHO_OFF: libc::c_int = 1;
 pub const SUDO_CONV_PROMPT_ECHO_ON: libc::c_int = 2;
+
+#[derive(Copy, Clone)]
+pub struct sudo_conv_message {
+    pub msg_type: libc::c_int,
+    pub timeout: libc::c_int,
+    pub msg: *const libc::c_char,
+}
