@@ -352,4 +352,12 @@ pub unsafe extern "C" fn sudo_ev_base_free_v1(mut base: *mut sudo_event_base) {
     let mut ev: *mut sudo_event = 0 as *mut sudo_event;
     let mut next: *mut sudo_event = 0 as *mut sudo_event;
     let mut i: libc::c_int = 0;
+    let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
+    sudo_debug_enter_v1(
+        (*::core::mem::transmute::<&[u8; 21], &[libc::c_char; 21]>(b"sudo_ev_base_free_v1\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        227 as libc::c_int,
+        sudo_debug_subsys,
+    );
 }
