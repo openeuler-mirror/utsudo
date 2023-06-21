@@ -37,3 +37,20 @@ pub struct passwd {
     pub pw_gid: __gid_t,
     pub pw_dir: *mut libc::c_char,
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_pw_dup(mut pw: *const passwd) -> *mut passwd {
+    let mut nsize: size_t = 0 as libc::c_int as size_t;
+    let mut total: size_t = 0;
+    let mut newpw: *mut passwd = 0 as *mut passwd;
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    total = ::core::mem::size_of::<passwd>() as libc::c_ulong;
+    newpw = cp as *mut passwd;
+    memcpy(
+        newpw as *mut libc::c_void,
+        pw as *const libc::c_void,
+        ::core::mem::size_of::<passwd>() as libc::c_ulong,
+    );
+    cp = cp.offset(::core::mem::size_of::<passwd>() as libc::c_ulong as isize);
+    return newpw;
+}
