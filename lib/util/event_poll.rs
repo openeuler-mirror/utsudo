@@ -289,4 +289,52 @@ unsafe fn sudo_ev_scan_impl(mut base: *mut sudo_event_base, mut flags: libc::c_i
             timeout = 0 as *mut timespec;
         }
     }
+    nready = sudo_ev_poll(
+        (*base).pfds,
+        ((*base).pfd_high + 1) as libc::c_int as nfds_t,
+        timeout,
+    );
+
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"%s: %d fds ready\0" as *const u8 as *const libc::c_char,
+        stdext::function_name!().as_ptr(),
+        nready
+    );
+
+    match nready {
+        -1 => {
+            debug_return_int!(-1);
+        }
+        0 => {}
+        _ => {
+            ev = (*base).events.tqh_first;
+            while !ev.is_null() {
+                if (*ev).pfd_idx != -1
+                    && (*((*base).pfds).offset((*ev).pfd_idx as isize)).revents != 0
+                {
+                    let mut what: libc::c_int = 0;
+
+                    if (*((*base).pfds).offset((*ev).pfd_idx as isize)).revents
+                        & (POLLIN | POLLHUP | POLLNVAL | POLLERR)
+                        != 0
+                    {
+                        what |= ((*ev).events as libc::c_int & SUDO_EV_READ as libc::c_int);
+                    }
+                    if (*((*base).pfds).offset((*ev).pfd_idx as isize)).revents
+                        & (POLLOUT | POLLHUP | POLLNVAL | POLLERR)
+                        != 0
+                    {
+                        what |= ((*ev).events as libc::c_int & SUDO_EV_WRITE as libc::c_int);
+                    }
+
+                    (*ev).revents = what as libc::c_short;
+                    sudo_ev_activate(base, ev);
+                }
+                ev = (*ev).entries.tqe_next;
+            }
+        }
+    };
+
+    debug_return_int!(nready)
 }
