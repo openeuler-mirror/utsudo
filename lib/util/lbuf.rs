@@ -82,3 +82,36 @@ pub unsafe extern "C" fn sudo_lbuf_destroy_v1(mut lbuf: *mut sudo_lbuf) {
     debug_return!()
 }
 
+//static
+unsafe extern "C" fn sudo_lbuf_expand(mut lbuf: *mut sudo_lbuf, mut extra: libc::c_int) -> bool {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    if (*lbuf).len + extra + 1 >= (*lbuf).size {
+        let mut new_buf: *mut libc::c_char;
+        let mut new_size: libc::c_int = (*lbuf).size;
+
+        //do_while
+        loop {
+            new_size += 256;
+            if !((*lbuf).len + extra + 1 >= new_size) {
+                break;
+            }
+        }
+
+        new_buf = realloc((*lbuf).buf as *mut libc::c_void, new_size as libc::c_ulong)
+            as *mut libc::c_char;
+        if new_buf.is_null() {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+
+            (*lbuf).error = 1;
+            debug_return_bool!(false);
+        }
+        (*lbuf).buf = new_buf;
+        (*lbuf).size = new_size;
+    }
+    debug_return_bool!(true)
+}
+
