@@ -346,3 +346,10 @@ pub unsafe extern "C" fn sudo_ev_base_alloc_v1() -> *mut sudo_event_base {
     );
     return sudo_debug_ret_1 as *mut sudo_event_base;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ev_base_free_v1(mut base: *mut sudo_event_base) {
+    let mut ev: *mut sudo_event = 0 as *mut sudo_event;
+    let mut next: *mut sudo_event = 0 as *mut sudo_event;
+    let mut i: libc::c_int = 0;
+}
