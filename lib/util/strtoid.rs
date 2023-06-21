@@ -30,3 +30,25 @@ macro_rules! INT_MIN {
     }
 
 
+// #define UINT_MAX (__INT_MAX__ * 2U + 1U)
+#[macro_export]
+macro_rules! UINT_MAX {
+    () => {
+        ((INT_MAX!()) * (2 as libc::c_uint) + 1 as libc::c_uint)
+    };
+}
+// #define	EINVAL		22	/* Invalid argument */
+#[macro_export]
+macro_rules! EINVAL {
+    () => {
+        22
+    };
+}
+
+
+
+
+
+
+
+
