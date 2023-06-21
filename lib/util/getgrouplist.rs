@@ -38,5 +38,11 @@ pub unsafe extern "C" fn sudo_getgrouplist2_v1(
 	let mut groups: *mut gid_t = *groupsp;
 	let mut ngroups: libc::c_int = 0;
 	let mut grpsize: libc::c_int = 0;
-	let mut tries: libc::c_int = 0;    
+	let mut tries: libc::c_int = 0;
+
+    //line82
+    if !groups.is_null() {
+        return getgrouplist(name, basegid, groups, ngroupsp);
+    }	
+
 }
