@@ -15,6 +15,16 @@
     unused_macros
 )]
 
+extern "C" {
+    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn memcpy(
+        _: *mut libc::c_void,
+        _: *const libc::c_void,
+        _: libc::c_ulong,
+    ) -> *mut libc::c_void;
+    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+}
+
 pub type __uid_t = libc::c_uint;
 pub type __gid_t = libc::c_uint;
 
