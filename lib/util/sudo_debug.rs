@@ -46,6 +46,24 @@ static mut sudo_debug_priorities: [*const libc::c_char; 9] = [
     0 as *const u8 as *const libc::c_char,
 ];
 
+static mut sudo_debug_default_subsystems: [*const libc::c_char; 15] = [
+    b"args\0" as *const u8 as *const libc::c_char,
+    b"conv\0" as *const u8 as *const libc::c_char,
+    b"edit\0" as *const u8 as *const libc::c_char,
+    b"event\0" as *const u8 as *const libc::c_char,
+    b"exec\0" as *const u8 as *const libc::c_char,
+    b"hooks\0" as *const u8 as *const libc::c_char,
+    b"main\0" as *const u8 as *const libc::c_char,
+    b"netif\0" as *const u8 as *const libc::c_char,
+    b"pcomm\0" as *const u8 as *const libc::c_char,
+    b"plugin\0" as *const u8 as *const libc::c_char,
+    b"pty\0" as *const u8 as *const libc::c_char,
+    b"selinux\0" as *const u8 as *const libc::c_char,
+    b"util\0" as *const u8 as *const libc::c_char,
+    b"utmp\0" as *const u8 as *const libc::c_char,
+    0 as *const u8 as *const libc::c_char,
+];
+
 
 #[macro_export]
 macro_rules! O_WRONLY {
