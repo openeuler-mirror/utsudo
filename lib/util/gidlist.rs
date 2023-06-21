@@ -18,6 +18,12 @@ use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 extern "C" {
     fn reallocarray(__ptr: *mut libc::c_void, __nmemb: size_t, __size: size_t)
         -> *mut libc::c_void;
+    fn sudo_strtoidx_v1(
+        str: *const libc::c_char,
+        sep: *const libc::c_char,
+        endp: *mut *mut libc::c_char,
+        errstr: *mut *const libc::c_char,
+    ) -> id_t;
     fn free(__ptr: *mut libc::c_void);
     fn sudo_warnx_nodebug_v1(fmt: *const libc::c_char, _: ...);
 }
@@ -58,7 +64,6 @@ pub unsafe extern "C" fn sudo_parse_gids_v1(
     if !basegid.is_null() {
         ngids += 1;
     }
-
     if ngids != 0 {
         gids = reallocarray(
             0 as *mut libc::c_void,
@@ -80,7 +85,6 @@ pub unsafe extern "C" fn sudo_parse_gids_v1(
         }
 
         cp = gidstr;
-
         loop {
             *gids.offset(ngids as isize) = sudo_strtoidx_v1(
                 cp,
