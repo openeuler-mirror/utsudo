@@ -31,6 +31,15 @@ use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_int_v1;
 use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
+
+// #define	__S_IFREG	0100000	/* Regular file.  */
+#[macro_export]
+macro_rules! _S_IFREG {
+    () => {
+        0o100000
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
