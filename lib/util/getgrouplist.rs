@@ -60,6 +60,13 @@ pub unsafe extern "C" fn sudo_getgrouplist2_v1(
     //line99
     while tries < 10 {
 
+        //line101
+        groups = reallocarray(
+		0 as *mut libc::c_void,
+		grpsize as size_t,
+		::std::mem::size_of::<gid_t>() as size_t,
+	    ) as *mut gid_t;
+	
     }
 
 }
