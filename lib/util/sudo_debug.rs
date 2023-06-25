@@ -145,3 +145,13 @@ macro_rules! SUDO_DEBUG_INSTANCE_INITIALIZER {
         -1
     };
 }
+
+
+extern "C" {
+    fn free(__ptr: *mut libc::c_void);
+    fn close(__fd: libc::c_int) -> libc::c_int;
+    fn calloc(__nmemb: libc::size_t, __size: libc::size_t) -> *mut libc::c_void;
+    fn reallocarray(_: *mut libc::c_void, _: libc::size_t, _: libc::size_t) -> *mut libc::c_void;
+    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
+    fn open(_: *const libc::c_char, _: libc::c_int, ...) -> libc::c_int;
+}
