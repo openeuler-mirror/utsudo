@@ -79,6 +79,7 @@ pub const SUDO_CONV_PROMPT_ECHO_ON: libc::c_int = 2;
 pub const SUDO_CONV_ERROR_MSG: libc::c_int = 3;
 pub const SUDO_CONV_INFO_MSG: libc::c_int = 4;
 pub const SUDO_CONV_PROMPT_MASK: libc::c_int = 5;
+pub const SUDO_CONV_PROMPT_ECHO_OK: libc::c_int = 4096;
 
 #[derive(Copy, Clone)]
 pub struct sudo_conv_message {
