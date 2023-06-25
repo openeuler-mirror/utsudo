@@ -169,3 +169,10 @@ unsafe extern "C" fn sudo_lbuf_println(
         }
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_lbuf_clearerr_v1(mut lbuf: *mut sudo_lbuf) {
+    if !lbuf.is_null() {
+        (*lbuf).error = 0 as libc::c_short;
+    }
+}
