@@ -167,8 +167,27 @@ unsafe extern "C" fn sudo_lbuf_println(
                 need = ep.offset_from(cp) as libc::c_long as libc::c_int;
             }
         }
+        if cp != line {
+            if is_comment {
+                ((*lbuf).output).expect("non-null function pointer")(
+                    b"# \0" as *const u8 as *const libc::c_char,
+                );
+            } else {
+                i = 0;
+                while i < indent {
+                    ((*lbuf).output).expect("non-null function pointer")(
+                        b" \0" as *const u8 as *const libc::c_char,
+                    );
+                    i += 1;
+                }
+            }
+        }
+
     }
 }
+
+
+
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_lbuf_error_v1(mut lbuf: *mut sudo_lbuf) -> bool {
