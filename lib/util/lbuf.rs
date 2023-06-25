@@ -182,8 +182,32 @@ unsafe extern "C" fn sudo_lbuf_println(
                 }
             }
         }
+        save = *cp.offset(need as isize);
+        *cp.offset(need as isize) = '\0' as i32 as libc::c_char;
+        ((*lbuf).output).expect("non-null function pointer")(cp);
+        *cp.offset(need as isize) = save;
+        cp = ep;
 
+        if !cp.is_null() {
+            have = (*lbuf).cols as libc::c_int - indent;
+            ep = line.offset(len as isize);
+            while cp < ep
+                && *(*__ctype_b_loc()).offset(*cp as libc::c_uchar as libc::c_int as isize)
+                    as libc::c_int
+                    & _ISblank as libc::c_int as libc::c_ushort as libc::c_int
+                    != 0
+            {
+                cp = cp.offset(1);
+            }
+            if contlen != 0 {
+                ((*lbuf).output).expect("non-null function pointer")((*lbuf).continuation);
+            }
+        }
+        ((*lbuf).output).expect("non-null function pointer")(
+            b"\n\0" as *const u8 as *const libc::c_char,
+        );
     }
+    debug_return!()
 }
 
 
