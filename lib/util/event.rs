@@ -8,6 +8,14 @@
     unused_mut
 )]
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct pollfd {
+    pub fd: libc::c_int,
+    pub events: libc::c_short,
+    pub revents: libc::c_short,
+}
+
 pub type __uint32_t = libc::c_uint;
 pub type __uid_t = libc::c_uint;
 pub type __pid_t = libc::c_int;
