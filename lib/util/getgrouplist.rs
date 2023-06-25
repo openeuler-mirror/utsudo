@@ -70,6 +70,10 @@ pub unsafe extern "C" fn sudo_getgrouplist2_v1(
             return -1 as libc::c_int;
         }
         ngroups = grpsize;
+        //line105
+        if getgrouplist(name, basegid, groups, &mut ngroups) != -1 {
+
+        }
     }
 
 }
