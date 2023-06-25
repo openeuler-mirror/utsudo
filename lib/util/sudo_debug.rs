@@ -154,6 +154,12 @@ extern "C" {
     fn reallocarray(_: *mut libc::c_void, _: libc::size_t, _: libc::size_t) -> *mut libc::c_void;
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     fn open(_: *const libc::c_char, _: libc::c_int, ...) -> libc::c_int;
+    fn __errno_location() -> *mut libc::c_int;
+    fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
+    fn sudo_warnx_nodebug_v1(fmt: *const libc::c_char, _: ...);
+    fn fcntl(__fd: libc::c_int, __cmd: libc::c_int, ...);
+    fn realloc(__ptr: *mut libc::c_void, __size: libc::size_t) -> *mut libc::c_void;
+    fn memset(__s: *mut libc::c_void, __c: libc::c_int, _n: libc::size_t) -> *mut libc::c_void;
 }
 
 #[derive(Copy, Clone)]
