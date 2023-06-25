@@ -88,6 +88,13 @@ macro_rules! SUDO_PATH_WORLD_WRITABLE {
     };
 }
 
+// #define SUDO_PATH_GROUP_WRITABLE	-5
+#[macro_export]
+macro_rules! SUDO_PATH_GROUP_WRITABLE {
+    () => {
+        -5
+    };
+}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
