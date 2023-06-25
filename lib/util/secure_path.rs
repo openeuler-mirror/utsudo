@@ -72,6 +72,14 @@ macro_rules! SUDO_PATH_BAD_TYPE {
     };
 }
 
+// #define SUDO_PATH_WRONG_OWNER		-3
+#[macro_export]
+macro_rules! SUDO_PATH_WRONG_OWNER {
+    () => {
+        -3
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
