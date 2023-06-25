@@ -57,4 +57,9 @@ pub unsafe extern "C" fn sudo_getgrouplist2_v1(
     //line94
     grpsize += 1;
 
+    //line99
+    while tries < 10 {
+
+    }
+
 }
