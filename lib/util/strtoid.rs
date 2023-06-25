@@ -21,3 +21,12 @@ use crate::sudo_debug::sudo_debug_exit_id_t_v1;
 
 use crate::INT_MAX;
 
+// #define INT_MIN (-__INT_MAX__ - 1)
+#[macro_export]
+macro_rules! INT_MIN {
+    () => {
+        (-(INT_MAX!()) - 1)
+    };
+    }
+
+
