@@ -130,4 +130,16 @@ unsafe extern "C" fn sudo_lbuf_println(
     let mut is_comment: bool = false;
 
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    if *line.offset(0 as isize) as libc::c_int == '#' as i32
+        && *(*__ctype_b_loc())
+            .offset(*line.offset(1 as isize) as libc::c_uchar as libc::c_int as isize)
+            as libc::c_int
+            & _ISblank as libc::c_ushort as libc::c_int
+            != 0
+    {
+        is_comment = true;
+        indent = 2;
+    }
+
 }
