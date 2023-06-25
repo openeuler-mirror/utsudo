@@ -80,6 +80,15 @@ macro_rules! SUDO_PATH_WRONG_OWNER {
     };
 }
 
+// #define SUDO_PATH_WORLD_WRITABLE	-4
+#[macro_export]
+macro_rules! SUDO_PATH_WORLD_WRITABLE {
+    () => {
+        -4
+    };
+}
+
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
