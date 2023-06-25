@@ -45,6 +45,15 @@ macro_rules! RTLD_LAZY {
     };
 }
 
+pub const SUDO_DSO_NEXT: *mut libc::c_void = -(1 as libc::c_int) as *mut libc::c_void;
+pub const SUDO_DSO_DEFAULT: *mut libc::c_void = -(2 as libc::c_int) as *mut libc::c_void;
+pub const SUDO_DSO_SELF: *mut libc::c_void = -(3 as libc::c_int) as *mut libc::c_void;
+
+pub const RTLD_NEXT: *mut libc::c_void = -(1 as libc::c_long) as *mut libc::c_void;
+
+pub const RTLD_DEFAULT: *mut libc::c_void = 0 as *mut libc::c_void;
+
+pub const ENOENT: libc::c_int = 2;
 
 extern "C" {
     fn dlerror() -> *mut libc::c_char;
