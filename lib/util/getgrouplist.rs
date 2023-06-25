@@ -66,7 +66,9 @@ pub unsafe extern "C" fn sudo_getgrouplist2_v1(
 		grpsize as size_t,
 		::std::mem::size_of::<gid_t>() as size_t,
 	    ) as *mut gid_t;
-	
+	if groups.is_null() {
+            return -1 as libc::c_int;
+        }
     }
 
 }
