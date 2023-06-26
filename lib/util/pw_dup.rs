@@ -46,7 +46,7 @@ pub unsafe extern "C" fn sudo_pw_dup(mut pw: *const passwd) -> *mut passwd {
     let mut nsize: size_t = 0 as libc::c_int as size_t;
     let mut psize: size_t = 0 as libc::c_int as size_t;
     let mut gsize: size_t = 0 as libc::c_int as size_t;
-
+    let mut ssize: size_t = 0 as libc::c_int as size_t;
     let mut total: size_t = 0;
     let mut newpw: *mut passwd = 0 as *mut passwd;
     let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
@@ -67,6 +67,10 @@ pub unsafe extern "C" fn sudo_pw_dup(mut pw: *const passwd) -> *mut passwd {
     if !((*pw).pw_dir).is_null() {
         dsize = (strlen((*pw).pw_dir)).wrapping_add(1 as libc::c_int as libc::c_ulong);
         total = (total as libc::c_ulong).wrapping_add(dsize) as size_t as size_t;
+    }
+    if !((*pw).pw_shell).is_null() {
+        ssize = (strlen((*pw).pw_shell)).wrapping_add(1 as libc::c_int as libc::c_ulong);
+        total = (total as libc::c_ulong).wrapping_add(ssize) as size_t as size_t;
     }
     cp = malloc(total) as *mut libc::c_char;
     if cp.is_null() {
@@ -98,6 +102,11 @@ pub unsafe extern "C" fn sudo_pw_dup(mut pw: *const passwd) -> *mut passwd {
         memcpy(cp as *mut libc::c_void, (*pw).pw_dir as *const libc::c_void, dsize);
         (*newpw).pw_dir = cp;
         cp = cp.offset(dsize as isize);
+    }
+    if !((*pw).pw_shell).is_null() {
+        memcpy(cp as *mut libc::c_void, (*pw).pw_shell as *const libc::c_void, ssize);
+        (*newpw).pw_shell = cp;
+        cp = cp.offset(ssize as isize);
     }
     return newpw;
 }
