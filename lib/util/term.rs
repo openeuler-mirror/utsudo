@@ -32,8 +32,9 @@ pub static mut sudo_term_erase: libc::c_int = 0;
 pub static mut sudo_term_kill: libc::c_int = 0;
 
 pub union sigval {
+    pub sival_int: libc::c_int,
+    pub sival_ptr: *mut libc::c_void,
 }
-
 pub type __sigval_t = sigval;
 
 pub struct siginfo_t {
@@ -83,6 +84,12 @@ pub struct sigsys_struct {
 }
 
 pub union sifields_union {
+    pub _kill: kill_struct,
+    pub _timer: timer_struct,
+    pub _sigchld: sigchld_struct,
+    pub _sigfault: sigfault_struct,
+    pub _sigpoll: sigpoll_struct,
+    pub _sigsys: sigsys_struct,
 }
 
 pub struct bounds_struct {
