@@ -75,7 +75,10 @@ pub unsafe extern "C" fn sudo_gettime_real_v1(mut ts: *mut timespec) -> libc::c_
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
     if clock_gettime(CLOCK_REALTIME, ts) == -1 {
-
+        let mut tv: timeval = timeval {
+            tv_sec: 0,
+            tv_usec: 0,
+        };
     }
     
     debug_return_int!(0)
