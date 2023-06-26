@@ -64,6 +64,14 @@ macro_rules! _S_IFMT {
     };
 }
 
+// #define SUDO_PATH_BAD_TYPE		-2
+#[macro_export]
+macro_rules! SUDO_PATH_BAD_TYPE {
+    () => {
+        -2
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
