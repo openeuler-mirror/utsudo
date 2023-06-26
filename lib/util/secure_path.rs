@@ -56,6 +56,14 @@ macro_rules! SUDO_PATH_MISSING {
     };
 }
 
+// #define	__S_IFMT	0170000	/* These bits determine file type.  */
+#[macro_export]
+macro_rules! _S_IFMT {
+    () => {
+        0o170000
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
