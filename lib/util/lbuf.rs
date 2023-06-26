@@ -142,4 +142,30 @@ unsafe extern "C" fn sudo_lbuf_println(
         indent = 2;
     }
 
+    if !((*lbuf).continuation).is_null() && !is_comment {
+        contlen = strlen((*lbuf).continuation) as libc::c_int;
+    }
+
+    cp = line;
+    have = (*lbuf).cols as libc::c_int;
+    while !cp.is_null() && *cp as libc::c_int != '\0' as i32 {
+        let mut ep: *mut libc::c_char = 0 as *mut libc::c_char;
+        let mut need: libc::c_int = len - cp.offset_from(line) as libc::c_long as libc::c_int;
+
+        if need > have {
+            have -= contlen;
+            ep =
+                memrchr(cp as *const libc::c_void, ' ' as i32, have as size_t) as *mut libc::c_char;
+            if ep.is_null() {
+                ep = memchr(
+                    cp.offset(have as isize) as *const libc::c_void,
+                    ' ' as i32,
+                    (need - have) as libc::c_ulong,
+                ) as *mut libc::c_char
+            };
+            if !ep.is_null() {
+                need = ep.offset_from(cp) as libc::c_long as libc::c_int;
+            }
+        }
+    }
 }
