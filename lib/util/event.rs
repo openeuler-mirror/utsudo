@@ -449,4 +449,12 @@ pub unsafe extern "C" fn sudo_ev_base_setdef_v1(mut base: *mut sudo_event_base){
         258 as libc::c_int,
         sudo_debug_subsys,
     );
+    default_base = base;
+    sudo_debug_exit_v1(
+        (*::core::mem::transmute::<&[u8; 23], &[libc::c_char; 23]>(b"sudo_ev_base_setdef_v1\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        262 as libc::c_int,
+        sudo_debug_subsys,
+    );
 }
