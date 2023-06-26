@@ -17,8 +17,10 @@
 use crate::event::sudo_ev_callback_t;
 use crate::sudo_debug::sudo_debug_exit_v1;
 // use crate::sudo_debug::sudo_debug_printf2_v1;
+use crate::term::__sighandler_t;
 use crate::term::__sigset_t;
-
+use crate::term::sig_atomic_t;
+use crate::term::siginfo_t;
 use libc::free;
 
 use crate::sudo_debug::sudo_debug_enter_v1;
