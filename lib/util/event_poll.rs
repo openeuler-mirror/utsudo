@@ -131,6 +131,14 @@ pub struct sudo_event_list {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub struct sigaction {
+    pub sa_mask: __sigset_t,
+    pub sa_flags: libc::c_int,
+    pub sa_restorer: Option<fn()>,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub struct sudo_event_base {
     pub events: sudo_event_list,
     pub active: sudo_event_list,
