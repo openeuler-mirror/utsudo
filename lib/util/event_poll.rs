@@ -133,7 +133,15 @@ pub struct sudo_event_list {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub union mid_union_1 {
+    pub sa_handler: __sighandler_t,
+    pub sa_sigaction: Option<fn(libc::c_int, *mut siginfo_t, *mut libc::c_void)>,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub struct sigaction {
+    pub __sigaction_handler: mid_union_1,
     pub sa_mask: __sigset_t,
     pub sa_flags: libc::c_int,
     pub sa_restorer: Option<fn()>,
