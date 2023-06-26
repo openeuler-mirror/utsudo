@@ -27,6 +27,18 @@ extern "C" {
     fn read(__fd: libc::c_int, __buf: *mut libc::c_void, __nbytes: size_t) -> ssize_t;
     fn write(__fd: libc::c_int, __buf: *const libc::c_void, __n: size_t) -> ssize_t;
     fn pipe2(__pipedes: *mut libc::c_int, __flags: libc::c_int) -> libc::c_int;
+    fn sudo_debug_enter_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        line: libc::c_int,
+        subsys: libc::c_int,
+    );
+    fn sudo_debug_exit_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        line: libc::c_int,
+        subsys: libc::c_int,
+    );
 }
 
 pub type __uint32_t = libc::c_uint;
