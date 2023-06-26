@@ -60,6 +60,13 @@ pub struct timespec {
     pub tv_sec: __time_t,
     pub tv_nsec: __syscall_slong_t,
 }
+pub type __sigval_t = sigval;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union sigval {
+    pub sival_int: libc::c_int,
+    pub sival_ptr: *mut libc::c_void,
+}
 
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
