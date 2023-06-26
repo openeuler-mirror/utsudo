@@ -90,6 +90,18 @@ pub struct siginfo_t {
     pub __pad0: libc::c_int,
     pub _sifields: C2RustUnnamed,
 }
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union C2RustUnnamed {
+    pub _pad: [libc::c_int; 28],
+    pub _kill: C2RustUnnamed_8,
+    pub _timer: C2RustUnnamed_7,
+    pub _rt: C2RustUnnamed_6,
+    pub _sigchld: C2RustUnnamed_5,
+    pub _sigfault: C2RustUnnamed_2,
+    pub _sigpoll: C2RustUnnamed_1,
+    pub _sigsys: C2RustUnnamed_0,
+}
 
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
