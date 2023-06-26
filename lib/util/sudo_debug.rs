@@ -155,3 +155,14 @@ extern "C" {
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     fn open(_: *const libc::c_char, _: libc::c_int, ...) -> libc::c_int;
 }
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_debug_instance {
+    pub program: *mut libc::c_char,
+    pub subsystems: *const *const libc::c_char,
+    pub subsystem_ids: *const libc::c_uint,
+    pub max_subsystem: libc::c_uint,
+    pub outputs: sudo_debug_output_list,
+}
+
