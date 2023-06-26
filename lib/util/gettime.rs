@@ -79,6 +79,11 @@ pub unsafe extern "C" fn sudo_gettime_real_v1(mut ts: *mut timespec) -> libc::c_
             tv_sec: 0,
             tv_usec: 0,
         };
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_ERRNO | SUDO_DEBUG_LINENO,
+            b"clock_gettime(CLOCK_REALTIME) failed, trying gettimeofday()\0" as *const u8
+                as *const libc::c_char
+        );
     }
     
     debug_return_int!(0)
