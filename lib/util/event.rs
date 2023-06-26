@@ -497,4 +497,14 @@ unsafe extern "C" fn sudo_ev_init(
         272 as libc::c_int,
         sudo_debug_subsys,
     );
+    memset(
+        ev as *mut libc::c_void,
+        0 as libc::c_int,
+        ::core::mem::size_of::<sudo_event>() as libc::c_ulong,
+    );
+    (*ev).fd = fd;
+    (*ev).events = events;
+    (*ev).pfd_idx = -(1 as libc::c_int) as libc::c_short;
+    (*ev).callback = callback;
+    (*ev).closure = closure;
 }
