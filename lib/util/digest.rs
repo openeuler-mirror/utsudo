@@ -31,6 +31,7 @@ pub type uint8_t = libc::c_uchar;
 
 //define
 pub const EINVAL: libc::c_int = 22;
+pub const SHA224_DIGEST_LENGTH: libc::c_uint = 28;
 pub const SHA256_DIGEST_LENGTH: libc::c_uint = 32;
 pub const SHA512_DIGEST_LENGTH: libc::c_uint = 64;
 
@@ -47,6 +48,21 @@ pub struct digest_function {
 
 static mut digest_functions: [digest_function; 3] = {
     [
+        {
+            //init member 1,one by one
+            let mut init = digest_function {
+                digest_len: SHA224_DIGEST_LENGTH as libc::c_uint,
+                init: Some(sudo_SHA224Init as unsafe extern "C" fn(*mut SHA2_CTX)),
+                update: Some(
+                    sudo_SHA224Update
+                        as unsafe extern "C" fn(*mut SHA2_CTX, *const uint8_t, size_t),
+                ),
+                final_0: Some(
+                    sudo_SHA224Final as unsafe extern "C" fn(*mut uint8_t, *mut SHA2_CTX),
+                ),
+            };
+            init
+        },
         {
             let mut init = digest_function {
                 digest_len: SHA256_DIGEST_LENGTH as libc::c_uint,
