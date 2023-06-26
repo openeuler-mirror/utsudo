@@ -68,6 +68,17 @@ pub union sigval {
     pub sival_ptr: *mut libc::c_void,
 }
 
+pub type sig_atomic_t = __sig_atomic_t;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct siginfo_t {
+    pub si_signo: libc::c_int,
+    pub si_errno: libc::c_int,
+    pub si_code: libc::c_int,
+    pub __pad0: libc::c_int,
+    pub _sifields: C2RustUnnamed,
+}
+
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 
