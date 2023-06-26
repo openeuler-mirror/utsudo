@@ -160,6 +160,21 @@ extern "C" {
     fn fcntl(__fd: libc::c_int, __cmd: libc::c_int, ...);
     fn realloc(__ptr: *mut libc::c_void, __size: libc::size_t) -> *mut libc::c_void;
     fn memset(__s: *mut libc::c_void, __c: libc::c_int, _n: libc::size_t) -> *mut libc::c_void;
+    fn strtok_r(
+        __s: *mut libc::c_char,
+        __delim: *const libc::c_char,
+        __save_ptr: *mut *mut libc::c_char,
+    ) -> *mut libc::c_char;
+    fn strchr(__s: *const libc::c_char, __c: libc::c_int) -> *mut libc::c_char;
+    fn strcasecmp(__s1: *const libc::c_char, __s2: *const libc::c_char) -> libc::c_int;
+    fn strcmp(__s1: *const libc::c_char, __s2: *const libc::c_char) -> libc::c_int;
+    fn malloc(__size: libc::size_t) -> *mut libc::c_void;
+    fn snprintf(
+        _: *mut libc::c_char,
+        _: libc::c_ulong,
+        _: *const libc::c_char,
+        _: ...
+    ) -> libc::c_int;
 }
 
 #[derive(Copy, Clone)]
