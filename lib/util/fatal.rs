@@ -97,5 +97,5 @@ pub type sudo_conv_callback_fn_t =
     Option<unsafe extern "C" fn(libc::c_int, *mut libc::c_void) -> libc::c_int>;
 
 pub struct sudo_conv_callback {
-
+    pub version: libc::c_uint,
 }
