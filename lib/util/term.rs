@@ -116,6 +116,9 @@ pub struct sigaction {
     pub sa_restorer: Option<unsafe extern "C" fn() -> ()>,
 }
 
+pub type sig_atomic_t = libc::c_int;
+static mut got_sigttou: sig_atomic_t = 0 as sig_atomic_t;
+
 pub struct termios {
     c_iflag: tcflag_t, 
     c_oflag: tcflag_t, 
