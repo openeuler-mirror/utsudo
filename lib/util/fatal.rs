@@ -89,10 +89,13 @@ pub struct sudo_conv_message {
     pub msg: *const libc::c_char,
 }
 
-
 pub struct sudo_conv_reply {
     pub reply: *mut libc::c_char,
 }
 
 pub type sudo_conv_callback_fn_t =
     Option<unsafe extern "C" fn(libc::c_int, *mut libc::c_void) -> libc::c_int>;
+
+pub struct sudo_conv_callback {
+
+}
