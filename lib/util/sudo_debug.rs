@@ -164,6 +164,20 @@ extern "C" {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub struct sudo_debug_output_sle {
+    pub sle_next: *mut sudo_debug_output,
+}
+
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_debug_output_list {
+    pub slh_first: *mut sudo_debug_output,
+}
+
+
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub struct sudo_debug_instance {
     pub program: *mut libc::c_char,
     pub subsystems: *const *const libc::c_char,
