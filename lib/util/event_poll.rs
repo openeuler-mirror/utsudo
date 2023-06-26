@@ -183,6 +183,16 @@ unsafe fn sudo_ev_base_alloc_impl(mut base: *mut sudo_event_base) -> libc::c_int
         std::mem::size_of::<pollfd>() as size_t,
     ) as *mut pollfd;
     
+    if (*base).pfds.is_null() {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            b"%s: unable to allocate %d pollfds\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*base).pfd_max
+        );
+        (*base).pfd_max = 0;
+        debug_return_int!(-1);
+    }
     while i < (*base).pfd_max {
         (*((*base).pfds).offset(i as isize)).fd = -1;
         i += 1;
