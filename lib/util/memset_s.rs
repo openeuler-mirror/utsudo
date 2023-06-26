@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: MulanPSL-2.0
  */
 
+#![allow(dead_code, non_camel_case_types, unused_mut)]
+
 extern "C" {
     fn __errno_location() -> *mut libc::c_int;
 }
