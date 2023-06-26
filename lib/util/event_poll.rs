@@ -60,6 +60,8 @@ extern "C" {
         __timeout: *const timespec,
         __ss: *const sigset_t,
     ) -> libc::c_int;
+    fn sudo_gettime_mono_v1(ts: *mut timespec) -> libc::c_int;
+    fn sudo_ev_activate(base: *mut sudo_event_base, ev: *mut sudo_event);
     fn sudo_debug_printf2_v1(
         func: *const libc::c_char,
         file: *const libc::c_char,
