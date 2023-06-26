@@ -482,3 +482,19 @@ pub unsafe extern "C" fn sudo_ev_base_setdef_v1(mut base: *mut sudo_event_base){
         sudo_debug_subsys,
     );
 }
+
+unsafe extern "C" fn sudo_ev_init(
+    mut ev: *mut sudo_event,
+    mut fd: libc::c_int,
+    mut events: libc::c_short,
+    mut callback: sudo_ev_callback_t,
+    mut closure: *mut libc::c_void,
+) {
+    let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
+    sudo_debug_enter_v1(
+        (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"sudo_ev_init\0")).as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        272 as libc::c_int,
+        sudo_debug_subsys,
+    );
+}
