@@ -80,15 +80,20 @@ pub struct _IO_FILE {
 pub unsafe extern "C" fn sudo_parseln_v2(
     mut bufp: *mut *mut libc::c_char, //**bufp -> *mut *mut
     mut bufsizep: *mut size_t,        //*bufsizep -> *mut
-    mut fp: *mut FILE,) -> ssize_t {
+    mut fp: *mut FILE,
+) -> ssize_t {
+    let mut linesize: size_t = 0;
+    let mut len: ssize_t = 0;
+    let mut line: *mut libc::c_char = 0 as *mut libc::c_char;
     //return ;
 }
 
 
 pub unsafe fn sudo_parseln_v1(
-    mut bufp: *mut *mut libc::c_char, //**bufp -> *mut *mut
-    mut bufsizep: *mut size_t,        //*bufsizep -> *mut
-    mut fp: *mut FILE,) -> ssize_t {
+    mut bufp: *mut *mut libc::c_char,
+    mut bufsizep: *mut size_t,
+    mut fp: *mut FILE,
+) -> ssize_t {
     return sudo_parseln_v2(bufp, bufsizep, fp);
 }
 
