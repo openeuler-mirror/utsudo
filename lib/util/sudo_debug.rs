@@ -330,6 +330,18 @@ pub unsafe extern "C" fn sudo_debug_new_output(
             break 'oom;
         }
         (*output).fd = -1;
+
+           /* Init per-subsystems settings to -1 since 0 is a valid priority. */
+        for j in 0..(*instance).max_subsystem + 1 {
+            *((*output).settings).offset(j as isize) = -(1 as libc::c_int);
+        }
+
+        /* Open debug file. */
+        (*output).fd = open(
+            (*output).filename,
+            O_WRONLY!() | O_APPEND!(),
+            S_IRUSR!() | S_IWUSR!(),
+        );
     }
 
 }
