@@ -15,6 +15,9 @@
     unreachable_code
 )]
 
+use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
+use crate::sudo_debug_macro::SUDO_DEBUG_INFO;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_conf_table {
@@ -24,6 +27,11 @@ pub struct sudo_conf_table {
         unsafe extern "C" fn(*const libc::c_char, *const libc::c_char, libc::c_uint) -> libc::c_int,
     >,
 }
+static mut sudo_conf_var_table: [sudo_conf_table; 5] = [sudo_conf_table {
+    name: 0 as *const libc::c_char,
+    namelen: 0,
+    parser: None,
+}; 5];
 
 /*
  * "Set variable_name value"
