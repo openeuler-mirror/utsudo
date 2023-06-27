@@ -102,3 +102,12 @@ pub struct sudo_conv_callback {
     pub on_suspend: sudo_conv_callback_fn_t,
     pub on_resume: sudo_conv_callback_fn_t,
 }
+
+pub type sudo_conv_t = Option<
+    unsafe extern "C" fn(
+        libc::c_int,
+        *const sudo_conv_message,
+        *mut sudo_conv_reply,
+        *mut sudo_conv_callback,
+    ) -> libc::c_int,
+>
