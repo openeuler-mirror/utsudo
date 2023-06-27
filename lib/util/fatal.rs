@@ -99,4 +99,6 @@ pub type sudo_conv_callback_fn_t =
 pub struct sudo_conv_callback {
     pub version: libc::c_uint,
     pub closure: *mut libc::c_void,
+    pub on_suspend: sudo_conv_callback_fn_t,
+    pub on_resume: sudo_conv_callback_fn_t,
 }
