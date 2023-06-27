@@ -1,3 +1,6 @@
+# This work was modified by UnionTech Software Technology Co., Ltd.，
+# and it is now licensed under the Mulan Permissive Software License，Version 2.
+
 The sudo philosophy
 ===================
 Sudo is a program designed to allow a sysadmin to give limited root privileges

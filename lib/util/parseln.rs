@@ -63,8 +63,18 @@ pub struct _IO_FILE {
     pub _unused2: [libc::c_char; 20],
 }
 
-pub unsafe extern "C" fn sudo_parseln_v2()
+pub unsafe extern "C" fn sudo_parseln_v2(
+    mut bufp: *mut *mut libc::c_char, //**bufp -> *mut *mut
+    mut bufsizep: *mut size_t,        //*bufsizep -> *mut
+    mut fp: *mut FILE,) -> ssize_t {
+    //return ;
+}
 
 
-pub unsafe fn sudo_parseln_v1()
+pub unsafe fn sudo_parseln_v1(
+    mut bufp: *mut *mut libc::c_char, //**bufp -> *mut *mut
+    mut bufsizep: *mut size_t,        //*bufsizep -> *mut
+    mut fp: *mut FILE,) -> ssize_t {
+    return sudo_parseln_v2(bufp, bufsizep, fp);
+}
 
