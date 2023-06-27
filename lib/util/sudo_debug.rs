@@ -306,4 +306,30 @@ pub unsafe extern "C" fn sudo_debug_new_output(
     let j: libc::c_uint = 0;
     let i: libc::c_int = 0;
     let mut isbad: bool = false;
+
+    output = calloc(1, std::mem::size_of::<sudo_debug_output>() as libc::size_t)
+        as *mut sudo_debug_output;
+
+    'oom: loop {
+        if output == 0 as *mut sudo_debug_output {
+            break 'oom;
+        }
+
+        (*output).fd = -1;
+        (*output).settings = reallocarray(
+            0 as *mut libc::c_void,
+            ((*instance).max_subsystem + 1) as libc::size_t,
+            std::mem::size_of::<libc::c_int>() as libc::size_t,
+        ) as *mut libc::c_int;
+        if ((*output).settings).is_null() {
+            break 'oom;
+        }
+
+        (*output).filename = strdup((*debug_file).debug_file);
+        if ((*output).filename).is_null() {
+            break 'oom;
+        }
+        (*output).fd = -1;
+    }
+
 }
