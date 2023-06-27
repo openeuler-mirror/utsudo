@@ -36,7 +36,6 @@ extern "C" {
     );
 }
 
-
 pub const _ISblank: libc::c_uint = 1;
 
 pub struct sudo_lbuf {
@@ -49,6 +48,9 @@ pub struct sudo_lbuf {
     pub cols: libc::c_short,
     pub error: libc::c_short,
 }
+
+pub type sudo_lbuf_output_t = Option<unsafe extern "C" fn(*const libc::c_char) -> libc::c_int>;
+pub type size_t = libc::c_ulong;
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_lbuf_init_v1(
@@ -210,8 +212,23 @@ unsafe extern "C" fn sudo_lbuf_println(
     debug_return!()
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_lbuf_print_v1(mut lbuf: *mut sudo_lbuf) {
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut ep: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut len: libc::c_int = 0;
 
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
+    if !(((*lbuf).buf).is_null() || (*lbuf).len == 0 as libc::c_int) {
+        //len = lbuf->continuation ? strlen(lbuf->continuation) : 0;
+        len = (if !((*lbuf).continuation).is_null() {
+            strlen((*lbuf).continuation)
+        } else {
+            0 as libc::c_ulong
+        }) as libc::c_int;
+    }
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_lbuf_error_v1(mut lbuf: *mut sudo_lbuf) -> bool {
