@@ -33,15 +33,23 @@ pub struct _IO_wide_data {
 }
 
 extern "C" {
-    fn getdelim()
     fn strchr()
     fn __ctype_b_loc()
     fn realloc()
     fn free()
     fn memcpy()
-    fn sudo_debug_printf2_v1();
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        lineno: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
 }
 
+pub type __ssize_t = libc::c_long;
+pub type ssize_t = __ssize_t;
 pub type __SIZE_TYPE__ = libc::c_ulong;
 pub type size_t = __SIZE_TYPE__;
 pub type FILE = _IO_FILE;
