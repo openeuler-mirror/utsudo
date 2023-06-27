@@ -32,6 +32,7 @@ pub const _SC_NGROUPS_MAX: libc::c_int = 3;
 pub const NGROUPS_MAX: libc::c_int = 65536;
 
 //func sudo_setgroups_v1
+#[no_mangle]
 unsafe extern "C" fn sudo_setgroups_v1(
     mut ngids: libc::c_int,
     mut gids: *const gid_t,
@@ -46,12 +47,13 @@ unsafe extern "C" fn sudo_setgroups_v1(
 
     //line44
     if ret == -(1 as libc::c_int) && *__errno_location() == EINVAL as libc::c_int {
-        //max
+        //line47
         maxgids = sysconf(_SC_NGROUPS_MAX as libc::c_int) as libc::c_int;
+        //line48
         if maxgids == -(1 as libc::c_int) {
             maxgids = NGROUPS_MAX as libc::c_int;
         }
-
+        //line50
     }
 }
 
