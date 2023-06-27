@@ -194,6 +194,19 @@ extern "C" {
         _: *const libc::c_char,
         _: ...
     ) -> libc::c_int;
+    fn getpid() -> __pid_t;
+    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn fork() -> pid_t;
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
+    fn sudo_getprogname() -> *const libc::c_char;
+    fn strerror(_: libc::c_int) -> *mut libc::c_char;
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct iovec {
+    pub iov_base: *mut libc::c_void,
+    pub iov_len: size_t,
 }
 
 #[derive(Copy, Clone)]
