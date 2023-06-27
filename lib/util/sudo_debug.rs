@@ -117,6 +117,16 @@ macro_rules! FD_CLOEXEC {
     };
 }
 
+pub const NBBY: libc::c_int = 8;
+
+#[macro_export]
+macro_rules! round_nfds {
+    ($_n:expr) => {
+        ((($_n) + (4 * NBBY) - 1) & !((4 * NBBY) - 1))
+    };
+}
+
+
 macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
