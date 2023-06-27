@@ -25,7 +25,9 @@ pub type __ssize_t = libc::c_long;
 pub type ssize_t = __ssize_t;
 pub type __id_t = libc::c_uint;
 pub type id_t = __id_t;
-
+pub type __uid_t = libc::c_uint;
+pub type __gid_t = libc::c_uint;
+pub type uid_t = __uid_t;
 
 /*
  * The debug priorities and subsystems are currently hard-coded.
@@ -63,7 +65,6 @@ static mut sudo_debug_default_subsystems: [*const libc::c_char; 15] = [
     b"utmp\0" as *const u8 as *const libc::c_char,
     0 as *const u8 as *const libc::c_char,
 ];
-
 
 #[macro_export]
 macro_rules! O_WRONLY {
@@ -105,6 +106,14 @@ macro_rules! IGNORE_RESULT {
 macro_rules! F_SETFD {
     () => {
         2
+    };
+}
+
+#[macro_export]
+macro_rules! FD_CLOEXEC {
+    /* Actually anything with low bit set goes */
+    () => {
+        1
     };
 }
 
