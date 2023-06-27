@@ -259,6 +259,21 @@ pub struct sudo_debug_instance {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub struct sudo_debug_file_list {
+    pub tqe_next: *mut sudo_debug_file,
+    pub tqe_prev: *mut *mut sudo_debug_file,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_debug_file {
+    pub entries: sudo_debug_file_list,
+    pub debug_file: *mut libc::c_char,
+    pub debug_flags: *mut libc::c_char,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub struct sudo_conf_debug_file_list {
     tqh_first: *mut sudo_debug_file,
     tqh_last: *mut *mut sudo_debug_file,
