@@ -159,3 +159,20 @@ pub unsafe extern "C" fn sudo_dso_load_v1(
 
     return dlopen(path, flags);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_dso_unload_v1(mut handle: *mut libc::c_void) -> libc::c_int {
+    let mut pt: *mut sudo_preload_table = 0 as *mut sudo_preload_table;
+
+    /* Check prelinked symbols first. */
+    if !preload_table.is_null() {
+        pt = preload_table;
+        while !((*pt).handle).is_null() {
+            if (*pt).handle == handle {
+                return 0;
+            }
+            pt = pt.offset(1 as isize);
+        }
+    }
+    return dlclose(handle);
+}
