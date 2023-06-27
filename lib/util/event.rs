@@ -128,6 +128,12 @@ pub union C2RustUnnamed_3 {
     pub _addr_bnd: C2RustUnnamed_4,
     pub _pkey: __uint32_t,
 }
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_4 {
+    pub _lower: *mut libc::c_void,
+    pub _upper: *mut libc::c_void,
+}
 
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
