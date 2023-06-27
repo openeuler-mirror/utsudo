@@ -653,3 +653,13 @@ pub unsafe extern "C" fn sudo_ev_alloc_v1(
     );
     return sudo_debug_ret_1 as *mut sudo_event;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ev_alloc_v1(
+    mut fd: libc::c_int,
+    mut events: libc::c_short,
+    mut callback: sudo_ev_callback_t,
+    mut closure: *mut libc::c_void,
+) -> *mut sudo_event {
+    let mut ev: *mut sudo_event = 0 as *mut sudo_event;
+}
