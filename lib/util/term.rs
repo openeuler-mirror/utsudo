@@ -139,6 +139,15 @@ pub struct winsize {
     ws_ypixel: libc::c_ushort,
 }
 
+extern "C" {
+    fn memset()
+    fn sigemptyset()
+    fn sigaction()
+    fn __errno_location()
+    fn tcsetattr()
+    fn tcgetattr()
+    fn memcpy()
+}
 
 unsafe extern "C" fn sigttou()
 
