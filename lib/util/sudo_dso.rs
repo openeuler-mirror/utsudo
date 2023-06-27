@@ -124,3 +124,22 @@ pub unsafe extern "C" fn sudo_dso_preload_table_v1(mut table: *mut sudo_preload_
     preload_table = table;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_dso_load_v1(
+    mut path: *const libc::c_char,
+    mut mode: libc::c_int,
+) -> *mut libc::c_void {
+    let mut pt: *mut sudo_preload_table = 0 as *mut sudo_preload_table;
+    let mut flags: libc::c_int = 0;
+
+    /* Check prelinked symbols first. */
+    if !preload_table.is_null() {
+        pt = preload_table;
+        while !((*pt).handle).is_null() {
+            if !((*pt).path).is_null() && strcmp(path, (*pt).path) == 0 {
+                return (*pt).handle;
+            }
+            pt = pt.offset(1);
+        }
+    }
+}
