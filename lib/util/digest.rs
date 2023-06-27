@@ -46,7 +46,7 @@ pub struct digest_function {
     pub final_0: Option<unsafe extern "C" fn(*mut libc::c_uchar, *mut SHA2_CTX) -> ()>,
 }
 
-static mut digest_functions: [digest_function; 3] = {
+static mut digest_functions: [digest_function; 5] = {
     [
         {
             //init member 1,one by one
