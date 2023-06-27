@@ -236,3 +236,15 @@ pub struct sudo_debug_instance {
     pub outputs: sudo_debug_output_list,
 }
 
+static mut sudo_debug_fds_size: libc::c_int = -1;
+static mut sudo_debug_fds: *mut libc::c_uchar = 0 as *const libc::c_char as *mut libc::c_uchar;
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_free_output(output: *mut sudo_debug_output) {
+    free((*output).filename as *mut libc::c_void);
+    free((*output).settings as *mut libc::c_void);
+    if ((*output).fd) != -1 {
+        close((*output).fd);
+    }
+    free(output as *mut libc::c_void);
+}
