@@ -115,6 +115,13 @@ pub struct C2RustUnnamed_1 {
     pub si_band: libc::c_long,
     pub si_fd: libc::c_int,
 }
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_2 {
+    pub si_addr: *mut libc::c_void,
+    pub si_addr_lsb: libc::c_short,
+    pub _bounds: C2RustUnnamed_3,
+}
 
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
