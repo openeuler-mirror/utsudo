@@ -142,4 +142,20 @@ pub unsafe extern "C" fn sudo_dso_load_v1(
             pt = pt.offset(1);
         }
     }
+
+    /* Map SUDO_DSO_* -> RTLD_* */
+    if ISSET!(mode, SUDO_DSO_LAZY!()) != 0 {
+        flags = flags | RTLD_LAZY!();
+    }
+    if ISSET!(mode, SUDO_DSO_NOW!()) != 0 {
+        flags = flags | RTLD_NOW!();
+    }
+    if ISSET!(mode, SUDO_DSO_GLOBAL!()) != 0 {
+        flags = flags | RTLD_GLOBAL!();
+    }
+    if ISSET!(mode, SUDO_DSO_LOCAL!()) != 0 {
+        flags = flags | RTLD_LOCAL!();
+    }
+
+    return dlopen(path, flags);
 }
