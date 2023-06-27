@@ -45,10 +45,12 @@ unsafe extern "C" fn sudo_setgroups_v1(
     ret = setgroups(ngids as size_t, gids as *mut gid_t);
 
     //line44
-    if *__errno_location() == EINVAL as libc::c_int {
-    
-    //max
-    maxgids = sysconf(_SC_NGROUPS_MAX as libc::c_int) as libc::c_int;
+    if ret == -(1 as libc::c_int) && *__errno_location() == EINVAL as libc::c_int {
+        //max
+        maxgids = sysconf(_SC_NGROUPS_MAX as libc::c_int) as libc::c_int;
+        if maxgids == -(1 as libc::c_int) {
+            maxgids = NGROUPS_MAX as libc::c_int;
+        }
 
     }
 }
