@@ -597,4 +597,37 @@ pub unsafe extern "C" fn sudo_ev_alloc_v1(
         );
         return sudo_debug_ret as *mut sudo_event;
     }
+    if events as libc::c_int & 0x20 as libc::c_int != 0 {
+        let mut container: *mut sudo_ev_siginfo_container = malloc(
+            (::core::mem::size_of::<sudo_ev_siginfo_container>() as libc::c_ulong)
+                .wrapping_add(::core::mem::size_of::<siginfo_t>() as libc::c_ulong)
+                .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+        )
+            as *mut sudo_ev_siginfo_container;
+        if container.is_null() {
+            sudo_debug_printf2_v1(
+                (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
+                    .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                303 as libc::c_int,
+                2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys,
+                b"%s: unable to allocate siginfo container\0" as *const u8 as *const libc::c_char,
+                (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
+                    .as_ptr(),
+            );
+            free(ev as *mut libc::c_void);
+            let mut sudo_debug_ret_0: *mut libc::c_void = 0 as *mut libc::c_void;
+            sudo_debug_exit_ptr_v1(
+                (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
+                    .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                305 as libc::c_int,
+                sudo_debug_subsys,
+                sudo_debug_ret_0,
+            );
+            return sudo_debug_ret_0 as *mut sudo_event;
+        }
+        (*container).closure = closure;
+        closure = container as *mut libc::c_void;
+    }
 }
