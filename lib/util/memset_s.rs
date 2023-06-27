@@ -13,7 +13,9 @@ extern "C" {
 pub type size_t = libc::c_ulong;
 pub const SIZE_MAX: libc::c_ulong = 18446744073709551615;
 pub const RSIZE_MAX: libc::c_ulong = SIZE_MAX >> 1;
+pub const EINVAL: libc::c_int = 22;
 
+#[no_mangle]
 pub fn sudo_memset_s(
     mut v: *mut libc::c_void,
     mut smax: size_t,
