@@ -18,6 +18,16 @@
 use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
 use crate::sudo_debug_macro::SUDO_DEBUG_INFO;
 
+extern "C" {
+    fn strncmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong) -> libc::c_int;
+    fn sudo_strsplit_v1(
+        str: *const libc::c_char,
+        endstr: *const libc::c_char,
+        sep: *const libc::c_char,
+        last: *mut *const libc::c_char,
+    ) -> *const libc::c_char;
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_conf_table {
