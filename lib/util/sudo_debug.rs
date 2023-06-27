@@ -196,6 +196,18 @@ extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn sudo_getprogname() -> *const libc::c_char;
     fn strerror(_: libc::c_int) -> *mut libc::c_char;
+     fn time(__timer: *mut time_t) -> time_t;
+    fn ctime(__timer: *const time_t) -> *mut libc::c_char;
+    fn writev(__fd: libc::c_int, __iovec: *const iovec, __count: libc::c_int) -> ssize_t;
+    fn fchown(__fd: libc::c_int, __owner: __uid_t, __group: __gid_t) -> libc::c_int;
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        lineno: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
 }
 
 #[derive(Copy, Clone)]
@@ -247,4 +259,20 @@ pub unsafe extern "C" fn sudo_debug_free_output(output: *mut sudo_debug_output) 
         close((*output).fd);
     }
     free(output as *mut libc::c_void);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_new_output(
+    instance: *mut sudo_debug_instance,
+    debug_file: *mut sudo_debug_file,
+) -> *mut sudo_debug_output {
+    let mut buf: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut last: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut subsys: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut pri: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut output: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+    let j: libc::c_uint = 0;
+    let i: libc::c_int = 0;
+    let mut isbad: bool = false;
 }
