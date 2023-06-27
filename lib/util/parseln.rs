@@ -33,6 +33,12 @@ pub struct _IO_wide_data {
 }
 
 extern "C" {
+    fn getdelim(
+        __lineptr: *mut *mut libc::c_char,
+        __n: *mut size_t,
+        __delimiter: libc::c_int,
+        __stream: *mut FILE,
+    ) -> __ssize_t;
     fn strchr()
     fn __ctype_b_loc()
     fn realloc()
