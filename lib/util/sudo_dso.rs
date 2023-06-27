@@ -52,14 +52,12 @@ macro_rules! RTLD_LAZY {
     };
 }
 
-
 #[macro_export]
 macro_rules! RTLD_NOW {
     () => {
         0x00002
     };
 }
-
 
 pub const SUDO_DSO_NEXT: *mut libc::c_void = -(1 as libc::c_int) as *mut libc::c_void;
 pub const SUDO_DSO_DEFAULT: *mut libc::c_void = -(2 as libc::c_int) as *mut libc::c_void;
@@ -87,7 +85,6 @@ pub struct sudo_preload_symbol {
     pub addr: *mut libc::c_void,
 }
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_preload_table {
@@ -96,4 +93,10 @@ pub struct sudo_preload_table {
     pub symbols: *mut sudo_preload_symbol,
 }
 
+static mut preload_table: *mut sudo_preload_table = 0 as *mut sudo_preload_table;
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_dso_preload_table_v1(mut table: *mut sudo_preload_table) {
+    preload_table = table;
+}
 
