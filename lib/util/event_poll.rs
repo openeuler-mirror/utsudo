@@ -236,7 +236,7 @@ unsafe fn sudo_ev_add_impl(mut base: *mut sudo_event_base, mut ev: *mut sudo_eve
             debug_return_int!(-1);
         }
         (*base).pfds = pfds;
-        (*base).pfd_max *= 4;
+        (*base).pfd_max *= 2;
 
         i = (*base).pfd_free;
         while i < (*base).pfd_max {
