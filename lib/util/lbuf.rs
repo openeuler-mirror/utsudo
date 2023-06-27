@@ -228,6 +228,20 @@ pub unsafe extern "C" fn sudo_lbuf_print_v1(mut lbuf: *mut sudo_lbuf) {
             0 as libc::c_ulong
         }) as libc::c_int;
     }
+
+    if (*lbuf).cols as libc::c_int <= (*lbuf).indent + len + 20 as libc::c_int {
+            if (*lbuf).len > 0 as libc::c_int {
+                *((*lbuf).buf).offset((*lbuf).len as isize) = '\u{0}' as i32 as libc::c_char;
+                ((*lbuf).output).expect("non-null function pointer")((*lbuf).buf);
+                if *((*lbuf).buf).offset(((*lbuf).len - 1 as libc::c_int) as isize) as libc::c_int
+                    != '\n' as i32
+                {
+                    ((*lbuf).output).expect("non-null function pointer")(
+                        b"\n\0" as *const u8 as *const libc::c_char,
+                    );
+                }
+            }
+    }
 }
 
 #[no_mangle]
