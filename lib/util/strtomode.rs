@@ -14,6 +14,18 @@
     unused_mut
 )]
 
+type mode_t = i64;
+pub const S_IRWXU: mode_t = 448;
+pub const S_IRWXG: mode_t = 56;
+pub const S_IRWXO: mode_t = 7;
+
+// # define ACCESSPERMS    (S_IRWXU|S_IRWXG|S_IRWXO)
+macro_rules! ACCESSPERMS {
+    () => {
+        (S_IRWXU | S_IRWXG | S_IRWXO)
+    };
+}
+
 extern "C" {
     fn strtol(_: *const libc::c_char, _: *mut *mut libc::c_char, _: libc::c_int) -> libc::c_long;
     fn __errno_location() -> *mut libc::c_int;
