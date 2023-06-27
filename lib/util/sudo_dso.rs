@@ -35,6 +35,13 @@ macro_rules! SUDO_DSO_GLOBAL {
     };
 }
 
+#[macro_export]
+macro_rules! SUDO_DSO_LOCAL {
+    () => {
+        0x4
+    };
+}
+
 /* The MODE argument to `dlopen' contains one of the following: */
 // #define RTLD_LAZY    0x00001 /* Lazy function call binding.  */
 // #define RTLD_NOW     0x00002 /* Immediate function call binding.  */
@@ -44,6 +51,15 @@ macro_rules! RTLD_LAZY {
         0x00001
     };
 }
+
+
+#[macro_export]
+macro_rules! RTLD_NOW {
+    () => {
+        0x00002
+    };
+}
+
 
 pub const SUDO_DSO_NEXT: *mut libc::c_void = -(1 as libc::c_int) as *mut libc::c_void;
 pub const SUDO_DSO_DEFAULT: *mut libc::c_void = -(2 as libc::c_int) as *mut libc::c_void;
