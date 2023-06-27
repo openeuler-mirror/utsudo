@@ -23,7 +23,7 @@ pub fn sudo_memset_s(
     let mut ret = 0;
     let mut s: *mut libc::c_uchar = v as *mut libc::c_uchar;
 
-    if s.is_null() {
+    if s.is_null() || smax > RSIZE_MAX {
         let ref mut fresh0 = unsafe { *__errno_location() };
     } else {
 	if n > smax {
