@@ -4,6 +4,17 @@
  * SPDX-License-Identifier: MulanPSL-2.0
  */
 
+#![allow(
+    dead_code,
+    mutable_transmutes,
+    non_camel_case_types,
+    non_snake_case,
+    non_upper_case_globals,
+    unused_assignments,
+    unused_mut,
+    clashing_extern_declarations
+)]
+
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_bool_v1;
 
@@ -21,6 +32,8 @@ pub static mut sudo_term_erase: libc::c_int = 0;
 pub static mut sudo_term_kill: libc::c_int = 0;
 
 pub union sigval {
+    pub sival_int: libc::c_int,
+    pub sival_ptr: *mut libc::c_void,
 }
 
 pub type __sigval_t = sigval;
@@ -56,6 +69,7 @@ pub struct sigchld_struct {
 }
 
 pub struct sigfault_struct {
+    pub si_addr: *mut libc::c_void,
     pub si_addr_lsb: libc::c_short,
     pub _bounds: bounds_struct,
 }
@@ -87,6 +101,7 @@ pub struct addr_bnd_struct {
 pub struct __sigset_t {
     pub __val: [libc::c_ulong; 16],
 }
+pub type sigset_t = __sigset_t;
 
 pub union __sigaction_handler_union {
 }
