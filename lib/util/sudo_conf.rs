@@ -37,6 +37,18 @@ pub struct sudo_conf_table {
         unsafe extern "C" fn(*const libc::c_char, *const libc::c_char, libc::c_uint) -> libc::c_int,
     >,
 }
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conf_data {
+    pub disable_coredump: bool,
+    pub probe_interfaces: bool,
+    pub group_source: libc::c_int,
+    pub max_groups: libc::c_int,
+    pub debugging: sudo_conf_debug_list,
+    pub plugins: plugin_info_list,
+    pub path_table: [sudo_conf_path_table; 6],
+}
+
 static mut sudo_conf_var_table: [sudo_conf_table; 5] = [sudo_conf_table {
     name: 0 as *const libc::c_char,
     namelen: 0,
