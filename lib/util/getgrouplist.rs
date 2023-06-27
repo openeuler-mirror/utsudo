@@ -76,6 +76,8 @@ pub unsafe extern "C" fn sudo_getgrouplist2_v1(
             *ngroupsp = ngroups;
             return 0 as libc::c_int;
         }
+        grpsize = ngroups;
+        tries += 1;
     }
 
 }
