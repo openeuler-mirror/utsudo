@@ -14,6 +14,10 @@
     unused_mut
 )]
 
+extern "C" {
+    fn strtol(_: *const libc::c_char, _: *mut *mut libc::c_char, _: libc::c_int) -> libc::c_long;
+    fn __errno_location() -> *mut libc::c_int;
+}
 #[no_mangle]
 pub unsafe extern "C" fn sudo_strtomode_v1(
     mut cp: *const libc::c_char,
