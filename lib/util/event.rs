@@ -574,4 +574,27 @@ pub unsafe extern "C" fn sudo_ev_alloc_v1(
         289 as libc::c_int,
         sudo_debug_subsys,
     );
+    ev = malloc(::core::mem::size_of::<sudo_event>() as libc::c_ulong) as *mut sudo_event;
+    if ev.is_null() {
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            294 as libc::c_int,
+            2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys,
+            b"%s: unable to allocate event\0" as *const u8 as *const libc::c_char,
+            (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
+                .as_ptr(),
+        );
+        let mut sudo_debug_ret: *mut libc::c_void = 0 as *mut libc::c_void;
+        sudo_debug_exit_ptr_v1(
+            (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            295 as libc::c_int,
+            sudo_debug_subsys,
+            sudo_debug_ret,
+        );
+        return sudo_debug_ret as *mut sudo_event;
+    }
 }
