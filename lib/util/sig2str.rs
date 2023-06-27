@@ -21,14 +21,23 @@ extern "C" {
     fn __errno_location()
     fn __libc_current_sigrtmin()
     fn __libc_current_sigrtmax()
-    fn sysconf(__name: libc::c_int)
+    fn sysconf()
     fn snprintf()
     fn sudo_strlcpy()
     fn __ctype_toupper_loc()
     fn __ctype_b_loc()
 }
 
-pub unsafe extern "C" fn toupper()
+pub unsafe extern "C" fn toupper() -> libc::c_int {
+    return libc::c_int {
+        *(*__ctype_toupper_loc()).offset(__c as isize)
+    };
+}
 
-pub unsafe extern "C" fn sudo_sig2str()
+pub unsafe extern "C" fn sudo_sig2str(
+    signo: libc::c_int,
+    signame: *mut libc::c_char,
+) -> libc::c_int {
+    return 0;
+}
 
