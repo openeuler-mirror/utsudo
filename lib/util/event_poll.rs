@@ -225,6 +225,16 @@ unsafe fn sudo_ev_add_impl(mut base: *mut sudo_event_base, mut ev: *mut sudo_eve
                 as size_t,
         ) as *mut pollfd;
 
+        if pfds.is_null() {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"%s: unable to allocate %d pollfds\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                ((*base).pfd_max) * 2
+            );
+
+            debug_return_int!(-1);
+        }
         (*base).pfds = pfds;
         (*base).pfd_max *= 4;
 
@@ -239,6 +249,13 @@ unsafe fn sudo_ev_add_impl(mut base: *mut sudo_event_base, mut ev: *mut sudo_eve
     (*ev).pfd_idx = (*base).pfd_free as libc::c_short;
     pfd = &mut *((*base).pfds).offset((*ev).pfd_idx as isize);
     (*pfd).fd = (*ev).fd;
+        (*pfd).events = 0;
+    if (*ev).events & SUDO_EV_READ != 0 {
+        (*pfd).events = (*pfd).events | POLLIN;
+    }
+    if (*ev).events & SUDO_EV_WRITE != 0 {
+        (*pfd).events = (*pfd).events | POLLOUT;
+    }
 
     /* Update pfd_high and pfd_free. */
     if (*ev).pfd_idx as libc::c_int > (*base).pfd_high {
