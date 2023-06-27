@@ -26,6 +26,24 @@ pub unsafe extern "C" fn sudo_strtomode_v1(
 
     *__errno_location() = 0 as libc::c_int;
     lval = strtol(cp, &mut ep, 8 as libc::c_int);
-   debug_return_int!(0)
+    if ep == cp as *mut libc::c_char || *ep as libc::c_int != '\u{0}' as i32 {
+        if !errstr.is_null() {
+            *errstr = b"invalid value\0" as *const u8 as *const libc::c_char;
+        }
+        debug_return_int!(0);
+    }
+
+    if lval < 0 || lval > ACCESSPERMS!() {
+        if !errstr.is_null() {
+            *errstr = if lval < 0 {
+                b"value too small\0" as *const u8 as *const libc::c_char
+            } else {
+                b"value too large\0" as *const u8 as *const libc::c_char
+            }
+        }
+        debug_return_int!(0);
+    }
+
+    debug_return_int!(lval as libc::c_int)
 }
 
