@@ -342,6 +342,21 @@ pub unsafe extern "C" fn sudo_debug_new_output(
             O_WRONLY!() | O_APPEND!(),
             S_IRUSR!() | S_IWUSR!(),
         );
-    }
 
+        fcntl((*output).fd, F_SETFD!() | FD_CLOEXEC!());
+        if sudo_debug_fds_size < (*output).fd {
+            /* Bump fds size to the next multiple of 4 * NBBY. */
+            let old_size = sudo_debug_fds_size / NBBY;
+            let new_size = round_nfds!((*output).fd + 1) / NBBY;
+            let new_fds: *mut libc::c_uchar;
+
+            new_fds = realloc(
+                sudo_debug_fds as *mut libc::c_void,
+                new_size as libc::size_t,
+            ) as *mut libc::c_uchar;
+            if new_fds.is_null() {
+                break 'oom;
+            }
+        }
+    }
 }
