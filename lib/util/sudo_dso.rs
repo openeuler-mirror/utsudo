@@ -14,6 +14,9 @@
     unused_mut
 )]
 
+//secure_path.rs
+use crate::ISSET;
+
 #[macro_export]
 macro_rules! SUDO_DSO_LAZY {
     () => {
@@ -73,15 +76,21 @@ macro_rules! RTLD_LOCAL {
     };
 }
 
-
+/* Special handle arguments for sudo_dso_findsym(). */
+// #define SUDO_DSO_NEXT	 ((void *)-1)	/* Search subsequent objects. */
+// #define SUDO_DSO_DEFAULT ((void *)-2)	/* Use default search algorithm. */
+// #define SUDO_DSO_SELF	 ((void *)-3)	/* Search the caller itself. */
 pub const SUDO_DSO_NEXT: *mut libc::c_void = -(1 as libc::c_int) as *mut libc::c_void;
 pub const SUDO_DSO_DEFAULT: *mut libc::c_void = -(2 as libc::c_int) as *mut libc::c_void;
 pub const SUDO_DSO_SELF: *mut libc::c_void = -(3 as libc::c_int) as *mut libc::c_void;
 
+// # define RTLD_NEXT	((void *) -1l)
 pub const RTLD_NEXT: *mut libc::c_void = -(1 as libc::c_long) as *mut libc::c_void;
 
+// # define RTLD_DEFAULT	((void *) 0)
 pub const RTLD_DEFAULT: *mut libc::c_void = 0 as *mut libc::c_void;
 
+// #define	ENOENT		 2
 pub const ENOENT: libc::c_int = 2;
 
 extern "C" {
