@@ -27,10 +27,13 @@ pub fn sudo_memset_s(
 
     if s.is_null() || smax > RSIZE_MAX {
         let ref mut fresh0 = unsafe { *__errno_location() };
+        *fresh0 = EINVAL;
+        ret = *fresh0;
     } else {
         if n > smax {
             n = smax;
             let ref mut fresh1 = unsafe { *__errno_location() };
+            *fresh1 = EINVAL;
             ret = *fresh1;
         }
         loop {
