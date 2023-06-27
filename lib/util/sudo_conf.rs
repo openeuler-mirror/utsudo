@@ -15,7 +15,15 @@
     unreachable_code
 )]
 
-
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conf_table {
+    pub name: *const libc::c_char,
+    pub namelen: libc::c_uint,
+    pub parser: Option<
+        unsafe extern "C" fn(*const libc::c_char, *const libc::c_char, libc::c_uint) -> libc::c_int,
+    >,
+}
 
 /*
  * "Set variable_name value"
