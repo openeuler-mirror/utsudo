@@ -36,5 +36,12 @@ unsafe extern "C" fn sudo_lock_region_v1(
     mut type_0: libc::c_int,
     mut len: off_t,
 ) -> bool {
-    // ret type
+
+    match type_0 {
+        SUDO_LOCK => {
+        }
+        SUDO_TLOCK => {
+        }
+        SUDO_UNLOCK => {
+        }
     }
