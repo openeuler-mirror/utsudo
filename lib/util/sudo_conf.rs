@@ -170,3 +170,63 @@ let mut entry_end: *const libc::c_char = entry.offset(strlen(entry) as isize);
 
     debug_return_int!(false as libc::c_int);
 }
+
+/*
+ * "Debug program /path/to/log flags,..."
+ */
+#[no_mangle]
+unsafe extern "C" fn parse_debug(
+    mut entry: *const libc::c_char,
+    mut _conf_file: *const libc::c_char,
+    mut _lineno: libc::c_uint,
+) -> libc::c_int {
+    let mut debug_spec: *mut sudo_conf_debug = 0 as *mut sudo_conf_debug;
+    let mut debug_file: *mut sudo_debug_file = 0 as *mut sudo_debug_file;
+    let mut ep: *const libc::c_char = 0 as *mut libc::c_char;
+    let mut path: *const libc::c_char = 0 as *mut libc::c_char;
+    let mut progname: *const libc::c_char = 0 as *mut libc::c_char;
+    let mut flags: *const libc::c_char = 0 as *mut libc::c_char;
+    let mut entry_end: *const libc::c_char = entry.offset(strlen(entry) as isize);
+    let mut pathlen: size_t = 0 as size_t;
+    let mut prognamelen: size_t = 0 as size_t;
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    /* Parse progname. */
+    progname = sudo_strsplit_v1(
+        entry,
+        entry_end,
+        b" \t\0" as *const u8 as *const libc::c_char,
+        &mut ep,
+    );
+    prognamelen = ep.offset_from(progname) as size_t;
+
+    /* Parse path. */
+    path = sudo_strsplit_v1(
+        0 as *const libc::c_char,
+        entry_end,
+        b" \t\0" as *const u8 as *const libc::c_char,
+        &mut ep,
+    );
+    pathlen = ep.offset_from(path) as libc::c_long as size_t;
+
+    /* Remainder is flags (freeform). */
+    flags = sudo_strsplit_v1(
+        0 as *const libc::c_char,
+        entry_end,
+        b" \t\0" as *const u8 as *const libc::c_char,
+        &mut ep,
+    );
+
+    /* If progname already exists, use it, else alloc a new one. */
+    debug_spec = sudo_conf_data.debugging.tqh_first;
+    while !debug_spec.is_null() {
+        if strncmp((*debug_spec).progname, progname, prognamelen) == 0
+            && (*debug_spec).progname.offset(prognamelen as isize) as libc::c_int == '\u{0}' as i32
+        {
+            break;
+        }
+        debug_spec = (*debug_spec).entries.tqe_next;
+    }
+
+}
