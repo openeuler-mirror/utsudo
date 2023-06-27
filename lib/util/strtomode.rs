@@ -14,6 +14,10 @@
     unused_mut
 )]
 
+use crate::sudo_debug::sudo_debug_enter_v1;
+use crate::sudo_debug::sudo_debug_exit_int_v1;
+use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
+
 type mode_t = i64;
 pub const S_IRWXU: mode_t = 448;
 pub const S_IRWXG: mode_t = 56;
@@ -46,6 +50,7 @@ pub unsafe extern "C" fn sudo_strtomode_v1(
         if !errstr.is_null() {
             *errstr = b"invalid value\0" as *const u8 as *const libc::c_char;
         }
+        *__errno_location() = libc::EINVAL as libc::c_int;
         debug_return_int!(0);
     }
 
@@ -57,9 +62,12 @@ pub unsafe extern "C" fn sudo_strtomode_v1(
                 b"value too large\0" as *const u8 as *const libc::c_char
             }
         }
+        *__errno_location() = libc::ERANGE as libc::c_int;
         debug_return_int!(0);
     }
-
+    if !errstr.is_null() {
+        *errstr = 0 as *const libc::c_char;
+    }
     debug_return_int!(lval as libc::c_int)
 }
 
