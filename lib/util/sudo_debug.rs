@@ -102,6 +102,7 @@ macro_rules! IGNORE_RESULT {
     };
 }
 
+/* Set file descriptor flags.  */
 #[macro_export]
 macro_rules! F_SETFD {
     () => {
@@ -109,11 +110,19 @@ macro_rules! F_SETFD {
     };
 }
 
+/* For F_[GET|SET]FD.  */
 #[macro_export]
 macro_rules! FD_CLOEXEC {
     /* Actually anything with low bit set goes */
     () => {
         1
+    };
+}
+
+#[macro_export]
+macro_rules! NBBY {
+    () => {
+         8
     };
 }
 
@@ -246,6 +255,13 @@ pub struct sudo_debug_instance {
     pub subsystem_ids: *const libc::c_uint,
     pub max_subsystem: libc::c_uint,
     pub outputs: sudo_debug_output_list,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conf_debug_file_list {
+    tqh_first: *mut sudo_debug_file,
+    tqh_last: *mut *mut sudo_debug_file,
 }
 
 static mut sudo_debug_fds_size: libc::c_int = -1;
