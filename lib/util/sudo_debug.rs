@@ -102,6 +102,7 @@ macro_rules! IGNORE_RESULT {
     };
 }
 
+/* Set file descriptor flags.  */
 #[macro_export]
 macro_rules! F_SETFD {
     () => {
@@ -109,6 +110,7 @@ macro_rules! F_SETFD {
     };
 }
 
+/* For F_[GET|SET]FD.  */
 #[macro_export]
 macro_rules! FD_CLOEXEC {
     /* Actually anything with low bit set goes */
@@ -117,12 +119,27 @@ macro_rules! FD_CLOEXEC {
     };
 }
 
+#[macro_export]
+macro_rules! NBBY {
+    () => {
+         8
+    };
+}
+
+pub const NBBY: libc::c_int = 8;
+
+#[macro_export]
+macro_rules! round_nfds {
+    ($_n:expr) => {
+        ((($_n) + (4 * NBBY) - 1) & !((4 * NBBY) - 1))
+    };
+}
+
 macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
 }
-
 
 #[macro_export]
 macro_rules! SUDO_DEBUG_LINENO {
@@ -145,7 +162,6 @@ macro_rules! SUDO_DEBUG_LINENO {
     };
 }
 
-
 /* Initializer for instance index to indicate that debugging is not setup. */
 // #define SUDO_DEBUG_INSTANCE_INITIALIZER      -1
 #[macro_export]
@@ -154,7 +170,6 @@ macro_rules! SUDO_DEBUG_INSTANCE_INITIALIZER {
         -1
     };
 }
-
 
 extern "C" {
     fn free(__ptr: *mut libc::c_void);
@@ -184,6 +199,31 @@ extern "C" {
         _: *const libc::c_char,
         _: ...
     ) -> libc::c_int;
+    fn getpid() -> __pid_t;
+    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn fork() -> pid_t;
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
+    fn sudo_getprogname() -> *const libc::c_char;
+    fn strerror(_: libc::c_int) -> *mut libc::c_char;
+     fn time(__timer: *mut time_t) -> time_t;
+    fn ctime(__timer: *const time_t) -> *mut libc::c_char;
+    fn writev(__fd: libc::c_int, __iovec: *const iovec, __count: libc::c_int) -> ssize_t;
+    fn fchown(__fd: libc::c_int, __owner: __uid_t, __group: __gid_t) -> libc::c_int;
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        lineno: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct iovec {
+    pub iov_base: *mut libc::c_void,
+    pub iov_len: size_t,
 }
 
 #[derive(Copy, Clone)]
@@ -192,13 +232,20 @@ pub struct sudo_debug_output_sle {
     pub sle_next: *mut sudo_debug_output,
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_debug_output {
+    pub entries: sudo_debug_output_sle,
+    pub filename: *mut libc::c_char,
+    pub settings: *mut libc::c_int,
+    pub fd: libc::c_int,
+}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_debug_output_list {
     pub slh_first: *mut sudo_debug_output,
 }
-
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -210,3 +257,38 @@ pub struct sudo_debug_instance {
     pub outputs: sudo_debug_output_list,
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conf_debug_file_list {
+    tqh_first: *mut sudo_debug_file,
+    tqh_last: *mut *mut sudo_debug_file,
+}
+
+static mut sudo_debug_fds_size: libc::c_int = -1;
+static mut sudo_debug_fds: *mut libc::c_uchar = 0 as *const libc::c_char as *mut libc::c_uchar;
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_free_output(output: *mut sudo_debug_output) {
+    free((*output).filename as *mut libc::c_void);
+    free((*output).settings as *mut libc::c_void);
+    if ((*output).fd) != -1 {
+        close((*output).fd);
+    }
+    free(output as *mut libc::c_void);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_new_output(
+    instance: *mut sudo_debug_instance,
+    debug_file: *mut sudo_debug_file,
+) -> *mut sudo_debug_output {
+    let mut buf: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut last: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut subsys: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut pri: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut output: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+    let j: libc::c_uint = 0;
+    let i: libc::c_int = 0;
+    let mut isbad: bool = false;
+}
