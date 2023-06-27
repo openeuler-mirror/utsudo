@@ -126,13 +126,11 @@ macro_rules! round_nfds {
     };
 }
 
-
 macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
 }
-
 
 #[macro_export]
 macro_rules! SUDO_DEBUG_LINENO {
@@ -155,7 +153,6 @@ macro_rules! SUDO_DEBUG_LINENO {
     };
 }
 
-
 /* Initializer for instance index to indicate that debugging is not setup. */
 // #define SUDO_DEBUG_INSTANCE_INITIALIZER      -1
 #[macro_export]
@@ -164,7 +161,6 @@ macro_rules! SUDO_DEBUG_INSTANCE_INITIALIZER {
         -1
     };
 }
-
 
 extern "C" {
     fn free(__ptr: *mut libc::c_void);
@@ -215,13 +211,20 @@ pub struct sudo_debug_output_sle {
     pub sle_next: *mut sudo_debug_output,
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_debug_output {
+    pub entries: sudo_debug_output_sle,
+    pub filename: *mut libc::c_char,
+    pub settings: *mut libc::c_int,
+    pub fd: libc::c_int,
+}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_debug_output_list {
     pub slh_first: *mut sudo_debug_output,
 }
-
 
 #[derive(Copy, Clone)]
 #[repr(C)]
