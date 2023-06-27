@@ -20,8 +20,11 @@ use crate::sudo_debug_macro::SUDO_DEBUG_INFO;
 
 extern "C" {
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
+    fn free(__ptr: *mut libc::c_void);
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong) -> libc::c_int;
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
+    fn strndup(_: *const libc::c_char, _: libc::c_ulong) -> *mut libc::c_char;
     fn strncasecmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong)
         -> libc::c_int;
     fn sudo_strsplit_v1(
