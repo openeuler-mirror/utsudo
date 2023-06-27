@@ -128,6 +128,21 @@ pub union C2RustUnnamed_3 {
     pub _addr_bnd: C2RustUnnamed_4,
     pub _pkey: __uint32_t,
 }
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_4 {
+    pub _lower: *mut libc::c_void,
+    pub _upper: *mut libc::c_void,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_5 {
+    pub si_pid: __pid_t,
+    pub si_uid: __uid_t,
+    pub si_status: libc::c_int,
+    pub si_utime: __clock_t,
+    pub si_stime: __clock_t,
+}
 
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
@@ -646,4 +661,14 @@ pub unsafe extern "C" fn sudo_ev_alloc_v1(
         sudo_debug_ret_1,
     );
     return sudo_debug_ret_1 as *mut sudo_event;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ev_alloc_v1(
+    mut fd: libc::c_int,
+    mut events: libc::c_short,
+    mut callback: sudo_ev_callback_t,
+    mut closure: *mut libc::c_void,
+) -> *mut sudo_event {
+    let mut ev: *mut sudo_event = 0 as *mut sudo_event;
 }
