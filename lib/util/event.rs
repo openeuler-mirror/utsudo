@@ -122,6 +122,12 @@ pub struct C2RustUnnamed_2 {
     pub si_addr_lsb: libc::c_short,
     pub _bounds: C2RustUnnamed_3,
 }
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union C2RustUnnamed_3 {
+    pub _addr_bnd: C2RustUnnamed_4,
+    pub _pkey: __uint32_t,
+}
 
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
