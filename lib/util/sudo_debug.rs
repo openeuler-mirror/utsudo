@@ -357,6 +357,18 @@ pub unsafe extern "C" fn sudo_debug_new_output(
             if new_fds.is_null() {
                 break 'oom;
             }
+            memset(
+                new_fds.offset(old_size as isize) as *mut libc::c_void,
+                0,
+                (new_size - old_size) as libc::size_t,
+            );
+            sudo_debug_fds = new_fds;
+            sudo_debug_fds_size = new_size * NBBY;
+        }
+
+        sudo_setbit!(sudo_debug_fds, (*output).fd);
+        if (*output).fd > sudo_debug_max_fd {
+            sudo_debug_max_fd = (*output).fd;
         }
     }
 }
