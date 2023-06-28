@@ -95,3 +95,8 @@ pub unsafe extern "C" fn sudo_gettime_real_v1(mut ts: *mut timespec) -> libc::c_
     
     debug_return_int!(0)
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_gettime_mono_v1(ts: *mut timespec) -> i32 {
+    
+}
