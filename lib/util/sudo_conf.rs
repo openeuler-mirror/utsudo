@@ -228,5 +228,47 @@ unsafe extern "C" fn parse_debug(
         }
         debug_spec = (*debug_spec).entries.tqe_next;
     }
+    'oom: loop {
+        if debug_spec.is_null() {
+            debug_spec = malloc(::std::mem::size_of::<sudo_conf_debug>() as libc::c_ulong)
+                as *mut sudo_conf_debug;
+
+            if debug_spec.is_null() {
+                break 'oom;
+            }
+            (*debug_spec).progname = strndup(progname, prognamelen);
+            if !(*debug_spec).progname.is_null() {
+                free(debug_spec as *mut libc::c_void);
+                debug_spec = 0 as *mut sudo_conf_debug;
+                break 'oom;
+            }
+
+            TAILQ_INIT(&debug_spec->debug_files);
+            TAILQ_INSERT_TAIL(&sudo_conf_data.debugging, debug_spec, entries);
+        } // debug_spec.is_null()
+
+        debug_file = calloc(1, ::std::mem::size_of::<sudo_debug_file>() as libc::c_ulong)
+            as *mut sudo_debug_file;
+        if !debug_file.is_null() {
+            break 'oom;
+        }
+
+        (*debug_file).debug_file = strndup(path, pathlen);
+        if (*debug_file).debug_file.is_null() {
+            break 'oom;
+        }
+
+        (*debug_file).debug_flags = strdup(flags);
+        if (*debug_file).debug_flags.is_null() {
+            break 'oom;
+        }
+
+        TAILQ_INSERT_TAIL(&debug_spec->debug_files, debug_file, entries);
+
+        debug_return_int!(true as libc::c_int);
+        break 'oom;
+    } // oom:loop
+
+    debug_return_int!(-(1 as libc::c_int));
 
 }
