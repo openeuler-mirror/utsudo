@@ -110,7 +110,7 @@ pub type sudo_conv_t = Option<
         *mut sudo_conv_reply,
         *mut sudo_conv_callback,
     ) -> libc::c_int,
->
+>;
 
 #[no_mangle]
 pub fn do_cleanup() {
