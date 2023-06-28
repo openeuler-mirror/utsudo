@@ -133,8 +133,16 @@ pub unsafe extern "C" fn sudo_strtoidx_v1(
 }
 
 
-
-
+/* Backwards compatibility */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_strtoid_v1(
+    mut p: *const libc::c_char,
+    mut sep: *const libc::c_char,
+    mut endp: *mut *mut libc::c_char,
+    mut errstrp: *mut *const libc::c_char,
+) -> id_t {
+    return sudo_strtoidx_v1(p, sep, endp, errstrp);
+}
 
 
 
