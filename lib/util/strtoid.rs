@@ -57,6 +57,9 @@ extern "C" {
     fn __errno_location() -> *mut libc::c_int;
 }
 
+/*
+ * Make sure that the ID ends with a valid separator char.
+ */
 unsafe extern "C" fn valid_separator(
     mut p: *const libc::c_char,
     mut ep: *const libc::c_char,
@@ -78,6 +81,7 @@ unsafe extern "C" fn valid_separator(
             sep = sep.offset(1);
         }
     } // !eq != p
+    return valid;
 }
 
 
