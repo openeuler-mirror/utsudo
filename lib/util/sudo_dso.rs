@@ -176,3 +176,32 @@ pub unsafe extern "C" fn sudo_dso_unload_v1(mut handle: *mut libc::c_void) -> li
     }
     return dlclose(handle);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_dso_findsym_v1(
+    mut handle: *mut libc::c_void,
+    mut symbol: *const libc::c_char,
+) -> *mut libc::c_void {
+    let mut pt: *mut sudo_preload_table = 0 as *mut sudo_preload_table;
+    /* Check prelinked symbols first. */
+    if !preload_table.is_null() {
+        pt = preload_table;
+        while !((*pt).handle).is_null() {
+            if (*pt).handle == handle {
+                let mut sym: *mut sudo_preload_symbol = (*pt).symbols;
+                while !(*sym).name.is_null() {
+                    if strcmp((*sym).name, symbol) == 0 {
+                        return (*sym).addr;
+                    }
+                    sym = sym.offset(1);
+                }
+                *__errno_location() = ENOENT;
+                return 0 as *mut libc::c_void;
+            }
+            pt = pt.offset(1);
+        }
+    }
+
+    return dlsym(handle, symbol);
+}
+
