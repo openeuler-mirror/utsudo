@@ -19,6 +19,7 @@ use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
 use crate::sudo_debug_macro::SUDO_DEBUG_INFO;
 
 extern "C" {
+    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong) -> libc::c_int;
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     fn strncasecmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong)
@@ -29,6 +30,14 @@ extern "C" {
         sep: *const libc::c_char,
         last: *mut *const libc::c_char,
     ) -> *const libc::c_char;
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conf_debug {
+    pub entries: C2RustUnnamed_2,
+    pub debug_files: sudo_conf_debug_file_list,
+    pub progname: *mut libc::c_char,
 }
 
 #[derive(Copy, Clone)]
