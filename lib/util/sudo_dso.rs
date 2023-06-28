@@ -17,6 +17,12 @@
 //secure_path.rs
 use crate::ISSET;
 
+/* Values for sudo_dso_load() mode. */
+// #define SUDO_DSO_LAZY         0x1
+// #define SUDO_DSO_NOW  0x2
+// #define SUDO_DSO_GLOBAL       0x4
+// #define SUDO_DSO_LOCAL        0x8
+
 #[macro_export]
 macro_rules! SUDO_DSO_LAZY {
     () => {
@@ -62,6 +68,7 @@ macro_rules! RTLD_NOW {
     };
 }
 
+// #define RTLD_GLOBAL  0x00100
 #[macro_export]
 macro_rules! RTLD_GLOBAL {
     () => {
@@ -69,6 +76,7 @@ macro_rules! RTLD_GLOBAL {
     };
 }
 
+// #define RTLD_LOCAL   0
 #[macro_export]
 macro_rules! RTLD_LOCAL {
     () => {
@@ -204,4 +212,11 @@ pub unsafe extern "C" fn sudo_dso_findsym_v1(
 
     return dlsym(handle, symbol);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_dso_strerror_v1() -> *mut libc::c_char {
+    return dlerror();
+}
+
+
 
