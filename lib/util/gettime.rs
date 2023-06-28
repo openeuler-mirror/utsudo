@@ -89,6 +89,8 @@ pub unsafe extern "C" fn sudo_gettime_real_v1(mut ts: *mut timespec) -> libc::c_
         if gettimeofday(&mut tv, 0 as *mut timezone) == -1 {
             debug_return_int!(-1);
         }
+        (*ts).tv_sec = tv.tv_sec;
+        (*ts).tv_nsec = tv.tv_usec * 1000;
     }
     
     debug_return_int!(0)
