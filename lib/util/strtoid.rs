@@ -46,6 +46,14 @@ macro_rules! EINVAL {
 }
 type id_t = u32;
 
-
-
+extern "C" {
+    fn sudo_strtonumx(
+        str: *const libc::c_char,
+        minval: libc::c_longlong,
+        maxval: libc::c_longlong,
+        endp: *mut *mut libc::c_char,
+        errstrp: *mut *const libc::c_char,
+    ) -> libc::c_longlong;
+    fn __errno_location() -> *mut libc::c_int;
+}
 
