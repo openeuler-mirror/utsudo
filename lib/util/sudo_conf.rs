@@ -284,3 +284,31 @@ unsafe extern "C" fn parse_debug(
     debug_return_int!(-(1 as libc::c_int));
 
 }
+
+#[no_mangle]
+unsafe extern "C" fn set_var_disable_coredump(
+    mut strval: *const libc::c_char,
+    mut conf_file: *const libc::c_char,
+    mut lineno: libc::c_uint,
+) -> libc::c_int {
+    // int val = sudo_strtobool(strval);
+    let mut val: libc::c_int = sudo_strtobool_v1(strval);
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    if val == -1 {
+        sudo_warnx!(
+            b"invalid value for %s \"%s\" in %s, line %u\0" as *const u8 as *const libc::c_char,
+            b"disable_coredump\0" as *const u8 as *const libc::c_char,
+            strval,
+            conf_file,
+            lineno
+        );
+
+        debug_return_bool!(false) as libc::c_int;
+    }
+
+    sudo_conf_data.disable_coredump = val as libc::c_int != 0;
+
+    debug_return_bool!(true) as libc::c_int
+}
