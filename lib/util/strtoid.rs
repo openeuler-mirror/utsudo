@@ -57,3 +57,38 @@ extern "C" {
     fn __errno_location() -> *mut libc::c_int;
 }
 
+unsafe extern "C" fn valid_separator(
+    mut p: *const libc::c_char,
+    mut ep: *const libc::c_char,
+    mut sep: *const libc::c_char,
+) -> bool {
+    let mut valid: bool = false;
+    if ep != p {
+        /* check for valid separator (including '\0') */
+        if sep.is_null() {
+            sep = b"\0" as *const u8 as *const libc::c_char;
+        }
+        loop {
+            if *ep == *sep {
+                valid = true;
+            }
+            if !(*sep as libc::c_int != '\u{0}' as i32) {
+                break;
+            }
+            sep = sep.offset(1);
+        }
+    } // !eq != p
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
