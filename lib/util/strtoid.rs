@@ -57,6 +57,9 @@ extern "C" {
     fn __errno_location() -> *mut libc::c_int;
 }
 
+/*
+ * Make sure that the ID ends with a valid separator char.
+ */
 unsafe extern "C" fn valid_separator(
     mut p: *const libc::c_char,
     mut ep: *const libc::c_char,
@@ -78,14 +81,68 @@ unsafe extern "C" fn valid_separator(
             sep = sep.offset(1);
         }
     } // !eq != p
+    return valid;
+}
+
+/*
+ * Parse a uid/gid in string form.
+ * If sep is non-NULL, it contains valid separator characters (e.g. comma, space)
+ * If endp is non-NULL it is set to the next char after the ID.
+ * On success, returns the parsed ID and clears errstr.
+ * On error, returns 0 and sets errstr.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_strtoidx_v1(
+    mut p: *const libc::c_char,
+    mut sep: *const libc::c_char,
+    mut endp: *mut *mut libc::c_char,
+    mut errstrp: *mut *const libc::c_char,
+) -> id_t {
+    let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+    let mut ep: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut ret: id_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+    ret = sudo_strtonumx(
+        p,
+        INT_MIN!() as libc::c_longlong,
+        UINT_MAX!() as libc::c_longlong,
+        &mut ep,
+        &mut errstr,
+    ) as id_t;
+    if errstr.is_null() {
+        /*
+         * Disallow id -1 (UINT_MAX), which means "no change"
+         * and check for a valid separator (if specified).
+         */
+        if ret == -(1 as libc::c_int) as id_t
+            || ret == UINT_MAX!() as id_t
+            || !valid_separator(p, ep, sep)
+        {
+            errstr = b"invalid value\0" as *const u8 as *const libc::c_char;
+            *__errno_location() = EINVAL;
+            ret = 0;
+        }
+    }
+    if !errstrp.is_null() {
+        *errstrp = errstr;
+    }
+    if !endp.is_null() {
+        *endp = ep;
+    }
+    debug_return_id_t!(ret)
 }
 
 
-
-
-
-
-
+/* Backwards compatibility */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_strtoid_v1(
+    mut p: *const libc::c_char,
+    mut sep: *const libc::c_char,
+    mut endp: *mut *mut libc::c_char,
+    mut errstrp: *mut *const libc::c_char,
+) -> id_t {
+    return sudo_strtoidx_v1(p, sep, endp, errstrp);
+}
 
 
 
