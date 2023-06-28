@@ -210,6 +210,18 @@ pub unsafe extern "C" fn sudo_dso_findsym_v1(
         }
     }
 
+    /*
+     * Not all implementations support the special handles.
+     */
+    if handle == SUDO_DSO_NEXT {
+        handle = RTLD_NEXT;
+    } else if handle == SUDO_DSO_DEFAULT {
+        handle = RTLD_DEFAULT;
+    } else if handle == SUDO_DSO_SELF {
+        *__errno_location() = ENOENT;
+        return 0 as *mut libc::c_void;
+    }
+
     return dlsym(handle, symbol);
 }
 
@@ -217,6 +229,4 @@ pub unsafe extern "C" fn sudo_dso_findsym_v1(
 pub unsafe extern "C" fn sudo_dso_strerror_v1() -> *mut libc::c_char {
     return dlerror();
 }
-
-
 
