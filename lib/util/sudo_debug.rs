@@ -460,3 +460,31 @@ pub unsafe extern "C" fn sudo_debug_set_active_instance_v1(idx: libc::c_int) -> 
 
     return old_idx;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_update_fd_v1(ofd: libc::c_int, nfd: libc::c_int) {
+    if ofd <= sudo_debug_max_fd && sudo_isset!(sudo_debug_fds, ofd) != 0 {
+        /* Update sudo_debug_fds. */
+        sudo_clrbit!(sudo_debug_fds, ofd);
+        sudo_setbit!(sudo_debug_fds, nfd);
+
+        /* Update the outputs. */
+        for idx in 0..sudo_debug_last_instance + 1 {
+            let mut instance: *mut sudo_debug_instance = 0 as *mut sudo_debug_instance;
+            let mut output: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+
+            instance = sudo_debug_instances[idx as usize];
+            if instance.is_null() {
+                continue;
+            }
+
+            output = (*instance).outputs.slh_first;
+            while !output.is_null() {
+                if (*output).fd == ofd {
+                    (*output).fd = nfd;
+                }
+                output = (*output).entries.sle_next;
+            }
+        }
+    }
+}
