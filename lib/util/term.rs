@@ -18,6 +18,9 @@
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_bool_v1;
 
+/* Type of a signal handler.  */
+// typedef void (*__sighandler_t) (int);
+pub type __sighandler_t = Option<unsafe extern "C" fn(libc::c_int) -> ()>;
 pub type __pid_t = libc::c_int;
 pub type __uid_t = libc::c_uint;
 pub type __clock_t = libc::c_long;
