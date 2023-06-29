@@ -444,11 +444,24 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
     }
 }
 
+
+/*
+ * Returns the active instance or SUDO_DEBUG_INSTANCE_INITIALIZER
+ * if no instance is active.
+ */
+
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_get_active_instance_v1() -> libc::c_int {
     return sudo_debug_active_instance;
 }
 
+
+
+/*
+ * Sets a new active instance, returning the old one.
+ * Note that the old instance may be SUDO_DEBUG_INSTANCE_INITIALIZER
+ * if this is the only instance.
+ */
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_set_active_instance_v1(idx: libc::c_int) -> libc::c_int {
