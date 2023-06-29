@@ -138,6 +138,14 @@ unsafe fn sudo_fatal_callback_register_v1(mut func: sudo_fatal_callback_t) -> li
             return -1;
         }
     }
+
+    cb = malloc(std::mem::size_of::<sudo_fatal_callback>() as libc::c_ulong)
+        as *mut sudo_fatal_callback;
+    if cb.is_null() {
+        return -1;
+    }
+    (*cb).func = func;
+    (*cb).entries.sle_next = cb;
     return 0;
 }
 
