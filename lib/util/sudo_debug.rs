@@ -391,6 +391,27 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                 continue;
             }
             pri = pri.offset(1);
+
+             /* Look up priority and subsystem, fill in sudo_debug_settings[]. */
+            while !(sudo_debug_priorities[i as usize]).is_null() {
+                let mut ret = strcasecmp(
+                    pri,
+                    (sudo_debug_priorities[i as usize]) as *const libc::c_char,
+                );
+                if ret == 0 {
+                    while !(*((*instance).subsystems).offset(j as isize)).is_null() {
+                        ret = strcasecmp(subsys, b"all\0" as *const u8 as *const libc::c_char);
+                        if ret == 0 {
+                            let mut idx: libc::c_uint = if (*instance).subsystem_ids.is_null() {
+                                SUDO_DEBUG_SUBSYS!(*((*instance).subsystem_ids).offset(j as isize))
+                                    as libc::c_uint
+                            } else {
+                                j
+                            };
+                        }
+                    }
+                }
+            }
         }
 
     }
@@ -408,6 +429,19 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
     let mut debug_file: *mut sudo_debug_file = 0 as *mut sudo_debug_file;
     let mut idx: libc::c_int = -1;
     let mut free_idx: libc::c_int = -1;
+
+    debug_decl_func!(sudo_debug_register);
+
+    if debug_files.is_null() {
+        return SUDO_DEBUG_INSTANCE_INITIALIZER!();
+    }
+
+    /* Use default subsystem names if none are provided. */
+    if subsystems.is_null() {
+        subsystems = sudo_debug_default_subsystems.as_ptr();
+    } else if ids.is_null() {
+        return SUDO_DEBUG_INSTANCE_ERROR!();
+    }
 }
 
 #[no_mangle]
