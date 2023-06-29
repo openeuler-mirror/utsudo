@@ -22,4 +22,10 @@ unsafe fn sudo_strsplit_v1(
 
     //line45
     debug_decl()
+
+    //line 48
+    if str.is_null() {
+        str = *last;
+    }
+
 }
