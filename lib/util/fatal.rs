@@ -114,5 +114,17 @@ pub type sudo_conv_t = Option<
 
 #[no_mangle]
 pub fn do_cleanup() {
+    let mut cb: *mut sudo_fatal_callback = 0 as *mut sudo_fatal_callback;
 
+    loop {
+        cb = unsafe { callbacks.slh_first };
+        if cb.is_null() {
+            break;
+        }
+        unsafe {
+            callbacks.slh_first = (*callbacks.slh_first).entries.sle_next;
+            ((*cb).func).expect("the pointer is not null")();
+            free(cb as *mut libc::c_void)
+        };
+    }
 }
