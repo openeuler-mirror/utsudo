@@ -410,3 +410,19 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
     let mut free_idx: libc::c_int = -1;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_get_active_instance_v1() -> libc::c_int {
+    return sudo_debug_active_instance;
+}
+
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_set_active_instance_v1(idx: libc::c_int) -> libc::c_int {
+    let old_idx: libc::c_int = sudo_debug_active_instance;
+
+    if idx >= -1 && idx <= sudo_debug_last_instance {
+        sudo_debug_active_instance = idx;
+    }
+
+    return old_idx;
+}
