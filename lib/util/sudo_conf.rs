@@ -153,7 +153,9 @@ let mut entry_end: *const libc::c_char = entry.offset(strlen(entry) as isize);
             b" \t\0" as *const u8 as *const libc::c_char,
             &mut ep,
         );
-
+        if name.is_null() {
+            break 'bad;
+        }
         namelen = ep.offset_from(name) as libc::c_long as size_t;
 
         /* Parse path (if present). */
@@ -174,8 +176,12 @@ let mut entry_end: *const libc::c_char = entry.offset(strlen(entry) as isize);
                 if !path.is_null() {
                     pval = strdup(path);
                     if !pval.is_null() {
-
-                        debug_return_int!(-1);
+                    sudo_warnx!(
+                        b"%s: %s\0" as *const u8 as *const libc::c_char,
+                        stdext::function_name!().as_ptr(),
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                    );
+                    debug_return_int!(-1);
                     } // if !pval.is_null()
                 } //  if !path.is_null()
 
@@ -184,18 +190,44 @@ let mut entry_end: *const libc::c_char = entry.offset(strlen(entry) as isize);
                 }
                 (*cur).pval = pval;
                 (*cur).dynamic = true;
-
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"%s: %s:%u: Path %s %s\0" as *const u8 as *const libc::c_char,
+                    stdext::function_name!().as_ptr(),
+                    conf_file,
+                    lineno,
+                    (*cur).pname,
+                    if !pval.is_null() {
+                        pval
+                    } else {
+                        b"(none)\0" as *const u8 as *const libc::c_char
+                    }
+                );
                 debug_return_int!(true as libc::c_int);
             } // if  namelen == (*cur).pnamelen &&
 
             cur = cur.offset(1 as isize);
         } // !(*cur).pname.is_null()
-
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN,
+            b"%s: %s:%u: unknown path %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            conf_file,
+            lineno,
+            entry
+        );
         debug_return_int!(false as libc::c_int);
 
         break 'bad;
     } // 'bad loop
 
+    /* bad:*/
+    sudo_warnx!(
+        b"invalid Path value \"%s\" in %s, line %u\0" as *const u8 as *const libc::c_char,
+        entry,
+        conf_file,
+        lineno
+    );
     debug_return_int!(false as libc::c_int);
 }
 
