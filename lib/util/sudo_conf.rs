@@ -33,6 +33,7 @@ extern "C" {
         sep: *const libc::c_char,
         last: *mut *const libc::c_char,
     ) -> *const libc::c_char;
+    fn sudo_strtobool_v1(str: *const libc::c_char) -> libc::c_int;
 }
 
 #[derive(Copy, Clone)]
@@ -102,12 +103,27 @@ pub unsafe extern "C" fn parse_variable(
             } else {
                 ret = SUDO_DEBUG_ERROR;
             }
-
+            sudo_debug_printf!(
+                ret,
+                b"%s: %s:%u: Set %s %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                conf_file,
+                lineno,
+                (*var).name,
+                entry
+            );
             debug_return_int!(ret);
         }
         var = var.offset(1);
     } // while !((*var).name).is_null()
-
+    sudo_debug_printf!(
+        SUDO_DEBUG_WARN,
+        b"%s: %s:%u: unknown setting %s\0" as *const u8 as *const libc::c_char,
+        stdext::function_name!().as_ptr(),
+        conf_file,
+        lineno,
+        entry
+    );
     debug_return_int!(false as libc::c_int);
 }
 
