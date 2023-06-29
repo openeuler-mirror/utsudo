@@ -375,6 +375,72 @@ unsafe extern "C" fn parse_plugin(
         debug_return_int!(false as libc::c_int); /* not enough fields */
     }
     pathlen = ep.offset_from(path) as size_t;
+
+    /* Split options into an array if present. */
+    while isblank!(*ep) != 0 {
+        ep = ep.offset(1 as isize);
+    }
+
+    'oom: loop {
+        if *ep as libc::c_int != '\u{0}' as i32 {
+            /* Count number of options and allocate array. */
+            let mut cp: *const libc::c_char = 0 as *const libc::c_char;
+            let mut opt: *const libc::c_char = ep;
+
+            /* Count and allocate options array. */
+            nopts = 0;
+            cp = sudo_strsplit_v1(
+                opt,
+                entry_end,
+                b" \t\0" as *const u8 as *const libc::c_char,
+                &mut ep,
+            );
+            while !cp.is_null() {
+                nopts += 1;
+                cp = sudo_strsplit_v1(
+                    0 as *const libc::c_char,
+                    entry_end,
+                    b" \t\0" as *const u8 as *const libc::c_char,
+                    &mut ep,
+                );
+            } // while !cp.is_null()
+
+            options = reallocarray(
+                0 as *mut libc::c_void,
+                (nopts + 1) as size_t,
+                ::std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+            ) as *mut *mut libc::c_char;
+            if options.is_null() {
+                break 'oom;
+            }
+
+            *options.offset(nopts as isize) = 0 as *mut libc::c_char;
+        } //  if *ep  as libc::c_int != '\u{0}' as i32
+
+        info = calloc(
+            ::std::mem::size_of::<*const plugin_info>() as libc::c_ulong,
+            1,
+        ) as *mut plugin_info;
+        if info.is_null() {
+            break 'oom;
+        }
+        (*info).symbol_name = strndup(symbol, symlen);
+        if ((*info).symbol_name).is_null() {
+            break 'oom;
+        }
+        (*info).path = strndup(path, pathlen);
+        if ((*info).path).is_null() {
+            break 'oom;
+        }
+        (*info).options = options;
+        (*info).lineno = lineno;
+
+        TAILQ_INSERT_TAIL(&sudo_conf_data.plugins, info, entries);
+
+        debug_return_int!(true as libc::c_int);
+
+        break 'oom;
+    } // oom loop
 }
 
 #[no_mangle]
