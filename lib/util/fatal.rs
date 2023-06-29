@@ -128,3 +128,9 @@ pub fn do_cleanup() {
         };
     }
 }
+
+#[no_mangle]
+unsafe fn sudo_fatal_callback_register_v1(mut func: sudo_fatal_callback_t) -> libc::c_int {
+
+    return 0;
+}
