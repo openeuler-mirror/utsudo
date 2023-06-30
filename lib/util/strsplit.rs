@@ -12,8 +12,11 @@ use crate::sudo_debug::sudo_debug_exit_ptr_v1;
 use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
 //line42
+#[no_mangle]
 unsafe fn sudo_strsplit_v1(
     mut str: *const libc::c_char,
+    mut endstr: *const libc::c_char,
+    mut sep: *const libc::c_char,
     mut last: *mut *const libc::c_char,
 ) -> *const libc::c_char {
     //line 44
