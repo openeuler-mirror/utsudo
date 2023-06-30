@@ -83,7 +83,9 @@ pub struct __dirstream {
     _unused: [u8; 0],
 }
 
-
-
+#[inline]
+unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
+    return __fxstat(1 as libc::c_int, __fd, __statbuf);
+}
 
 
