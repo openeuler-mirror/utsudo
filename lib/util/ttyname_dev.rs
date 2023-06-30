@@ -95,3 +95,19 @@ unsafe extern "C" fn stat(
 ) -> libc::c_int {
     return __xstat(1 as libc::c_int, __path, __statbuf);
 }
+
+#[inline]
+unsafe extern "C" fn gnu_dev_minor(mut __dev: __dev_t) -> libc::c_uint {
+    let mut __minor: libc::c_uint = 0;
+    __minor = ((__dev & 0xff as libc::c_uint as __dev_t) >> 0 as libc::c_int) as libc::c_uint;
+    __minor = (__minor as libc::c_ulong
+        | (__dev & 0xffffff00000 as libc::c_ulong) >> 12 as libc::c_int)
+        as libc::c_uint;
+    return __minor;
+}
+
+
+
+
+
+
