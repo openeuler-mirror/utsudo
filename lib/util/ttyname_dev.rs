@@ -59,6 +59,23 @@ macro_rules! _PATH_DEV_STDERR {
     };
 }
 
+macro_rules! __S_IFCHR {
+    () => {
+        0o020000
+    };
+}
+
+macro_rules! __S_ISTYPE {
+    ($mode:expr, $mask:expr) => {
+        ((($mode) & _S_IFMT!()) == ($mask))
+    };
+}
+
+macro_rules! S_ISCHR {
+    ($mode:expr) => {
+        __S_ISTYPE!(($mode), __S_IFCHR!())
+    };
+}
 
 
 
