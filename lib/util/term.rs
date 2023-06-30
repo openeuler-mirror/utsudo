@@ -171,6 +171,10 @@ extern "C" {
     fn tcsetattr()
     fn tcgetattr()
     fn memcpy()
+    fn cfsetispeed(__termios_p: *mut termios, __speed: speed_t) -> libc::c_int;
+    fn cfsetospeed(__termios_p: *mut termios, __speed: speed_t) -> libc::c_int;
+    fn cfgetospeed(__termios_p: *const termios) -> speed_t;
+    fn cfgetispeed(__termios_p: *const termios) -> speed_t;
 }
 
 unsafe extern "C" fn sigttou()
