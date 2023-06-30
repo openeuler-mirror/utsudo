@@ -408,6 +408,25 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                             } else {
                                 j
                             };
+                            if i > *((*output).settings).offset(idx as isize) {
+                                *((*output).settings).offset(idx as isize) = i;
+                            }
+                            continue;
+
+                        }
+
+                        ret = strcasecmp(subsys, *((*instance).subsystems).offset(j as isize));
+                        if ret == 0 {
+                            let mut idx: libc::c_uint = if (*instance).subsystem_ids.is_null() {
+                                SUDO_DEBUG_SUBSYS!(*((*instance).subsystem_ids).offset(j as isize))
+                                    as libc::c_uint
+                            } else {
+                                j
+                            };
+                            if i > *((*output).settings).offset(idx as isize) {
+                                *((*output).settings).offset(idx as isize) = i;
+                            }
+                            break;
                         }
                     }
                 }
