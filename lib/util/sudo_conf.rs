@@ -301,6 +301,50 @@ unsafe extern "C" fn parse_debug(
 
 }
 
+
+#[no_mangle]
+unsafe extern "C" fn parse_plugin(
+    mut entry: *const libc::c_char,
+    mut _conf_file: *const libc::c_char,
+    mut lineno: libc::c_uint,
+) -> libc::c_int {
+    let mut info: *mut plugin_info = 0 as *mut plugin_info;
+    let mut ep: *const libc::c_char = 0 as *const libc::c_char;
+    let mut path: *const libc::c_char = 0 as *const libc::c_char;
+    let mut symbol: *const libc::c_char = 0 as *const libc::c_char;
+    let mut entry_end: *const libc::c_char = entry.offset(strlen(entry) as isize);
+    let mut pathlen: size_t = 0 as size_t;
+    let mut symlen: size_t = 0 as size_t;
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    /* Parse symbol. */
+    symbol = sudo_strsplit_v1(
+        entry,
+        entry_end,
+        b" \t\0" as *const u8 as *const libc::c_char,
+        &mut ep,
+    );
+
+    if symbol.is_null() {
+        debug_return_int!(false as libc::c_int); /* not enough fields */
+    }
+
+    symlen = ep.offset_from(symbol) as size_t;
+
+    /* Parse path. */
+    path = sudo_strsplit_v1(
+        0 as *const libc::c_char,
+        entry_end,
+        b" \t\0" as *const u8 as *const libc::c_char,
+        &mut ep,
+    );
+    if path.is_null() {
+        debug_return_int!(false as libc::c_int); /* not enough fields */
+    }
+    pathlen = ep.offset_from(path) as size_t;
+}
+
 #[no_mangle]
 unsafe extern "C" fn set_var_disable_coredump(
     mut strval: *const libc::c_char,
