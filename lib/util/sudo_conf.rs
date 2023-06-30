@@ -509,6 +509,29 @@ unsafe extern "C" fn parse_plugin(
 
         break 'oom;
     } // oom loop
+    sudo_warnx!(
+        b"%s: %s\0" as *const u8 as *const libc::c_char,
+        stdext::function_name!().as_ptr(),
+        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+    );
+
+    if !options.is_null() {
+        loop {
+            nopts -= 1;
+            if !(nopts != 0) {
+                break;
+            }
+            free(*options.offset(nopts as isize) as *mut libc::c_void);
+        }
+        free(options as *mut libc::c_void);
+    }
+    if !info.is_null() {
+        free((*info).symbol_name as *mut libc::c_void);
+        free((*info).path as *mut libc::c_void);
+        free(info as *mut libc::c_void);
+    }
+
+    debug_return_int!(-(1 as libc::c_int));
 }
 
 #[no_mangle]
