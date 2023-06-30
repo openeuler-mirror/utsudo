@@ -153,3 +153,8 @@ unsafe fn sudo_fatal_callback_register_v1(mut func: sudo_fatal_callback_t) -> li
 fn sudo_fatal_callback_deregister_v1(mut func: sudo_fatal_callback_t) -> libc::c_int {
 
 }
+
+#[no_mangle]
+extern "C" fn sudo_warn_set_conversation_v1(mut conv: sudo_conv_t) {
+    unsafe { sudo_warn_conversation = conv };
+}
