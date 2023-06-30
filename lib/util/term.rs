@@ -124,6 +124,27 @@ pub struct sigaction {
 pub type sig_atomic_t = libc::c_int;
 static mut got_sigttou: sig_atomic_t = 0 as sig_atomic_t;
 
+static mut term: termios = termios {
+    c_iflag: 0,
+    c_oflag: 0,
+    c_cflag: 0,
+    c_lflag: 0,
+    c_line: 0,
+    c_cc: 0,
+    c_ispeed: 0,
+    c_ospeed: 0,
+};
+static mut oterm: termios = termios {
+    c_iflag: 0,
+    c_oflag: 0,
+    c_cflag: 0,
+    c_lflag: 0,
+    c_line: 0,
+    c_cc: 0,
+    c_ispeed: 0,
+    c_ospeed: 0,
+};
+
 pub struct termios {
     c_iflag: tcflag_t, 
     c_oflag: tcflag_t, 
