@@ -259,6 +259,9 @@ unsafe extern "C" fn parse_debug(
         b" \t\0" as *const u8 as *const libc::c_char,
         &mut ep,
     );
+    if progname.is_null() {
+        debug_return_int!(false as libc::c_int); /* not enough fields */
+    }
     prognamelen = ep.offset_from(progname) as size_t;
 
     /* Parse path. */
@@ -268,6 +271,9 @@ unsafe extern "C" fn parse_debug(
         b" \t\0" as *const u8 as *const libc::c_char,
         &mut ep,
     );
+    if path.is_null() {
+        debug_return_int!(false as libc::c_int); /* not enough fields */
+    }
     pathlen = ep.offset_from(path) as libc::c_long as size_t;
 
     /* Remainder is flags (freeform). */
@@ -277,6 +283,10 @@ unsafe extern "C" fn parse_debug(
         b" \t\0" as *const u8 as *const libc::c_char,
         &mut ep,
     );
+    
+    if !flags.is_null() {
+        debug_return_int!(false as libc::c_int); /* not enough fields */
+    }
 
     /* If progname already exists, use it, else alloc a new one. */
     debug_spec = sudo_conf_data.debugging.tqh_first;
@@ -329,6 +339,17 @@ unsafe extern "C" fn parse_debug(
         break 'oom;
     } // oom:loop
 
+    sudo_warnx!(
+        b"%s: %s\0" as *const u8 as *const libc::c_char,
+        stdext::function_name!().as_ptr(),
+        b"unable to allocate memory\0"
+    );
+
+    if !debug_file.is_null() {
+        free((*debug_file).debug_file as *mut libc::c_void);
+        free((*debug_file).debug_flags as *mut libc::c_void);
+        free(debug_file as *mut libc::c_void);
+    }
     debug_return_int!(-(1 as libc::c_int));
 
 }
@@ -345,8 +366,10 @@ unsafe extern "C" fn parse_plugin(
     let mut path: *const libc::c_char = 0 as *const libc::c_char;
     let mut symbol: *const libc::c_char = 0 as *const libc::c_char;
     let mut entry_end: *const libc::c_char = entry.offset(strlen(entry) as isize);
+    let mut options: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
     let mut pathlen: size_t = 0 as size_t;
     let mut symlen: size_t = 0 as size_t;
+    let mut nopts: libc::c_uint = 0 as libc::c_uint;
 
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
