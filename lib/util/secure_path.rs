@@ -113,6 +113,14 @@ macro_rules! S_IWGRP {
     };
 }
 
+// #define	S_IWOTH	(S_IWGRP >> 3)	/* Write by others.  */
+#[macro_export]
+macro_rules! S_IWOTH {
+    () => {
+        S_IWGRP!() >> 3
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
