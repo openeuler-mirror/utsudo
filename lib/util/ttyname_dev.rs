@@ -31,8 +31,12 @@ macro_rules! _PATH_DEV_PTS {
     };
 }
 
-
-
+pub const PATH_MAX: usize = 4096;
+// #define	ENOMEM		12	/* Out of memory */
+pub const ENOMEM: libc::c_int = 12;
+pub const DT_CHR: libc::c_int = 2;
+pub const DT_LNK: libc::c_int = 10;
+pub const DT_UNKNOWN: libc::c_int = 0;
 
 
 
