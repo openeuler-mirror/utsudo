@@ -233,7 +233,7 @@ use crate::sudo_debug_macro::*;
 pub type DIR = __dirstream;
 
 extern "C" {
-        fn sudo_conf_devsearch_path_v1() -> *const libc::c_char;
+    fn sudo_conf_devsearch_path_v1() -> *const libc::c_char;
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     fn sudo_strsplit_v1(
         str: *const libc::c_char,
@@ -241,8 +241,7 @@ extern "C" {
         sep: *const libc::c_char,
         last: *mut *const libc::c_char,
     ) -> *const libc::c_char;
-
-  fn sudo_strlcpy(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
+    fn sudo_strlcpy(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
     fn sudo_strlcat(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
     fn __fxstat(__ver: libc::c_int, __fildes: libc::c_int, __stat_buf: *mut stat) -> libc::c_int;
     fn __xstat(
@@ -250,18 +249,18 @@ extern "C" {
         __filename: *const libc::c_char,
         __stat_buf: *mut stat,
     ) -> libc::c_int;
-
-
-
-
-
-
-
-
-
-
-
-
+    fn closedir(__dirp: *mut DIR) -> libc::c_int;
+    fn opendir(__name: *const libc::c_char) -> *mut DIR;
+    fn dirfd(__dirp: *mut DIR) -> libc::c_int;
+    fn readdir(__dirp: *mut DIR) -> *mut dirent;
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        lineno: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
 }
 
 #[no_mangle]
