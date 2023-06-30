@@ -460,6 +460,28 @@ unsafe extern "C" fn parse_plugin(
                 break 'oom;
             }
 
+            /* Fill in options array. */
+            nopts = 0;
+            cp = sudo_strsplit_v1(
+                opt,
+                entry_end,
+                b" \t\0" as *const u8 as *const libc::c_char,
+                &mut ep,
+            );
+            while !cp.is_null() {
+                *options.offset(nopts as isize) = strndup(cp, ep.offset_from(cp) as size_t);
+                if ((*options).offset(nopts as isize)).is_null() {
+                    break 'oom;
+                }
+                nopts += 1;
+                cp = sudo_strsplit_v1(
+                    0 as *const libc::c_char,
+                    entry_end,
+                    b" \t\0" as *const u8 as *const libc::c_char,
+                    &mut ep,
+                );
+            } //  while  !cp.is_null()
+
             *options.offset(nopts as isize) = 0 as *mut libc::c_char;
         } //  if *ep  as libc::c_int != '\u{0}' as i32
 
