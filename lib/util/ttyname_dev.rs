@@ -472,6 +472,13 @@ unsafe extern "C" fn sudo_ttyname_scan(
     debug_return_str!(ret)
 }
 
+#[no_mangle]
+unsafe extern "C" fn sudo_dev_check(
+    mut rdev: dev_t,
+    mut devname: *const libc::c_char,
+    mut buf: *mut libc::c_char,
+    mut buflen: size_t,
+) -> *mut libc::c_char {
 
 
 
@@ -480,8 +487,6 @@ unsafe extern "C" fn sudo_ttyname_scan(
 
 
 
-
-
-
-
+    debug_return_str!(0 as *mut libc::c_char)
+}
 
