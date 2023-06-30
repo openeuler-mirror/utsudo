@@ -611,3 +611,8 @@ unsafe extern "C" fn set_var_probe_interfaces(
     debug_return_bool!(true) as libc::c_int
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_askpass_path_v1() -> *const libc::c_char {
+    return sudo_conf_data.path_table[SUDO_CONF_PATH_ASKPASS as usize].pval;
+}
+
