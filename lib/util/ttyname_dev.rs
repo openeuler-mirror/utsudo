@@ -6,9 +6,10 @@
     non_snake_case,
     non_upper_case_globals,
     unused_assignments,
+    unused_mut,
+    clashing_extern_declarations,
+    unused_variables  
 )]
-
-
 
 macro_rules! _PATH_DEV {
     () => {
@@ -16,3 +17,9 @@ macro_rules! _PATH_DEV {
     };
 }
 
+// console
+macro_rules! _PATH_DEV_CONSOLE {
+    () => {
+        b"/dev/console\0" as *const u8 as *const libc::c_char
+    };
+}
