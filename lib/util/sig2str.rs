@@ -14,6 +14,20 @@
     unused_mut
 )]
 
+#[macro_export]
+macro_rules! SIGRTMIN {
+    () => {
+        (__libc_current_sigrtmin())
+    };
+}
+
+#[macro_export]
+macro_rules! SIGRTMAX {
+    () => {
+        (__libc_current_sigrtmax())
+    };
+}
+
 pub type size_t = libc::c_ulong;
 pub type __int32_t = libc::c_int;
 
