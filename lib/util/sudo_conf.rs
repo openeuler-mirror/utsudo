@@ -18,6 +18,11 @@
 use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
 use crate::sudo_debug_macro::SUDO_DEBUG_INFO;
 
+/* Indexes into path_table[] below (order is important). */
+#define SUDO_CONF_PATH_ASKPASS		0
+#define SUDO_CONF_PATH_SESH		    1
+#define SUDO_CONF_PATH_NOEXEC		2
+
 extern "C" {
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
@@ -637,5 +642,15 @@ unsafe extern "C" fn set_var_probe_interfaces(
 #[no_mangle]
 pub unsafe extern "C" fn sudo_conf_askpass_path_v1() -> *const libc::c_char {
     return sudo_conf_data.path_table[SUDO_CONF_PATH_ASKPASS as usize].pval;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_sesh_path_v1() -> *const libc::c_char {
+    return sudo_conf_data.path_table[SUDO_CONF_PATH_SESH as usize].pval;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_noexec_path_v1() -> *const libc::c_char {
+    return sudo_conf_data.path_table[SUDO_CONF_PATH_NOEXEC as usize].pval;
 }
 
