@@ -542,3 +542,25 @@ unsafe extern "C" fn set_var_group_source(
     }
     debug_return_bool!(true) as libc::c_int
 }
+#[no_mangle]
+unsafe extern "C" fn set_var_max_groups(
+    mut strval: *const libc::c_char,
+    mut conf_file: *const libc::c_char,
+    mut lineno: libc::c_uint,
+) -> libc::c_int {
+    let mut max_groups: libc::c_int = 0 as libc::c_int;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    max_groups = sudo_strtonum(strval, 1, INT_MAX!(), 0 as *mut *const libc::c_char) as libc::c_int;
+    if max_groups <= 0 {
+        sudo_warnx!(
+            b"invalid max groups \"%s\" in %s, line %u\0" as *const u8 as *const libc::c_char,
+            strval,
+            conf_file,
+            lineno
+        );
+        debug_return_bool!(false) as libc::c_int;
+    }
+    sudo_conf_data.max_groups = max_groups;
+    debug_return_bool!(true) as libc::c_int
+}
