@@ -34,11 +34,20 @@ unsafe fn sudo_strsplit_v1(
     //line 52
     while str < endstr {
         s = sep;
+        if *str as libc::c_int == '\u{0}' as i32 {
+            str = str.offset(1);
+            break;
+        }
         //line 59
         if *s as libc::c_int == '\u{0}' as i32 {
             s = s.offset(1);
             break;
         }
+    }
+
+    //line 64
+    if str >= endstr {
+        *last = endstr;
     }
 
 }
