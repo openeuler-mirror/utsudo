@@ -38,7 +38,14 @@ pub const DT_CHR: libc::c_int = 2;
 pub const DT_LNK: libc::c_int = 10;
 pub const DT_UNKNOWN: libc::c_int = 0;
 
-
+//     _PATH_DEV "stdin",
+//     _PATH_DEV "stdout",
+//     _PATH_DEV "stderr",
+macro_rules! _PATH_DEV_STDIN {
+    () => {
+        b"/dev/stdin\0" as *const u8 as *const libc::c_char
+    };
+}
 
 
 
