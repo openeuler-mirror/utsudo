@@ -245,11 +245,36 @@ extern "C" {
 
 
 
+
 }
 
+#[no_mangle]
+unsafe extern "C" fn sudo_ttyname_scan(
+    mut dir: *const libc::c_char,
+    mut rdev: dev_t,
+    mut name: *mut libc::c_char,
+    mut namelen: size_t,
+) -> *mut libc::c_char {
+    let mut sdlen: size_t = 0 as size_t;
+    let mut pathbuf: [libc::c_char; PATH_MAX] = [0; PATH_MAX];
+    let mut ret: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut dp: *mut dirent = 0 as *mut dirent;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+    debug_return_str!(ret)
+}
 
 
 
