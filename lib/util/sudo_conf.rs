@@ -493,3 +493,29 @@ unsafe extern "C" fn set_var_disable_coredump(
 
     debug_return_bool!(true) as libc::c_int
 }
+
+#[no_mangle]
+unsafe extern "C" fn set_var_group_source(
+    mut strval: *const libc::c_char,
+    mut conf_file: *const libc::c_char,
+    mut lineno: libc::c_uint,
+) -> libc::c_int {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    if strcasecmp(strval, b"adaptive\0" as *const u8 as *const libc::c_char) == 0 {
+        sudo_conf_data.group_source = GROUP_SOURCE_ADAPTIVE;
+    } else if strcasecmp(strval, b"static\0" as *const u8 as *const libc::c_char) == 0 {
+        sudo_conf_data.group_source = GROUP_SOURCE_STATIC;
+    } else if strcasecmp(strval, b"dynamic\0" as *const u8 as *const libc::c_char) == 0 {
+        sudo_conf_data.group_source = GROUP_SOURCE_DYNAMIC;
+    } else {
+        sudo_warnx!(
+            b"unsupported group source \"%s\" in %s, line %u\0" as *const u8 as *const libc::c_char,
+            strval,
+            conf_file,
+            lineno
+        );
+        debug_return_bool!(false) as libc::c_int;
+    }
+    debug_return_bool!(true) as libc::c_int
+}
