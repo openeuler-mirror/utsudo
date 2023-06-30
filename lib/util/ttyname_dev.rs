@@ -106,8 +106,15 @@ unsafe extern "C" fn gnu_dev_minor(mut __dev: __dev_t) -> libc::c_uint {
     return __minor;
 }
 
-
-
+/*
+ * Device nodes to ignore.
+ */
+static mut ignore_devs: [*const libc::c_char; 4] = [
+    _PATH_DEV_STDIN!(),
+    _PATH_DEV_STDOUT!(),
+    _PATH_DEV_STDERR!(),
+    0 as *const libc::c_char,
+];
 
 
 
