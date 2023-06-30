@@ -287,6 +287,15 @@ unsafe extern "C" fn sudo_ttyname_scan(
         __glibc_reserved: [0; 3],
     };
 
+    let mut i: libc::c_int = 0 as libc::c_int;
+    let mut d: *mut DIR = 0 as *mut DIR;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+
+
+
+
+
 
 
 
