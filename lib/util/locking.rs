@@ -39,6 +39,7 @@ unsafe extern "C" fn sudo_lock_region_v1(
     mut len: off_t,
 ) -> bool {
     let mut op: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
     match type_0 {
         SUDO_LOCK => {
