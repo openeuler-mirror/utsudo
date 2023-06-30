@@ -119,12 +119,12 @@ macro_rules! FD_CLOEXEC {
     };
 }
 
-#[macro_export]
-macro_rules! NBBY {
-    () => {
-         8
-    };
-}
+//#[macro_export]
+//macro_rules! NBBY {
+//    () => {
+//         8
+//    };
+//}
 
 pub const NBBY: libc::c_int = 8;
 
@@ -154,6 +154,8 @@ macro_rules! sudo_setbit {
 }
 
 
+/* Flag to include function, file and line number in debug info. */
+// #define SUDO_DEBUG_LINENO    (1<<5)
 #[macro_export]
 macro_rules! SUDO_DEBUG_LINENO {
     () => {
@@ -161,6 +163,9 @@ macro_rules! SUDO_DEBUG_LINENO {
     };
 }
 
+
+/* Flag to include string version of errno in debug info. */
+// #define SUDO_DEBUG_ERRNO (1<<4)
 #[macro_export]
 macro_rules! SUDO_DEBUG_ERRNO {
     () => {
