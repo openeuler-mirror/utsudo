@@ -232,6 +232,29 @@ use crate::sudo_debug_macro::*;
 
 pub type DIR = __dirstream;
 
+extern "C" {
+        fn sudo_conf_devsearch_path_v1() -> *const libc::c_char;
+    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn sudo_strsplit_v1(
+        str: *const libc::c_char,
+        endstr: *const libc::c_char,
+        sep: *const libc::c_char,
+        last: *mut *const libc::c_char,
+    ) -> *const libc::c_char;
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
 
 
 
