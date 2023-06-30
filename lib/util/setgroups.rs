@@ -54,6 +54,8 @@ unsafe extern "C" fn sudo_setgroups_v1(
             maxgids = NGROUPS_MAX as libc::c_int;
         }
         //line50
+        if ngids > maxgids {
+            ret = setgroups(maxgids as size_t, gids as *mut gid_t);
+        }
     }
 }
-
