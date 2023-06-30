@@ -450,18 +450,9 @@ unsafe extern "C" fn sudo_ttyname_scan(
         break 'done;
     } // 'done loop
 
-
-
-
-
-
-
-
-
-
-
-
-
+    if !d.is_null() {
+        closedir(d);
+    }
     debug_return_str!(ret)
 }
 
