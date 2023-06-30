@@ -653,4 +653,22 @@ pub unsafe extern "C" fn sudo_conf_sesh_path_v1() -> *const libc::c_char {
 pub unsafe extern "C" fn sudo_conf_noexec_path_v1() -> *const libc::c_char {
     return sudo_conf_data.path_table[SUDO_CONF_PATH_NOEXEC as usize].pval;
 }
+/*
+ * Used by the sudo_conf regress test to clear compile-time path settings.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_clear_paths_v1() {
+    let mut cur: *mut sudo_conf_path_table = 0 as *mut sudo_conf_path_table;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    cur = (sudo_conf_data.path_table).as_mut_ptr();
+    while !((*cur).pname).is_null() {
+        if (*cur).dynamic {
+            free((*cur).pval as *mut libc::c_void);
+        }
+        (*cur).pval = 0 as *mut libc::c_char;
+        (*cur).dynamic = false;
+        cur = cur.offset(1);
+    }
+}
 
