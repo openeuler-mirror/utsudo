@@ -88,4 +88,10 @@ unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> l
     return __fxstat(1 as libc::c_int, __fd, __statbuf);
 }
 
-
+#[inline]
+unsafe extern "C" fn stat(
+    mut __path: *const libc::c_char,
+    mut __statbuf: *mut stat,
+) -> libc::c_int {
+    return __xstat(1 as libc::c_int, __path, __statbuf);
+}
