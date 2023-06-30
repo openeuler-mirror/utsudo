@@ -140,3 +140,8 @@ unsafe fn sudo_fatal_callback_register_v1(mut func: sudo_fatal_callback_t) -> li
     }
     return 0;
 }
+
+#[no_mangle]
+fn sudo_fatal_callback_deregister_v1(mut func: sudo_fatal_callback_t) -> libc::c_int {
+
+}
