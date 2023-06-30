@@ -479,14 +479,60 @@ unsafe extern "C" fn sudo_dev_check(
     mut buf: *mut libc::c_char,
     mut buflen: size_t,
 ) -> *mut libc::c_char {
-
-
-
-
-
-
-
-
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        st_nlink: 0,
+        st_mode: 0,
+        st_uid: 0,
+        st_gid: 0,
+        __pad0: 0,
+        st_rdev: 0,
+        st_size: 0,
+        st_blksize: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        __glibc_reserved: [0; 3],
+    };
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+    if stat(devname, &mut sb) == 0 {
+        if S_ISCHR!(sb.st_mode) && sb.st_rdev == rdev {
+            sudo_debug_printf!(
+                SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+                b"comparing dev %u to %s: match!\0" as *const u8 as *const libc::c_char,
+                rdev,
+                devname
+            );
+            if sudo_strlcpy(buf, devname, buflen) < buflen {
+                debug_return_str!(buf);
+            }
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to store %s, have %zu, need %zu\0" as *const u8 as *const libc::c_char,
+                devname,
+                buflen,
+                strlen(devname) + 1
+            );
+            *__errno_location() = ERANGE;
+        } // if S_ISCHR(
+    } //if stat(devname
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+        b"comparing dev %u to %s: no\0" as *const u8 as *const libc::c_char,
+        rdev,
+        devname
+    );
     debug_return_str!(0 as *mut libc::c_char)
 }
 
