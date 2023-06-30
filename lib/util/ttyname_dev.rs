@@ -53,6 +53,16 @@ macro_rules! _PATH_DEV_STDOUT {
     };
 }
 
+macro_rules! _PATH_DEV_STDERR {
+    () => {
+        b"/dev/stderr\0" as *const u8 as *const libc::c_char
+    };
+}
+
+
+
+
+
 
 
 
