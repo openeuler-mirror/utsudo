@@ -77,8 +77,11 @@ macro_rules! S_ISCHR {
     };
 }
 
-
-
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct __dirstream {
+    _unused: [u8; 0],
+}
 
 
 
