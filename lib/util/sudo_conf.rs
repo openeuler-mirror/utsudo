@@ -25,6 +25,8 @@ extern "C" {
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong) -> libc::c_int;
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     fn strndup(_: *const libc::c_char, _: libc::c_ulong) -> *mut libc::c_char;
+    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strcasecmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     fn strncasecmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong)
         -> libc::c_int;
     fn sudo_strsplit_v1(
@@ -70,6 +72,27 @@ static mut sudo_conf_var_table: [sudo_conf_table; 5] = [sudo_conf_table {
     namelen: 0,
     parser: None,
 }; 5];
+
+static mut sudo_conf_data: sudo_conf_data = sudo_conf_data {
+    disable_coredump: false,
+    probe_interfaces: false,
+    group_source: 0,
+    max_groups: 0,
+    debugging: sudo_conf_debug_list {
+        tqh_first: 0 as *const sudo_conf_debug as *mut sudo_conf_debug,
+        tqh_last: 0 as *const *mut sudo_conf_debug as *mut *mut sudo_conf_debug,
+    },
+    plugins: plugin_info_list {
+        tqh_first: 0 as *const plugin_info as *mut plugin_info,
+        tqh_last: 0 as *const *mut plugin_info as *mut *mut plugin_info,
+    },
+    path_table: [sudo_conf_path_table {
+        pname: 0 as *const libc::c_char,
+        pnamelen: 0,
+        dynamic: false,
+        pval: 0 as *mut libc::c_char,
+    }; 6],
+};
 
 /*
  * "Set variable_name value"
