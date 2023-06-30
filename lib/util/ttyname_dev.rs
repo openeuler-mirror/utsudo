@@ -65,8 +65,11 @@ macro_rules! __S_IFCHR {
     };
 }
 
-
-
+macro_rules! __S_ISTYPE {
+    ($mode:expr, $mask:expr) => {
+        ((($mode) & _S_IFMT!()) == ($mask))
+    };
+}
 
 
 
