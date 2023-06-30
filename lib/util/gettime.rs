@@ -91,13 +91,23 @@ pub unsafe extern "C" fn sudo_gettime_real_v1(mut ts: *mut timespec) -> libc::c_
         }
         (*ts).tv_sec = tv.tv_sec;
         (*ts).tv_nsec = tv.tv_usec * 1000;
-    }
-    
+    }    
     debug_return_int!(0)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_gettime_mono_v1(ts: *mut timespec) -> i32 {
+    static mut has_monoclock: libc::c_int = -1;
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    if has_monoclock == -1 {
+        has_monoclock = (sysconf(_SC_MONOTONIC_CLOCK) != -1) as libc::c_int;
+    }
+
+    if has_monoclock == 0 {
+        debug_return_int!(sudo_gettime_real_v1(ts));
+    }
 
     if clock_gettime(SUDO_CLOCK_BOOTTIME, ts) == -1 {
         sudo_debug_printf!(
