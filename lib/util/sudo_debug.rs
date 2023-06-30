@@ -141,6 +141,19 @@ macro_rules! sudo_setbit {
     }};
 }
 
+macro_rules! sudo_clrbit {
+    ($_a:expr, $_i:expr) => {{
+        (*(($_a).offset((($_i) / NBBY) as isize)) &= !(1 << (($_i) % NBBY)))
+    }};
+}
+
+macro_rules! sudo_setbit {
+    ($_a:expr, $_i:expr) => {{
+        (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
+    }};
+}
+
+
 #[macro_export]
 macro_rules! SUDO_DEBUG_LINENO {
     () => {
@@ -283,6 +296,12 @@ static mut sudo_debug_fds_size: libc::c_int = -1;
 static mut sudo_debug_fds: *mut libc::c_uchar = 0 as *const libc::c_char as *mut libc::c_uchar;
 
 static mut sudo_debug_max_fd: libc::c_int = -1;
+static mut sudo_debug_instances: [*mut sudo_debug_instance; SUDO_DEBUG_INSTANCE_MAX!()] =
+    [0 as *const sudo_debug_instance as *mut sudo_debug_instance; SUDO_DEBUG_INSTANCE_MAX!()];
+static mut sudo_debug_last_instance: libc::c_int = -1;
+static mut sudo_debug_active_instance: libc::c_int = -(1 as libc::c_int);
+static mut sudo_debug_pidstr: [libc::c_char; 14] = [0; 14];
+static mut sudo_debug_pidlen: size_t = 0;
 
 
 #[no_mangle]
