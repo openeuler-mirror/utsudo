@@ -233,7 +233,7 @@ use crate::sudo_debug_macro::*;
 pub type DIR = __dirstream;
 
 extern "C" {
-        fn sudo_conf_devsearch_path_v1() -> *const libc::c_char;
+    fn sudo_conf_devsearch_path_v1() -> *const libc::c_char;
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     fn sudo_strsplit_v1(
         str: *const libc::c_char,
@@ -241,8 +241,7 @@ extern "C" {
         sep: *const libc::c_char,
         last: *mut *const libc::c_char,
     ) -> *const libc::c_char;
-
-  fn sudo_strlcpy(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
+    fn sudo_strlcpy(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
     fn sudo_strlcat(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
     fn __fxstat(__ver: libc::c_int, __fildes: libc::c_int, __stat_buf: *mut stat) -> libc::c_int;
     fn __xstat(
@@ -250,18 +249,18 @@ extern "C" {
         __filename: *const libc::c_char,
         __stat_buf: *mut stat,
     ) -> libc::c_int;
-
-
-
-
-
-
-
-
-
-
-
-
+    fn closedir(__dirp: *mut DIR) -> libc::c_int;
+    fn opendir(__name: *const libc::c_char) -> *mut DIR;
+    fn dirfd(__dirp: *mut DIR) -> libc::c_int;
+    fn readdir(__dirp: *mut DIR) -> *mut dirent;
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        lineno: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
 }
 
 #[no_mangle]
@@ -472,16 +471,67 @@ unsafe extern "C" fn sudo_ttyname_scan(
     debug_return_str!(ret)
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
+#[no_mangle]
+unsafe extern "C" fn sudo_dev_check(
+    mut rdev: dev_t,
+    mut devname: *const libc::c_char,
+    mut buf: *mut libc::c_char,
+    mut buflen: size_t,
+) -> *mut libc::c_char {
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        st_nlink: 0,
+        st_mode: 0,
+        st_uid: 0,
+        st_gid: 0,
+        __pad0: 0,
+        st_rdev: 0,
+        st_size: 0,
+        st_blksize: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        __glibc_reserved: [0; 3],
+    };
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+    if stat(devname, &mut sb) == 0 {
+        if S_ISCHR!(sb.st_mode) && sb.st_rdev == rdev {
+            sudo_debug_printf!(
+                SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+                b"comparing dev %u to %s: match!\0" as *const u8 as *const libc::c_char,
+                rdev,
+                devname
+            );
+            if sudo_strlcpy(buf, devname, buflen) < buflen {
+                debug_return_str!(buf);
+            }
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to store %s, have %zu, need %zu\0" as *const u8 as *const libc::c_char,
+                devname,
+                buflen,
+                strlen(devname) + 1
+            );
+            *__errno_location() = ERANGE;
+        } // if S_ISCHR(
+    } //if stat(devname
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+        b"comparing dev %u to %s: no\0" as *const u8 as *const libc::c_char,
+        rdev,
+        devname
+    );
+    debug_return_str!(0 as *mut libc::c_char)
+}
 
