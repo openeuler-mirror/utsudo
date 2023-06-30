@@ -32,17 +32,17 @@ pub type size_t = libc::c_ulong;
 pub type __int32_t = libc::c_int;
 
 extern "C" {
-    fn __errno_location()
-    fn __libc_current_sigrtmin()
-    fn __libc_current_sigrtmax()
-    fn sysconf()
+    fn __errno_location() -> *mut libc::c_int;
+    fn __libc_current_sigrtmin() -> libc::c_int;
+    fn __libc_current_sigrtmax() -> libc::c_int;
+    fn sysconf(__name: libc::c_int) -> libc::c_long;
     fn snprintf()
     fn sudo_strlcpy()
-    fn __ctype_toupper_loc()
+    fn __ctype_toupper_loc() -> *mut *const __int32_t;
     fn __ctype_b_loc()
 }
 
-pub unsafe extern "C" fn toupper() -> libc::c_int {
+pub unsafe extern "C" fn toupper(mut __c: libc::c_int) -> libc::c_int {
     return libc::c_int {
         *(*__ctype_toupper_loc()).offset(__c as isize)
     };
