@@ -58,4 +58,5 @@ unsafe extern "C" fn sudo_setgroups_v1(
             ret = setgroups(maxgids as size_t, gids as *mut gid_t);
         }
     }
+    debug_return_int!(ret)
 }
