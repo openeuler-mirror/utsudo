@@ -222,8 +222,13 @@ pub unsafe extern "C" fn sudo_ttyname_dev_v1(
     debug_return_str!(ret as *mut libc::c_char)
 }
 
-
-
+use crate::macro_struct::*;
+use crate::S_IWGRP;
+use crate::S_IWOTH;
+use crate::S_IWUSR;
+use crate::_S_IFMT;
+use crate::sudo_debug::*;
+use crate::sudo_debug_macro::*;
 
 
 
