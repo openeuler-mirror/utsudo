@@ -242,6 +242,22 @@ extern "C" {
         last: *mut *const libc::c_char,
     ) -> *const libc::c_char;
 
+  fn sudo_strlcpy(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
+    fn sudo_strlcat(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
+    fn __fxstat(__ver: libc::c_int, __fildes: libc::c_int, __stat_buf: *mut stat) -> libc::c_int;
+    fn __xstat(
+        __ver: libc::c_int,
+        __filename: *const libc::c_char,
+        __stat_buf: *mut stat,
+    ) -> libc::c_int;
+
+
+
+
+
+
+
+
 
 
 
