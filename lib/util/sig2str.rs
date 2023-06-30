@@ -29,6 +29,7 @@ macro_rules! SIGRTMAX {
 }
 
 pub type size_t = libc::c_ulong;
+pub const _SC_RTSIG_MAX: libc::c_int = 31;
 pub type __int32_t = libc::c_int;
 
 extern "C" {
@@ -52,6 +53,9 @@ pub unsafe extern "C" fn sudo_sig2str(
     signo: libc::c_int,
     signame: *mut libc::c_char,
 ) -> libc::c_int {
+    if signo >= SIGRTMIN!() && signo <= SIGRTMAX!() {
+        let mut rtmax: libc::c_long = sysconf(_SC_RTSIG_MAX);
+    }
     return 0;
 }
 
