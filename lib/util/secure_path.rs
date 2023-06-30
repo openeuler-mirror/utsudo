@@ -105,6 +105,14 @@ macro_rules! S_IWUSR {
     };
 }
 
+// #define	S_IWGRP	(S_IWUSR >> 3)	/* Write by group.  */
+#[macro_export]
+macro_rules! S_IWGRP {
+    () => {
+        S_IWUSR!() >> 3
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
