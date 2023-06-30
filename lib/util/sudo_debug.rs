@@ -370,5 +370,43 @@ pub unsafe extern "C" fn sudo_debug_new_output(
         if (*output).fd > sudo_debug_max_fd {
             sudo_debug_max_fd = (*output).fd;
         }
+
+        /* Parse Debug conf string. */
+        buf = strdup((*debug_file).debug_flags);
+        if buf.is_null() {
+            break 'oom;
+        }
+        cp = strtok_r(buf, b",\0" as *const u8 as *const libc::c_char, &mut last);
+        while !cp.is_null() {
+            cp = strtok_r(
+                0 as *mut libc::c_char,
+                b".\0" as *const u8 as *const libc::c_char,
+                &mut last,
+            );
+
+            /* Should be in the form subsys@pri. */
+            subsys = cp;
+            pri = strchr(cp, '@' as libc::c_int);
+            if pri.is_null() {
+                continue;
+            }
+            pri = pri.offset(1);
+        }
+
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_register_v1(
+    mut program: *const libc::c_char,
+    mut subsystems: *const *const libc::c_char,
+    mut ids: *mut libc::c_uint,
+    mut debug_files: *mut sudo_conf_debug_file_list,
+) -> libc::c_int {
+    let mut instance: *mut sudo_debug_instance = 0 as *mut sudo_debug_instance;
+    let mut output: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+    let mut debug_file: *mut sudo_debug_file = 0 as *mut sudo_debug_file;
+    let mut idx: libc::c_int = -1;
+    let mut free_idx: libc::c_int = -1;
+}
+
