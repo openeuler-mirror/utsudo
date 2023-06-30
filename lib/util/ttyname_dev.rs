@@ -230,5 +230,14 @@ use crate::_S_IFMT;
 use crate::sudo_debug::*;
 use crate::sudo_debug_macro::*;
 
+pub type DIR = __dirstream;
+
+
+
+
+
+
+
+
 
 
