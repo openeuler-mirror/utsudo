@@ -23,3 +23,22 @@ macro_rules! _PATH_DEV_CONSOLE {
         b"/dev/console\0" as *const u8 as *const libc::c_char
     };
 }
+
+// _PATH_DEV "pts"
+macro_rules! _PATH_DEV_PTS {
+    () => {
+        b"/dev/pts\0" as *const u8 as *const libc::c_char
+    };
+}
+
+
+
+
+
+
+
+
+
+
+
+
