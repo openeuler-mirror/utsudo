@@ -53,5 +53,8 @@ unsafe extern "C" fn sudo_lock_region_v1(
         }
         _ => {
             *__errno_location() = EINVAL;
+            debug_return_bool!(false);
         }
     }
+    debug_return_bool!(lockf(fd, op, len) == 0)
+}
