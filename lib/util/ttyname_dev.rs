@@ -291,8 +291,164 @@ unsafe extern "C" fn sudo_ttyname_scan(
     let mut d: *mut DIR = 0 as *mut DIR;
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
-
-
+    'done: loop {
+        if *dir.offset(0 as isize) as libc::c_int == '\u{0}' as i32 {
+            *__errno_location() = ENOENT;
+            break 'done;
+        }
+        d = opendir(dir);
+        if d.is_null() {
+            break 'done;
+        }
+        if fstat(dirfd(d), &mut sb) == -1 {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to fstat %s\0" as *const u8 as *const libc::c_char,
+                dir
+            );
+            break 'done;
+        }
+        if (sb.st_mode & S_IWOTH!()) != 0 {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"ignoring world-writable directory %s\0" as *const u8 as *const libc::c_char,
+                dir
+            );
+            *__errno_location() = ENOENT;
+            break 'done;
+        }
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+            b"scanning for dev %u in %s\0" as *const u8 as *const libc::c_char,
+            rdev as libc::c_uint,
+            dir
+        );
+        sdlen = strlen(dir);
+        while sdlen > 0 && dir.offset((sdlen - 1) as isize) as libc::c_int == '/' as i32 {
+            sdlen -= 1;
+        }
+        if (sdlen + 1) >= ::std::mem::size_of::<[libc::c_char; PATH_MAX]>() as libc::c_ulong {
+            *__errno_location() = ERANGE;
+            break 'done;
+        }
+        memcpy(
+            pathbuf.as_mut_ptr() as *mut libc::c_void,
+            dir as *const libc::c_void,
+            sdlen,
+        );
+        sdlen += 1;
+        pathbuf[sdlen as usize] = '/' as i32 as libc::c_char;
+        dp = readdir(d);
+        while !dp.is_null() {
+            let mut sb: stat = stat {
+                st_dev: 0,
+                st_ino: 0,
+                st_nlink: 0,
+                st_mode: 0,
+                st_uid: 0,
+                st_gid: 0,
+                __pad0: 0,
+                st_rdev: 0,
+                st_size: 0,
+                st_blksize: 0,
+                st_blocks: 0,
+                st_atim: timespec {
+                    tv_sec: 0,
+                    tv_nsec: 0,
+                },
+                st_mtim: timespec {
+                    tv_sec: 0,
+                    tv_nsec: 0,
+                },
+                st_ctim: timespec {
+                    tv_sec: 0,
+                    tv_nsec: 0,
+                },
+                __glibc_reserved: [0; 3],
+            };
+            /* Skip anything starting with "." */
+            if (*dp).d_name[0 as usize] as libc::c_int == '.' as i32 {
+                continue;
+            }
+            pathbuf[sdlen as usize] = '\u{0}' as i32 as libc::c_char;
+            if sudo_strlcat(
+                pathbuf.as_mut_ptr(),
+                ((*dp).d_name).as_mut_ptr(),
+                ::std::mem::size_of::<[libc::c_char; PATH_MAX]>() as libc::c_ulong,
+            ) >= ::std::mem::size_of::<[libc::c_char; PATH_MAX]>() as libc::c_ulong
+            {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                    b"%s%s is too big to fit in pathbuf\0" as *const u8 as *const libc::c_char,
+                    pathbuf,
+                    (*dp).d_name
+                );
+                continue;
+            }
+            /* Ignore device nodes listed in ignore_devs[]. */
+            i = 0;
+            while !ignore_devs[i as usize].is_null() {
+                if strcmp(pathbuf.as_mut_ptr(), ignore_devs[i as usize]) == 0 {
+                    break;
+                }
+                i += 1;
+            }
+            if !ignore_devs[i as usize].is_null() {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_DEBUG | SUDO_DEBUG_LINENO,
+                    b"ignoring %s\0" as *const u8 as *const libc::c_char,
+                    pathbuf
+                );
+                continue;
+            }
+            /*
+             * Avoid excessive stat() calls by checking dp->d_type.
+             */
+            match (*dp).d_type as libc::c_int {
+                DT_CHR | DT_LNK | DT_UNKNOWN => { /* 为空*/ }
+                _ => {
+                    /* Not a character device or link, skip it. */
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_DEBUG | SUDO_DEBUG_LINENO,
+                        b"skipping non-device %s\0" as *const u8 as *const libc::c_char,
+                        pathbuf
+                    );
+                    continue;
+                }
+            }
+            if stat(pathbuf.as_mut_ptr(), &mut sb) == -1 {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    b"unable to stat %s\0" as *const u8 as *const libc::c_char,
+                    pathbuf
+                );
+                continue;
+            }
+            if S_ISCHR!(sb.st_mode) && sb.st_rdev == rdev {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+                    b"resolved dev %u as %s\0" as *const u8 as *const libc::c_char,
+                    rdev as libc::c_uint,
+                    pathbuf
+                );
+                if sudo_strlcpy(name, pathbuf.as_mut_ptr(), namelen) < namelen {
+                    ret = name;
+                } else {
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                        b"unable to store %s, have %zu, need %zu\0" as *const u8
+                            as *const libc::c_char,
+                        pathbuf,
+                        namelen,
+                        strlen(pathbuf.as_ptr() as *const libc::c_char) + 1
+                    );
+                    *__errno_location() = ERANGE;
+                }
+                break 'done;
+            }
+        } //while ((dp
+        break 'done;
+    } // 'done loop
 
 
 
