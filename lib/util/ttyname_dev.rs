@@ -71,5 +71,16 @@ macro_rules! __S_ISTYPE {
     };
 }
 
+macro_rules! S_ISCHR {
+    ($mode:expr) => {
+        __S_ISTYPE!(($mode), __S_IFCHR!())
+    };
+}
+
+
+
+
+
+
 
 
