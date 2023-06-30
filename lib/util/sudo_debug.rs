@@ -462,6 +462,29 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
 }
 
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_execve2_v1(
+    mut level: libc::c_int,
+    mut path: *const libc::c_char,
+    mut argv: *const *mut libc::c_char,
+    mut envp: *const *mut libc::c_char,
+) {
+    let mut buflen: libc::c_int = 0;
+    let mut pri: libc::c_int = 0;
+    let mut saved_errno: libc::c_int = *__errno_location();
+    let mut subsys: libc::c_uint = 0;
+    let mut instance: *mut sudo_debug_instance = 0 as *mut sudo_debug_instance;
+    let mut output: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+    let mut av: *const *mut libc::c_char = 0 as *const *mut libc::c_char;
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut static_buf: [libc::c_char; 4096] = [0; 4096];
+    let mut buf: *mut libc::c_char = static_buf.as_mut_ptr();
+    let mut plen: size_t = 0;
+
+    debug_decl_func!(sudo_debug_execve2);
+}
+
+
 /*
  * Returns the active instance or SUDO_DEBUG_INSTANCE_INITIALIZER
  * if no instance is active.
