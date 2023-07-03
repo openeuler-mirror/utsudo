@@ -33,9 +33,13 @@ use crate::sudo_debug_macro::SUDO_DEBUG_WARN;
 #define SUDO_CONF_PATH_DEVSEARCH	4
 
 /* Values of sudo_conf_group_source() */
-#define GROUP_SOURCE_ADAPTIVE	0
-#define GROUP_SOURCE_STATIC 	1
-#define GROUP_SOURCE_DYNAMIC	2
+// #define GROUP_SOURCE_ADAPTIVE	0
+// #define GROUP_SOURCE_STATIC 	1
+// #define GROUP_SOURCE_DYNAMIC	2
+pub const GROUP_SOURCE_ADAPTIVE: libc::c_int = 0;
+pub const GROUP_SOURCE_STATIC: libc::c_int = 1;
+pub const GROUP_SOURCE_DYNAMIC: libc::c_int = 2;
+
 
 extern "C" {
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
@@ -716,6 +720,10 @@ pub unsafe extern "C" fn sudo_conf_devsearch_path_v1() -> *const libc::c_char {
     return sudo_conf_data.path_table[SUDO_CONF_PATH_DEVSEARCH as usize].pval;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_group_source_v1() -> libc::c_int {
+    return sudo_conf_data.group_source;
+}
 
 /*
  * Used by the sudo_conf regress test to clear compile-time path settings.
