@@ -62,9 +62,12 @@ extern "C" {
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
 }
 
-pub unsafe extern "C" fn toupper(mut __c: libc::c_int) -> libc::c_int {
-    return libc::c_int {
+#[inline]
+unsafe extern "C" fn toupper(mut __c: libc::c_int) -> libc::c_int {
+    return if __c >= -(128 as libc::c_int) && __c < 256 as libc::c_int {
         *(*__ctype_toupper_loc()).offset(__c as isize)
+    } else {
+        __c
     };
 }
 
