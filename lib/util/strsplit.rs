@@ -37,10 +37,11 @@ unsafe fn sudo_strsplit_v1(
         if *str as libc::c_int == '\u{0}' as i32 {
             str = str.offset(1);
             break;
+        } else {
+            s = s.offset(1);
         }
         //line 59
         if *s as libc::c_int == '\u{0}' as i32 {
-            s = s.offset(1);
             break;
         }
     }
