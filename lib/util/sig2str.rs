@@ -37,10 +37,15 @@ extern "C" {
     fn __libc_current_sigrtmin() -> libc::c_int;
     fn __libc_current_sigrtmax() -> libc::c_int;
     fn sysconf(__name: libc::c_int) -> libc::c_long;
-    fn snprintf()
-    fn sudo_strlcpy()
+    fn snprintf(
+        _: *mut libc::c_char,
+        _: libc::c_ulong,
+        _: *const libc::c_char,
+        _: ...
+    ) -> libc::c_int;
+    fn sudo_strlcpy(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
     fn __ctype_toupper_loc() -> *mut *const __int32_t;
-    fn __ctype_b_loc()
+    fn __ctype_b_loc() -> *mut *const libc::c_ushort;
 }
 
 pub unsafe extern "C" fn toupper(mut __c: libc::c_int) -> libc::c_int {
