@@ -672,3 +672,24 @@ pub unsafe extern "C" fn sudo_conf_clear_paths_v1() {
     }
 }
 
+
+unsafe extern "C" fn run_static_initializers() {
+    sudo_conf_table = [
+        {
+            let mut init = sudo_conf_table {
+                name: b"Debug\0" as *const u8 as *const libc::c_char,
+                namelen: (::std::mem::size_of::<[libc::c_char; 6]>() as libc::c_ulong)
+                    .wrapping_sub(1 as libc::c_int as libc::c_ulong)
+                    as libc::c_uint,
+                parser: Some(
+                    parse_debug
+                        as unsafe extern "C" fn(
+                            *const libc::c_char,
+                            *const libc::c_char,
+                            libc::c_uint,
+                        ) -> libc::c_int,
+                ),
+            };
+            init
+        },]
+}
