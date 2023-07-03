@@ -62,6 +62,20 @@ extern "C" {
         _: *mut *const libc::c_char,
     ) -> libc::c_longlong;
 }
+// #define isblank(c)	__isctype((c), _ISblank)
+macro_rules! isblank {
+    ($c:expr) => {
+        __isctype!($c, _ISblank!())
+    };
+}
+
+// # define __isctype(c, type)  ((*__ctype_b_loc ())[(int) (c)] & (unsigned short int) type)
+macro_rules! __isctype {
+    ($c:expr, $type:expr) => {
+        ((*__ctype_b_loc()).offset($c as isize) as libc::c_int)
+            & ($type as libc::c_int as libc::c_ushort as libc::c_int)
+    };
+}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
