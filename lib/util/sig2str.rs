@@ -28,6 +28,20 @@ macro_rules! SIGRTMAX {
     };
 }
 
+#[macro_export]
+macro_rules! SIG2STR_MAX {
+    () => {
+        32
+    };
+}
+
+#[macro_export]
+macro_rules! NSIG {
+    () => {
+        (SIGRTMAX!() + 1)
+    };
+}
+
 pub type size_t = libc::c_ulong;
 pub const _SC_RTSIG_MAX: libc::c_int = 31;
 pub type __int32_t = libc::c_int;
