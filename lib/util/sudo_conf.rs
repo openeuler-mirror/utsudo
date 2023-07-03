@@ -15,8 +15,15 @@
     unreachable_code
 )]
 
+use crate::fatal::sudo_warnx_nodebug_v1;
+use crate::sudo_debug::sudo_debug_enter_v1;
+use crate::sudo_debug::sudo_debug_exit_bool_v1;
+use crate::sudo_debug::sudo_debug_exit_int_v1;
+use crate::sudo_debug::sudo_debug_exit_ptr_v1;
 use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
 use crate::sudo_debug_macro::SUDO_DEBUG_INFO;
+use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
+use crate::sudo_debug_macro::SUDO_DEBUG_WARN;
 
 /* Indexes into path_table[] below (order is important). */
 #define SUDO_CONF_PATH_ASKPASS		0
