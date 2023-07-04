@@ -139,3 +139,11 @@ pub unsafe extern "C" fn sudo_strtoid_v1(
 ) -> id_t {
     return sudo_strtoidx_v1(p, sep, endp, errstrp);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_strtoid_v2(
+    mut p: *const libc::c_char,
+    mut errstrp: *mut *const libc::c_char,
+) -> id_t {
+    return errstrp;
+}
