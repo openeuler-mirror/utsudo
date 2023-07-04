@@ -28,6 +28,20 @@ macro_rules! SIGRTMAX {
     };
 }
 
+#[macro_export]
+macro_rules! SIG2STR_MAX {
+    () => {
+        32
+    };
+}
+
+#[macro_export]
+macro_rules! NSIG {
+    () => {
+        (SIGRTMAX!() + 1)
+    };
+}
+
 pub type size_t = libc::c_ulong;
 pub const _SC_RTSIG_MAX: libc::c_int = 31;
 pub type __int32_t = libc::c_int;
@@ -48,9 +62,12 @@ extern "C" {
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
 }
 
-pub unsafe extern "C" fn toupper(mut __c: libc::c_int) -> libc::c_int {
-    return libc::c_int {
+#[inline]
+unsafe extern "C" fn toupper(mut __c: libc::c_int) -> libc::c_int {
+    return if __c >= -(128 as libc::c_int) && __c < 256 as libc::c_int {
         *(*__ctype_toupper_loc()).offset(__c as isize)
+    } else {
+        __c
     };
 }
 
