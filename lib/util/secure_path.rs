@@ -257,3 +257,16 @@ pub unsafe extern "C" fn sudo_secure_file_v1(
 ) -> libc::c_int {
     return sudo_secure_path(path, _S_IFREG!(), uid, gid, sbp);
 }
+
+/*
+ * Verify that path is a directory and not writable by other users.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_secure_dir_v1(
+    mut path: *const libc::c_char,
+    mut uid: uid_t,
+    mut gid: gid_t,
+    mut sbp: *mut stat,
+) -> libc::c_int {
+    return sudo_secure_path(path, _S_IFDIR!(), uid, gid, sbp);
+}
