@@ -3,6 +3,7 @@
  *
  * SPDX-License-Identifier: MulanPSL-2.0
  */
+
  #![allow(
     non_camel_case_types,
     unused_variables,
@@ -21,7 +22,6 @@ macro_rules! __LC_MESSAGES {
         5
     };
 }
-
 
 extern "C" {
     fn free(__ptr: *mut libc::c_void);
@@ -194,7 +194,6 @@ fn sudo_warn_gettext_v1(
     domainname: *const libc::c_char,
     msgid: *const libc::c_char,
 ) -> *mut libc::c_char {
-    let mut msg: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut cookie: libc::c_int = 0;
     let mut msg: *mut libc::c_char = 0 as *mut libc::c_char;
 
@@ -206,7 +205,15 @@ fn sudo_warn_gettext_v1(
             );
         }
     }
-    msg = unsafe { dcgettext(domainname, msgid, __LC_MESSAGES!() as libc::c_int)
+    msg = unsafe { dcgettext(domainname, msgid, __LC_MESSAGES!() as libc::c_int) };
 
+    unsafe {
+        if sudo_warn_setlocale.is_some() {
+            sudo_warn_setlocale.expect("is not null function pointer")(
+                1 as libc::c_int != 0,
+                &mut cookie,
+            );
+        }
+    }
     return msg;
 }
