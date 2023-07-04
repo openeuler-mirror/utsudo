@@ -203,8 +203,13 @@ macro_rules! debug_return_str {
     }};
 }
 
-
-
+#[macro_export]
+macro_rules! debug_return_const_str {
+    ($ret:expr) => {
+        sudo_debug_exit_str(function_name!(), file!(), line!(), sudo_debug_subsys, $ret);
+        return $ret;
+    };
+}
 
 
 
