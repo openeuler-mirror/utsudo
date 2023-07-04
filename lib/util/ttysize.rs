@@ -8,10 +8,11 @@
 use crate::INT_MAX;
 use crate::TIOCGWINSZ;
 
+#[no_mangle]
 pub unsafe extern "C" fn get_ttysize_ioctl(
     rowp: *mut libc::c_int,
     colp: *mut libc::c_int,
-) {
+)  -> libc::c_int {
     let mut wsize: winsize = winsize {
         ws_row: 0,
         ws_col: 0,
@@ -21,6 +22,6 @@ pub unsafe extern "C" fn get_ttysize_ioctl(
 
 
 
-
+debug_return!()
 }
 
