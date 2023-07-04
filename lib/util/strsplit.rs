@@ -59,6 +59,9 @@ unsafe fn sudo_strsplit_v1(
     while cp < endstr {
         s = sep;
         while *s as libc::c_int != '\u{0}' as i32 {
+            if *cp as libc::c_int == *s as libc::c_int {
+                break;
+            }
             s = s.offset(1);
         }
         if *s as libc::c_int != '\u{0}' as i32 {
