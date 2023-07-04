@@ -4,6 +4,11 @@
     non_camel_case_types,
     non_snake_case,
     non_upper_case_globals,
+    unused_assignments,
+    unused_mut,
+    unused_imports,
+    unused_macros,
+    unused_variables
 )]
 
 
@@ -60,5 +65,16 @@ pub const SUDO_DEBUG_PTY: libc::c_int = 11 << 6; /* pseudo-tty */
 pub const SUDO_DEBUG_SELINUX: libc::c_int = 12 << 6; /* selinux */
 pub const SUDO_DEBUG_UTIL: libc::c_int = 13 << 6; /* utility functions */
 pub const SUDO_DEBUG_UTMP: libc::c_int = 14 << 6; /* utmp file ops */
+
+
+
+
+
+
+
+
+
+
+
 
 
