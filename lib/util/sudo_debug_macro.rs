@@ -73,8 +73,11 @@ macro_rules! SUDO_DEBUG_ALL {
     };
 }
 
-
-
+// /* Error return for sudo_debug_register().  */
+pub const SUDO_DEBUG_INSTANCE_ERROR: libc::c_int = -2;
+// /* Initializer for instance index to indicate that debugging is not setup. */
+// #define 	-1
+pub const SUDO_DEBUG_INSTANCE_INITIALIZER: libc::c_int = -1;
 
 
 
