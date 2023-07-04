@@ -47,8 +47,15 @@ pub unsafe extern "C" fn get_ttysize_ioctl(
         ws_ypixel: 0,
     };
 
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
-
-debug_return!()
+    if (ioctl(STDERR_FILENO!(), TIOCGWINSZ!(), &wsize) == 0)
+        && wsize.ws_row != 0
+        && wsize.ws_col != 0
+    {
+        *rowp = wsize.ws_row as libc::c_int;
+        *colp = wsize.ws_col as libc::c_int;
+        debug_return_int!(0);
+    }
+    debug_return_int!(-1)
 }
-
