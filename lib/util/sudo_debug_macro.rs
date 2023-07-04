@@ -227,8 +227,20 @@ macro_rules! debug_return_str_masked {
     }};
 }
 
-
-
+// 完成
+#[macro_export]
+macro_rules! debug_return_ptr {
+    ($ret:expr) => {{
+        sudo_debug_exit_ptr_v1(
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            file!().as_ptr() as *const libc::c_char,
+            line!() as libc::c_int,
+            sudo_debug_subsys as libc::c_int,
+            $ret as *const libc::c_void,
+        );
+        return $ret;
+    }};
+}
 
 
 
