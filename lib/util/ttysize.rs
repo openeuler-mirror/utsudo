@@ -66,10 +66,34 @@ pub unsafe extern "C" fn sudo_get_ttysize_v1(
     mut rowp: *mut libc::c_int,
     mut colp: *mut libc::c_int,
 ) {
-
-
-
-
+    if get_ttysize_ioctl(rowp, colp) == -(1 as libc::c_int) {
+        let mut p: *mut libc::c_char = 0 as *mut libc::c_char;
+        /* Fall back on $LINES and $COLUMNS. */
+        p = getenv(b"LINES\0" as *const u8 as *const libc::c_char);
+        if p.is_null() || {
+            *rowp = sudo_strtonum(
+                p,
+                1,
+                INT_MAX!() as libc::c_int as libc::c_longlong,
+                0 as *mut *const libc::c_char,
+            ) as libc::c_int;
+            *rowp <= 0 as libc::c_int
+        } {
+            *rowp = 24;
+        }
+        p = getenv(b"COLUMNS\0" as *const u8 as *const libc::c_char);
+        if p.is_null() || {
+            *colp = sudo_strtonum(
+                p,
+                1,
+                INT_MAX!() as libc::c_int as libc::c_longlong,
+                0 as *mut *const libc::c_char,
+            ) as libc::c_int;
+            *colp <= 0 as libc::c_int
+        } {
+            *colp = 80;
+        }
+    }
     debug_return!()
 }
 
