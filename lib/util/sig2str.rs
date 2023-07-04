@@ -85,6 +85,20 @@ pub unsafe extern "C" fn sudo_sig2str(
 ) -> libc::c_int {
     if signo >= SIGRTMIN!() && signo <= SIGRTMAX!() {
         let mut rtmax: libc::c_long = sysconf(_SC_RTSIG_MAX);
+        if rtmax > 0 {
+            if signo == SIGRTMIN!() {
+                sudo_strlcpy(
+                    signame,
+                    b"RTMIN\0" as *const u8 as *const libc::c_char,
+                    SIG2STR_MAX!(),
+                );
+            } else if signo == SIGRTMAX!() {
+                sudo_strlcpy(
+                    signame,
+                    b"RTMAX\0" as *const u8 as *const libc::c_char,
+                    SIG2STR_MAX!(),
+                );
+            }
     }
     return 0;
 }
