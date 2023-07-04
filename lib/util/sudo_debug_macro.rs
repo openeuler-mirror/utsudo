@@ -91,8 +91,18 @@ macro_rules! debug_decl_vars {
     };
 }
 
-
-
+#[macro_export]
+macro_rules! debug_decl {
+    ($funcname:expr, $subsys:expr) => {
+        debug_decl_vars!($funcname, $subsys);
+        sudo_debug_enter_v1(
+            $funcname as *const libc::c_char,
+            file!().as_ptr() as *const libc::c_char,
+            line!() as libc::c_int,
+            sudo_debug_subsys as libc::c_int,
+        );
+    };
+}
 
 
 
