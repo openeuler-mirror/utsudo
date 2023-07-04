@@ -121,6 +121,13 @@ macro_rules! S_IWOTH {
     };
 }
 
+// #define SUDO_PATH_SECURE		0
+macro_rules! SUDO_PATH_SECURE {
+    () => {
+        0
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
