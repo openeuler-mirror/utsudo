@@ -188,3 +188,13 @@ pub unsafe extern "C" fn sudo_warn_set_locale_func_v1(
     sudo_warn_setlocale_prev = sudo_warn_setlocale;
     sudo_warn_setlocale = func;
 }
+
+#[no_mangle]
+fn sudo_warn_gettext_v1(
+    domainname: *const libc::c_char,
+    msgid: *const libc::c_char,
+) -> *mut libc::c_char {
+    let mut msg: *mut libc::c_char = 0 as *mut libc::c_char;
+
+    return msg;
+}
