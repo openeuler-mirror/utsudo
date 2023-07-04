@@ -535,3 +535,20 @@ unsafe extern "C" fn sudo_dev_check(
     debug_return_str!(0 as *mut libc::c_char)
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ttyname_dev_v1(
+    mut rdev: dev_t,
+    mut buf: *mut libc::c_char,
+    mut buflen: size_t,
+) {
+
+
+
+
+
+
+
+
+
+}
+
