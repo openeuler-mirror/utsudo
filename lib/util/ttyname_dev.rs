@@ -1,4 +1,3 @@
-
 #![allow(
     dead_code,
     mutable_transmutes,
@@ -535,7 +534,6 @@ unsafe extern "C" fn sudo_dev_check(
     debug_return_str!(0 as *mut libc::c_char)
 }
 
-
 /*
  * Like ttyname() but uses a dev_t instead of an open fd.
  * Returns name on success and NULL on failure, setting errno.
@@ -554,6 +552,8 @@ pub unsafe extern "C" fn sudo_ttyname_dev_v1(
     let mut cp: *const libc::c_char = 0 as *const libc::c_char;
     let mut ep: *const libc::c_char = 0 as *const libc::c_char;
     let mut len: size_t = 0 as size_t;
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
     /*
      * First, check /dev/console.
