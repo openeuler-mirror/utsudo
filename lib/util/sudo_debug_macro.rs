@@ -274,8 +274,19 @@ macro_rules! sudo_debug_write {
     ($ret:expr) => {};
 }
 
-
-
+macro_rules! sudo_debug_write {
+    ($fd:expr, $str:expr, $len:expr, $errnum:expr) => {{
+        sudo_debug_write2_v1(
+            $fd as libc::c_int,
+            0 as *const libc::c_char,
+            0 as *const libc::c_char,
+            0 as libc::c_int,
+            $str as *const libc::c_char,
+            $len as libc::c_int,
+            $errnum as libc::c_int,
+        );
+    }};
+}
 
 
 
