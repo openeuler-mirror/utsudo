@@ -22,12 +22,18 @@ use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
 use crate::sudo_debug_macro::SUDO_DEBUG_LINENO;
 use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct _IO_marker {
     _unused: [u8; 0],
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct _IO_codecvt {
     _unused: [u8; 0],
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct _IO_wide_data {
     _unused: [u8; 0],
 }
@@ -95,6 +101,7 @@ pub struct _IO_FILE {
     pub _unused2: [libc::c_char; 20],
 }
 
+#[no_mangle]
 pub unsafe extern "C" fn sudo_parseln_v2(
     mut bufp: *mut *mut libc::c_char, //**bufp -> *mut *mut
     mut bufsizep: *mut size_t,        //*bufsizep -> *mut
@@ -118,7 +125,7 @@ pub unsafe extern "C" fn sudo_parseln_v2(
     }
 }
 
-
+#[no_mangle]
 pub unsafe fn sudo_parseln_v1(
     mut bufp: *mut *mut libc::c_char,
     mut bufsizep: *mut size_t,
