@@ -34,11 +34,13 @@ unsafe fn sudo_strsplit_v1(
     //line 52
     while str < endstr {
         s = sep;
-        if *str as libc::c_int == '\u{0}' as i32 {
-            str = str.offset(1);
-            break;
-        } else {
-            s = s.offset(1);
+        while *s as libc::c_int != '\u{0}' as i32 {
+            if *str as libc::c_int == *s as libc::c_int {
+                str = str.offset(1);
+                break;
+            } else {
+                s = s.offset(1);
+            }
         }
         //line 59
         if *s as libc::c_int == '\u{0}' as i32 {
@@ -57,6 +59,9 @@ unsafe fn sudo_strsplit_v1(
     while cp < endstr {
         s = sep;
         while *s as libc::c_int != '\u{0}' as i32 {
+            if *cp as libc::c_int == *s as libc::c_int {
+                break;
+            }
             s = s.offset(1);
         }
         if *s as libc::c_int != '\u{0}' as i32 {
