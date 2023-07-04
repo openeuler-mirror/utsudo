@@ -79,6 +79,18 @@ pub const SUDO_DEBUG_INSTANCE_ERROR: libc::c_int = -2;
 // #define 	-1
 pub const SUDO_DEBUG_INSTANCE_INITIALIZER: libc::c_int = -1;
 
+#[macro_export]
+macro_rules! debug_decl_func {
+    ($funcname:expr) => {};
+}
+
+
+
+
+
+
+
+
 
 
 
