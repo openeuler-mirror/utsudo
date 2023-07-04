@@ -39,11 +39,11 @@ extern "C" {
         __delimiter: libc::c_int,
         __stream: *mut FILE,
     ) -> __ssize_t;
-    fn strchr()
-    fn __ctype_b_loc()
-    fn realloc()
-    fn free()
-    fn memcpy()
+    fn strchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
+    fn __ctype_b_loc() -> *mut *const libc::c_ushort;
+    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
+    fn free(__ptr: *mut libc::c_void);
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn sudo_debug_printf2_v1(
         func: *const libc::c_char,
         file: *const libc::c_char,
