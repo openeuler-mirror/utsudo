@@ -288,6 +288,27 @@ macro_rules! sudo_debug_write {
     }};
 }
 
+// # define sudo_debug_printf(pri, ...) \
+//     sudo_debug_printf2(__func__, __FILE__, __LINE__, (pri)|sudo_debug_subsys, \
+//     __VA_ARGS__)
+// #endif
+#[macro_export]
+macro_rules! sudo_debug_printf {
+    ($pri:expr, $($arg:tt)*) => {{
+        sudo_debug_printf2_v1(
+        stdext::function_name!().as_ptr() as *const libc::c_char,
+        file!().as_ptr() as *const libc::c_char,
+        line!() as libc::c_int,
+        ($pri | sudo_debug_subsys) as libc::c_int,
+        $($arg)*,
+        );
+    }};
+}
+
+
+
+
+
 
 
 
