@@ -540,15 +540,20 @@ pub unsafe extern "C" fn sudo_ttyname_dev_v1(
     mut rdev: dev_t,
     mut buf: *mut libc::c_char,
     mut buflen: size_t,
-) {
+) -> *mut libc::c_char {
+    let mut devsearch: *const libc::c_char = 0 as *const libc::c_char;
+    let mut devsearch_end: *const libc::c_char = 0 as *const libc::c_char;
+    let mut path: [libc::c_char; PATH_MAX] = [0; PATH_MAX];
+    let mut ret: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut cp: *const libc::c_char = 0 as *const libc::c_char;
+    let mut ep: *const libc::c_char = 0 as *const libc::c_char;
+    let mut len: size_t = 0 as size_t;
 
 
 
 
 
 
-
-
-
+    debug_return!();
 }
 
