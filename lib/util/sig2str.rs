@@ -98,6 +98,22 @@ pub unsafe extern "C" fn sudo_sig2str(
                     b"RTMAX\0" as *const u8 as *const libc::c_char,
                     SIG2STR_MAX!(),
                 );
+            } else if signo as libc::c_long
+                <= (SIGRTMIN!() as libc::c_long + rtmax / 2) as libc::c_long
+            {
+                snprintf(
+                    signame,
+                    SIG2STR_MAX!(),
+                    b"RTMIN+%d\0" as *const u8 as *const libc::c_char,
+                    signo - SIGRTMIN!(),
+                );
+            } else {
+                snprintf(
+                    signame,
+                    SIG2STR_MAX!(),
+                    b"RTMAX-%d\0" as *const u8 as *const libc::c_char,
+                    SIGRTMAX!() - signo,
+                );
             }
     }
     return 0;
