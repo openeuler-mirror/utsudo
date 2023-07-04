@@ -29,6 +29,7 @@ use crate::sudo_debug_macro::SUDO_DEBUG_WARN;
 #define SUDO_CONF_PATH_ASKPASS		0
 #define SUDO_CONF_PATH_SESH		    1
 #define SUDO_CONF_PATH_NOEXEC		2
+#define SUDO_CONF_PATH_PLUGIN_DIR	3
 
 /* Values of sudo_conf_group_source() */
 #define GROUP_SOURCE_ADAPTIVE	0
@@ -687,6 +688,12 @@ pub unsafe extern "C" fn sudo_conf_sesh_path_v1() -> *const libc::c_char {
 pub unsafe extern "C" fn sudo_conf_noexec_path_v1() -> *const libc::c_char {
     return sudo_conf_data.path_table[SUDO_CONF_PATH_NOEXEC as usize].pval;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_plugin_dir_path_v1() -> *const libc::c_char {
+    return sudo_conf_data.path_table[SUDO_CONF_PATH_PLUGIN_DIR as usize].pval;
+}
+
 /*
  * Used by the sudo_conf regress test to clear compile-time path settings.
  */
