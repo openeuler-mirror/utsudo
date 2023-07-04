@@ -135,8 +135,13 @@ macro_rules! debug_return_id_t {
     }};
 }
 
-
-
+#[macro_export]
+macro_rules! debug_return_size_t {
+    ($ret:expr) => {
+        sudo_debug_exit_size_t(function_name!(), file!(), line!(), sudo_debug_subsys, $ret);
+        return $ret;
+    };
+}
 
 
 
