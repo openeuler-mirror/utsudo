@@ -166,8 +166,13 @@ macro_rules! debug_return_time_t {
 }
 
 
-
-
+#[macro_export]
+macro_rules! debug_return_long {
+    ($ret:expr) => {
+        sudo_debug_exit_long(function_name!(), file!(), line!(), sudo_debug_subsys, $ret);
+        return $ret;
+    };
+}
 
 
 
