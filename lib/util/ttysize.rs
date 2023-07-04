@@ -60,6 +60,8 @@ pub unsafe extern "C" fn get_ttysize_ioctl(
     debug_return_int!(-1)
 }
 
+
+#[no_mangle]
 pub unsafe extern "C" fn sudo_get_ttysize_v1(
     mut rowp: *mut libc::c_int,
     mut colp: *mut libc::c_int,
@@ -68,7 +70,7 @@ pub unsafe extern "C" fn sudo_get_ttysize_v1(
 
 
 
-
+    debug_return!()
 }
 
 
