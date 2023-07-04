@@ -30,9 +30,16 @@ use crate::sudo_debug_macro::SUDO_DEBUG_WARN;
 #define SUDO_CONF_PATH_SESH		    1
 #define SUDO_CONF_PATH_NOEXEC		2
 
+/* Values of sudo_conf_group_source() */
+#define GROUP_SOURCE_ADAPTIVE	0
+#define GROUP_SOURCE_STATIC 	1
+#define GROUP_SOURCE_DYNAMIC	2
+
 extern "C" {
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
+    fn reallocarray(__ptr: *mut libc::c_void, __nmemb: size_t, __size: size_t)
+        -> *mut libc::c_void;
     fn free(__ptr: *mut libc::c_void);
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong) -> libc::c_int;
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
@@ -48,6 +55,12 @@ extern "C" {
         last: *mut *const libc::c_char,
     ) -> *const libc::c_char;
     fn sudo_strtobool_v1(str: *const libc::c_char) -> libc::c_int;
+    fn sudo_strtonum(
+        _: *const libc::c_char,
+        _: libc::c_longlong,
+        _: libc::c_longlong,
+        _: *mut *const libc::c_char,
+    ) -> libc::c_longlong;
 }
 
 #[derive(Copy, Clone)]
