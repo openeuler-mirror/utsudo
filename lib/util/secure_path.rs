@@ -128,6 +128,14 @@ macro_rules! SUDO_PATH_SECURE {
     };
 }
 
+// #define ISSET(t, f)     ((t) & (f))
+#[macro_export]
+macro_rules! ISSET {
+    ($_t:expr, $_f:expr) => {
+        (($_t) & ($_f))
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
