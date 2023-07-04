@@ -7,3 +7,14 @@
 
 use crate::INT_MAX;
 use crate::TIOCGWINSZ;
+
+pub unsafe extern "C" fn get_ttysize_ioctl(
+    rowp: *mut libc::c_int,
+    colp: *mut libc::c_int,
+) {
+
+
+
+
+}
+
