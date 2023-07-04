@@ -149,6 +149,12 @@ pub type sigset_t = __sigset_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub union __sigaction_handler_union {
+    /* Used if SA_SIGINFO is not set.  */
+    sa_handler: __sighandler_t,
+
+    /* Used if SA_SIGINFO is set.  */
+    sa_sigaction:
+        Option<unsafe extern "C" fn(libc::c_int, *mut siginfo_t, *mut libc::c_void) -> ()>,
 }
 
 #[derive(Copy, Clone)]
