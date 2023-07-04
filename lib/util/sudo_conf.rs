@@ -397,8 +397,14 @@ unsafe extern "C" fn parse_debug(
                 break 'oom;
             }
 
-            TAILQ_INIT(&debug_spec->debug_files);
-            TAILQ_INSERT_TAIL(&sudo_conf_data.debugging, debug_spec, entries);
+            // TAILQ_INIT(&debug_spec->debug_files);
+            // TAILQ_INSERT_TAIL(&sudo_conf_data.debugging, debug_spec, entries);
+            (*debug_spec).debug_files.tqh_first = 0 as *mut sudo_debug_file;
+            (*debug_spec).debug_files.tqh_last = &mut (*debug_spec).debug_files.tqh_first;
+            (*debug_spec).entries.tqe_next = 0 as *mut sudo_conf_debug;
+            (*debug_spec).entries.tqe_prev = sudo_conf_data.debugging.tqh_last;
+            *sudo_conf_data.debugging.tqh_last = debug_spec;
+            sudo_conf_data.debugging.tqh_last = &mut (*debug_spec).entries.tqe_next;
         } // debug_spec.is_null()
 
         debug_file = calloc(1, ::std::mem::size_of::<sudo_debug_file>() as libc::c_ulong)
@@ -417,7 +423,11 @@ unsafe extern "C" fn parse_debug(
             break 'oom;
         }
 
-        TAILQ_INSERT_TAIL(&debug_spec->debug_files, debug_file, entries);
+        // TAILQ_INSERT_TAIL(&debug_spec->debug_files, debug_file, entries);
+        ((*debug_file).entries.tqe_next) = 0 as *mut sudo_debug_file;
+        (*debug_file).entries.tqe_prev = (*debug_spec).debug_files.tqh_last;
+        *(*debug_spec).debug_files.tqh_last = debug_file;
+        (*debug_spec).debug_files.tqh_last = &mut (*debug_file).entries.tqe_next;
 
         debug_return_int!(true as libc::c_int);
         break 'oom;
