@@ -11,11 +11,16 @@
     unused_variables
 )]
 
-
 use crate::macro_struct::*;
-
 // use stdext::function_name;
 use crate::sudo_debug::*;
+
+pub static mut sudo_debug_subsys: libc::c_int = 0 as libc::c_int;
+// /* Error return for sudo_debug_register().  */
+pub const SUDO_DEBUG_INSTANCE_ERROR: libc::c_int = -2;
+// /* Initializer for instance index to indicate that debugging is not setup. */
+// #define 	-1
+pub const SUDO_DEBUG_INSTANCE_INITIALIZER: libc::c_int = -1;
 
 /*
  * The priority and subsystem are encoded in a single 32-bit value.
@@ -29,9 +34,6 @@ use crate::sudo_debug::*;
  * in other words, highest to lowest priority.  Max pri is 15.
  * Note: order must match sudo_debug_priorities[]
  */
-
-pub static mut sudo_debug_subsys: libc::c_int = 0 as libc::c_int;
-
 
 /*constants*/
 pub const SUDO_DEBUG_CRIT: libc::c_int = 1; /* critical errors */
@@ -73,12 +75,6 @@ macro_rules! SUDO_DEBUG_ALL {
     };
 }
 
-// /* Error return for sudo_debug_register().  */
-pub const SUDO_DEBUG_INSTANCE_ERROR: libc::c_int = -2;
-// /* Initializer for instance index to indicate that debugging is not setup. */
-// #define 	-1
-pub const SUDO_DEBUG_INSTANCE_INITIALIZER: libc::c_int = -1;
-
 #[macro_export]
 macro_rules! debug_decl_func {
     ($funcname:expr) => {};
@@ -104,7 +100,6 @@ macro_rules! debug_decl {
     };
 }
 
-// 完成
 #[macro_export]
 macro_rules! debug_return_int {
     ($ret:expr) => {{
@@ -119,8 +114,6 @@ macro_rules! debug_return_int {
     }};
 }
 
-
-// 完成
 #[macro_export]
 macro_rules! debug_return_id_t {
     ($ret:expr) => {{
@@ -165,7 +158,6 @@ macro_rules! debug_return_time_t {
     };
 }
 
-
 #[macro_export]
 macro_rules! debug_return_long {
     ($ret:expr) => {
@@ -174,7 +166,6 @@ macro_rules! debug_return_long {
     };
 }
 
-// 完成
 #[macro_export]
 macro_rules! debug_return_bool {
     ($ret:expr) => {{
@@ -211,8 +202,6 @@ macro_rules! debug_return_const_str {
     };
 }
 
-
-//
 #[macro_export]
 macro_rules! debug_return_str_masked {
     ($ret:expr) => {{
@@ -227,7 +216,6 @@ macro_rules! debug_return_str_masked {
     }};
 }
 
-// 完成
 #[macro_export]
 macro_rules! debug_return_ptr {
     ($ret:expr) => {{
@@ -242,7 +230,6 @@ macro_rules! debug_return_ptr {
     }};
 }
 
-// 完成
 macro_rules! debug_return_const_ptr {
     ($ret:expr) => {{
         sudo_debug_exit_ptr_v1(
@@ -256,7 +243,6 @@ macro_rules! debug_return_const_ptr {
     }};
 }
 
-
 #[macro_export]
 macro_rules! sudo_debug_execve {
     ($pri:expr, $path:expr, $argv:expr, $envp:expr) => {{
@@ -269,7 +255,6 @@ macro_rules! sudo_debug_execve {
     }};
 }
 
-//
 macro_rules! sudo_debug_write {
     ($ret:expr) => {};
 }
@@ -338,6 +323,7 @@ macro_rules! sudo_warn {
         sudo_warn_nodebug_v1($fmt,  $($arg)*);
     }};
 }
+
 // sudo_warnx(fmt...) do {					       \
 //     sudo_debug_printf2(__func__, __FILE__, __LINE__,			       \
 // 	SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|sudo_debug_subsys, fmt);	       \
@@ -383,6 +369,7 @@ macro_rules! sudo_fatalx {
         );
     }};
 }
+
 // #  define sudo_fatal(fmt...) do {					       \
 //     sudo_debug_printf2(__func__, __FILE__, __LINE__,			       \
 // 	SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|SUDO_DEBUG_ERRNO|sudo_debug_subsys, \
@@ -403,9 +390,3 @@ macro_rules! sudo_fatal {
         sudo_fatal_nodebug_v1($fmt,  $($arg)*);
     }};
 }
-
-
-
-
-
-
