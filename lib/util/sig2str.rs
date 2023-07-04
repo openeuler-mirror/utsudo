@@ -115,7 +115,9 @@ pub unsafe extern "C" fn sudo_sig2str(
                     SIGRTMAX!() - signo,
                 );
             }
+        }
+        return 0;
     }
-    return 0;
-}
 
+    if signo > 0 && signo < NSIG!() && !sudo_sys_signame!()[signo as usize].is_null() {
+        sudo_strlcpy(signame, sudo_sys_signame!()[signo as usize], SIG2STR_MAX!());
