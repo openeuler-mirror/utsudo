@@ -84,8 +84,12 @@ macro_rules! debug_decl_func {
     ($funcname:expr) => {};
 }
 
-
-
+#[macro_export]
+macro_rules! debug_decl_vars {
+    ($funcname:expr, $subsys:expr) => {
+        sudo_debug_subsys = $subsys
+    };
+}
 
 
 
