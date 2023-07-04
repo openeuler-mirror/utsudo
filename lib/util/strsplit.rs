@@ -64,4 +64,8 @@ unsafe fn sudo_strsplit_v1(
         }
         cp = cp.offset(1);
     }
+
+    //line 78
+    *last = cp;
+    debug_return_const_ptr!(str)
 }
