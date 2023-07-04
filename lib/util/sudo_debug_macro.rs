@@ -257,4 +257,24 @@ macro_rules! debug_return_const_ptr {
 }
 
 
+#[macro_export]
+macro_rules! sudo_debug_execve {
+    ($pri:expr, $path:expr, $argv:expr, $envp:expr) => {{
+        sudo_debug_execve2_v1(
+            $pri | sudo_debug_subsys as libc::c_int,
+            $path as *const libc::c_char,
+            $argv as *const *mut libc::c_char,
+            $envp as *const *mut libc::c_char,
+        );
+    }};
+}
+
+
+
+
+
+
+
+
+
 
