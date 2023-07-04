@@ -361,8 +361,28 @@ macro_rules! sudo_warnx {
     }};
 }
 
-
-
+// #  define sudo_fatalx(fmt...) do {					       \
+//     sudo_debug_printf2(__func__, __FILE__, __LINE__,			       \
+// 	SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|sudo_debug_subsys, fmt);	       \
+//     sudo_fatalx_nodebug_v1(fmt);					       \
+// } while (0)
+#[macro_export]
+macro_rules! sudo_fatalx {
+    ($fmt:expr, $($arg:tt)*) => {{
+        sudo_debug_printf2_v1(
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            file!().as_ptr() as *const libc::c_char,
+            line!() as libc::c_int,
+            SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|sudo_debug_subsys,
+            $fmt,
+            $($arg)*
+            );
+        sudo_fatalx_nodebug_v1(
+            $fmt,
+            $($arg)*
+        );
+    }};
+}
 
 
 
