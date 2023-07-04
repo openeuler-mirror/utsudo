@@ -535,6 +535,12 @@ unsafe extern "C" fn sudo_dev_check(
     debug_return_str!(0 as *mut libc::c_char)
 }
 
+
+/*
+ * Like ttyname() but uses a dev_t instead of an open fd.
+ * Returns name on success and NULL on failure, setting errno.
+ * Generic version.
+ */
 #[no_mangle]
 pub unsafe extern "C" fn sudo_ttyname_dev_v1(
     mut rdev: dev_t,
@@ -554,6 +560,11 @@ pub unsafe extern "C" fn sudo_ttyname_dev_v1(
 
 
 
-    debug_return!();
+
+
+
+
+
+   debug_return_str!(ret as *mut libc::c_char)
 }
 
