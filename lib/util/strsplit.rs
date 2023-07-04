@@ -24,7 +24,7 @@ unsafe fn sudo_strsplit_v1(
     let mut s: *const libc::c_char = 0 as *const libc::c_char;
 
     //line45
-    debug_decl()
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
     //line 48
     if str.is_null() {
@@ -48,6 +48,7 @@ unsafe fn sudo_strsplit_v1(
     //line 64
     if str >= endstr {
         *last = endstr;
+        debug_return_ptr!(0 as *const libc::c_char)
     }
 
 }
