@@ -66,8 +66,12 @@ pub const SUDO_DEBUG_SELINUX: libc::c_int = 12 << 6; /* selinux */
 pub const SUDO_DEBUG_UTIL: libc::c_int = 13 << 6; /* utility functions */
 pub const SUDO_DEBUG_UTMP: libc::c_int = 14 << 6; /* utmp file ops */
 
-
-
+macro_rules! SUDO_DEBUG_ALL {
+    /* all subsystems */
+    () => {
+        0xffff0000
+    };
+}
 
 
 
