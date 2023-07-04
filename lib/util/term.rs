@@ -30,6 +30,12 @@ pub type cc_t = libc::c_uchar;
 pub const NCCS: libc::c_int = 32;
 pub type speed_t = libc::c_uint;
 
+pub struct __dso_public {
+    pub sudo_term_eof = libc::c_int,
+    pub sudo_term_erase = libc::c_int,
+    pub sudo_term_kill = libc::c_int,
+}
+
 pub static mut sudo_term_eof: libc::c_int = 0;
 pub static mut sudo_term_erase: libc::c_int = 0;
 pub static mut sudo_term_kill: libc::c_int = 0;
