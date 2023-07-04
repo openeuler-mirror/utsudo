@@ -52,4 +52,16 @@ unsafe fn sudo_strsplit_v1(
         debug_return_ptr!(0 as *const libc::c_char)
     }
 
+    //line70
+    cp = str;
+    while cp < endstr {
+        s = sep;
+        while *s as libc::c_int != '\u{0}' as i32 {
+            s = s.offset(1);
+        }
+        if *s as libc::c_int != '\u{0}' as i32 {
+            break;
+        }
+        cp = cp.offset(1);
+    }
 }
