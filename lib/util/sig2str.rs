@@ -42,6 +42,13 @@ macro_rules! NSIG {
     };
 }
 
+#[macro_export]
+macro_rules! sudo_sys_signame {
+    () => {
+        sys_sigabbrev
+    };
+}
+
 pub type size_t = libc::c_ulong;
 pub const _SC_RTSIG_MAX: libc::c_int = 31;
 pub type __int32_t = libc::c_int;
@@ -58,6 +65,7 @@ extern "C" {
         _: ...
     ) -> libc::c_int;
     fn sudo_strlcpy(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
+    static sys_sigabbrev: [*const libc::c_char; 65];
     fn __ctype_toupper_loc() -> *mut *const __int32_t;
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
 }
