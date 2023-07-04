@@ -96,6 +96,15 @@ macro_rules! SUDO_PATH_GROUP_WRITABLE {
     };
 }
 
+// #define	__S_IWRITE	0200	/* Write by owner.  */
+// #define	S_IWUSR	__S_IWRITE	/* Write by owner.  */
+#[macro_export]
+macro_rules! S_IWUSR {
+    () => {
+        0200
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct timespec {
