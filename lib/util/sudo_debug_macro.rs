@@ -269,8 +269,10 @@ macro_rules! sudo_debug_execve {
     }};
 }
 
-
-
+//
+macro_rules! sudo_debug_write {
+    ($ret:expr) => {};
+}
 
 
 
