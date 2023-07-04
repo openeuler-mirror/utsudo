@@ -157,4 +157,27 @@ macro_rules! debug_return_ssize_t {
     }};
 }
 
+#[macro_export]
+macro_rules! debug_return_time_t {
+    ($ret:expr) => {
+        sudo_debug_exit_time_t(function_name!(), file!(), line!(), sudo_debug_subsys, $ret);
+        return $ret;
+    };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
