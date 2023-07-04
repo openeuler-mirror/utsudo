@@ -104,8 +104,44 @@ macro_rules! debug_decl {
     };
 }
 
+// 完成
+#[macro_export]
+macro_rules! debug_return_int {
+    ($ret:expr) => {{
+        sudo_debug_exit_int_v1(
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            file!().as_ptr() as *const libc::c_char,
+            line!() as libc::c_int,
+            sudo_debug_subsys as libc::c_int,
+            $ret,
+        );
+        return $ret;
+    }};
+}
 
 
+// 完成
+#[macro_export]
+macro_rules! debug_return_id_t {
+    ($ret:expr) => {{
+        sudo_debug_exit_id_t_v1(
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            file!().as_ptr() as *const libc::c_char,
+            line!() as libc::c_int,
+            sudo_debug_subsys as libc::c_int,
+            $ret,
+        );
+        return $ret;
+    }};
+}
+
+#[macro_export]
+macro_rules! debug_return_size_t {
+    ($ret:expr) => {
+        sudo_debug_exit_size_t(function_name!(), file!(), line!(), sudo_debug_subsys, $ret);
+        return $ret;
+    };
+}
 
 
 
