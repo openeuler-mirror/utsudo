@@ -8,6 +8,10 @@
 use crate::INT_MAX;
 use crate::TIOCGWINSZ;
 
+use crate::macro_struct::*;
+use crate::sudo_debug::*;
+use crate::sudo_debug_macro::*;
+
 /* Standard file descriptors.  */
 // #define	STDERR_FILENO	2	/* Standard error output.  */
 #[macro_export]
