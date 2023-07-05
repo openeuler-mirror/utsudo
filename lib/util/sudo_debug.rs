@@ -291,6 +291,13 @@ pub struct sudo_conf_debug_file_list {
 
 static mut sudo_debug_fds_size: libc::c_int = -1;
 static mut sudo_debug_fds: *mut libc::c_uchar = 0 as *const libc::c_char as *mut libc::c_uchar;
+static mut sudo_debug_max_fd: libc::c_int = -1;
+static mut sudo_debug_instances: [*mut sudo_debug_instance; SUDO_DEBUG_INSTANCE_MAX!()] =
+    [0 as *const sudo_debug_instance as *mut sudo_debug_instance; SUDO_DEBUG_INSTANCE_MAX!()];
+static mut sudo_debug_last_instance: libc::c_int = -1;
+static mut sudo_debug_active_instance: libc::c_int = -(1 as libc::c_int);
+static mut sudo_debug_pidstr: [libc::c_char; 14] = [0; 14];
+static mut sudo_debug_pidlen: size_t = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_free_output(output: *mut sudo_debug_output) {
@@ -401,8 +408,31 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                 continue;
             }
             pri = pri.offset(1);
-        }
 
+            while !(sudo_debug_priorities[i as usize]).is_null() {
+                let mut ret = strcasecmp(
+                    pri,
+                    (sudo_debug_priorities[i as usize]) as *const libc::c_char,
+                );
+                if ret == 0 {
+                    while !(*((*instance).subsystems).offset(j as isize)).is_null() {
+                        ret = strcasecmp(subsys, b"all\0" as *const u8 as *const libc::c_char);
+                        if ret == 0 {
+                            let mut idx: libc::c_uint = if (*instance).subsystem_ids.is_null() {
+                                SUDO_DEBUG_SUBSYS!(*((*instance).subsystem_ids).offset(j as isize))
+                                    as libc::c_uint
+                            } else {
+                                j
+                            };
+                            if i > *((*output).settings).offset(idx as isize) {
+                                *((*output).settings).offset(idx as isize) = i;
+                            }
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
