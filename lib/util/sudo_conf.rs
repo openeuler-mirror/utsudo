@@ -752,6 +752,31 @@ pub unsafe extern "C" fn sudo_conf_plugins_v1() -> *mut plugin_info_list {
     return &mut sudo_conf_data.plugins;
 }
 
+/* Return the debug files list for a program, or NULL if none. */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_debug_files_v1(
+    progname: *const libc::c_char,
+) -> *mut sudo_conf_debug_file_list {
+    let mut progbaselen: size_t = 0 as size_t;
+    let mut progbase: *const libc::c_char = progname;
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    /* Determine basename if program is fully qualified (like for plugins). */
+    progbaselen = strlen(progname) as size_t;
+    if *progname as libc::c_int == '/' as i32 {
+        progbase = strrchr(progname, '/' as i32);
+        progbase = progbase.offset(1 as isize);
+        progbaselen = strlen(progbase);
+    }
+
+    /* Convert sudoedit -> sudo. */
+    if progbaselen > 4
+    {
+        progbaselen = progbaselen - 4;
+    }
+}
+
 /*
  * Used by the sudo_conf regress test to clear compile-time path settings.
  */
