@@ -569,3 +569,21 @@ pub unsafe extern "C" fn sudo_debug_get_instance_v1(
     }
     return SUDO_DEBUG_INSTANCE_INITIALIZER!();
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_fork_v1() -> pid_t {
+    let mut pid: pid_t = 0 as pid_t;
+
+    pid = fork();
+    if pid == 0 {
+        snprintf(
+            sudo_debug_pidstr.as_mut_ptr(),
+            ::std::mem::size_of::<[libc::c_char; 14]>() as libc::c_ulong,
+            b"[%d] \0" as *const u8 as *const libc::c_char,
+            getpid(),
+        );
+        sudo_debug_pidlen = strlen(sudo_debug_pidstr.as_mut_ptr()) as usize;
+    }
+
+    return pid;
+}
