@@ -587,3 +587,23 @@ pub unsafe extern "C" fn sudo_debug_fork_v1() -> pid_t {
 
     return pid;
 }
+
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_enter_v1(
+    func: *const libc::c_char,
+    file: *const libc::c_char,
+    line: libc::c_int,
+    subsys: libc::c_int,
+) {
+    sudo_debug_printf2_v1(
+        0 as *mut libc::c_char,
+        0 as *mut libc::c_char,
+        0,
+        subsys | SUDO_DEBUG_TRACE!(),
+        b"-> %s @ %s:%d\0" as *const u8 as *const libc::c_char,
+        func,
+        file,
+        line,
+    );
+}
