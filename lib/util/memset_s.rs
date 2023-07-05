@@ -45,7 +45,7 @@ pub fn sudo_memset_s(
             let fresh3 = s;
             unsafe {
                 s = s.offset(1); //*s++
-                ::std::ptr::write_volatile(fresh3, c);
+                ::std::ptr::write_volatile(fresh3, c as libc::c_uchar);
             }
         }
     }
