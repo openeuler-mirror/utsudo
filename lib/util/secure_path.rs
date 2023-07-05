@@ -13,6 +13,16 @@
     unused_mut,
     unused_variables
 )]
+
+extern "C" {
+    fn __xstat(
+        __ver: libc::c_int,
+        __filename: *const libc::c_char,
+        __stat_buf: *mut stat,
+    ) -> libc::c_int;
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
+}
+
 pub type __dev_t = libc::c_ulong;
 pub type __uid_t = libc::c_uint;
 pub type __gid_t = libc::c_uint;
@@ -93,6 +103,46 @@ macro_rules! SUDO_PATH_WORLD_WRITABLE {
 macro_rules! SUDO_PATH_GROUP_WRITABLE {
     () => {
         -5
+    };
+}
+
+// #define	__S_IWRITE	0200	/* Write by owner.  */
+// #define	S_IWUSR	__S_IWRITE	/* Write by owner.  */
+#[macro_export]
+macro_rules! S_IWUSR {
+    () => {
+        0200
+    };
+}
+
+// #define	S_IWGRP	(S_IWUSR >> 3)	/* Write by group.  */
+#[macro_export]
+macro_rules! S_IWGRP {
+    () => {
+        S_IWUSR!() >> 3
+    };
+}
+
+// #define	S_IWOTH	(S_IWGRP >> 3)	/* Write by others.  */
+#[macro_export]
+macro_rules! S_IWOTH {
+    () => {
+        S_IWGRP!() >> 3
+    };
+}
+
+// #define SUDO_PATH_SECURE		0
+macro_rules! SUDO_PATH_SECURE {
+    () => {
+        0
+    };
+}
+
+// #define ISSET(t, f)     ((t) & (f))
+#[macro_export]
+macro_rules! ISSET {
+    ($_t:expr, $_f:expr) => {
+        (($_t) & ($_f))
     };
 }
 
@@ -216,4 +266,17 @@ pub unsafe extern "C" fn sudo_secure_file_v1(
     mut sbp: *mut stat,
 ) -> libc::c_int {
     return sudo_secure_path(path, _S_IFREG!(), uid, gid, sbp);
+}
+
+/*
+ * Verify that path is a directory and not writable by other users.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_secure_dir_v1(
+    mut path: *const libc::c_char,
+    mut uid: uid_t,
+    mut gid: gid_t,
+    mut sbp: *mut stat,
+) -> libc::c_int {
+    return sudo_secure_path(path, _S_IFDIR!(), uid, gid, sbp);
 }
