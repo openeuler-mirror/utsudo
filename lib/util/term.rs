@@ -250,7 +250,11 @@ unsafe extern "C" fn sigttou(_signo: libc::c_int) {
     got_sigttou = 1;
 }
 
-
+/*
+ * Like tcsetattr() but restarts on EINTR _except_ for SIGTTOU.
+ * Returns 0 on success or -1 on failure, setting errno.
+ * Sets got_sigttou on failure if interrupted by SIGTTOU.
+ */
 unsafe extern "C" fn tcsetattr_nobg(
     fd: libc::c_int,
     flags: libc::c_int,
@@ -280,6 +284,29 @@ unsafe extern "C" fn sudo_term_raw_v1(fd: libc::c_int, isig: libc::c_int) -> boo
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 }
 
-unsafe extern "C" fn sudo_term_cbreak_v1()
-    
-unsafe extern "C" fn sudo_term_copy_v1()
+unsafe extern "C" fn sudo_term_cbreak_v1(fd: libc::c_int) -> bool {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+}
+
+unsafe extern "C" fn sudo_term_copy_v1(src: libc::c_int, dst: libc::c_int) -> bool {
+    let mut tt_src: termios = termios {
+        c_iflag: 0,
+        c_oflag: 0,
+        c_cflag: 0,
+        c_lflag: 0,
+        c_line: 0,
+        c_cc: [0; NCCS as usize],
+        c_ispeed: 0,
+        c_ospeed: 0,
+    };
+    let mut tt_dst: termios = termios {
+        c_iflag: 0,
+        c_oflag: 0,
+        c_cflag: 0,
+        c_lflag: 0,
+        c_line: 0,
+        c_cc: [0; NCCS as usize],
+        c_ispeed: 0,
+        c_ospeed: 0,
+    };
+}
