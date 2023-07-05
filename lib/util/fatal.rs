@@ -179,3 +179,12 @@ fn sudo_fatal_callback_deregister_v1(mut func: sudo_fatal_callback_t) -> libc::c
 extern "C" fn sudo_warn_set_conversation_v1(mut conv: sudo_conv_t) {
     unsafe { sudo_warn_conversation = conv };
 }
+
+//#[allow(improper_ctypes_definitions)]
+#[no_mangle]
+pub unsafe extern "C" fn sudo_warn_set_locale_func_v1(
+    mut func: Option<unsafe extern "C" fn(bool, *mut libc::c_int) -> bool>,
+) {
+    sudo_warn_setlocale_prev = sudo_warn_setlocale;
+    sudo_warn_setlocale = func;
+}
