@@ -763,6 +763,7 @@ pub unsafe extern "C" fn sudo_conf_debugging_v1() -> *mut sudo_conf_debug_list {
 pub unsafe extern "C" fn sudo_conf_debug_files_v1(
     progname: *const libc::c_char,
 ) -> *mut sudo_conf_debug_file_list {
+    let mut debug_spec: *mut sudo_conf_debug = 0 as *mut sudo_conf_debug;
     let mut progbaselen: size_t = 0 as size_t;
     let mut progbase: *const libc::c_char = progname;
 
@@ -781,6 +782,20 @@ pub unsafe extern "C" fn sudo_conf_debug_files_v1(
     {
         progbaselen = progbaselen - 4;
     }
+
+    debug_spec = sudo_conf_data.debugging.tqh_first;
+    while !debug_spec.is_null() {
+        let mut prog: *const libc::c_char = progbase;
+        let mut len: size_t = progbaselen;
+
+        if strncasecmp((*debug_spec).progname, prog, len) == 0
+        {
+            debug_return_ptr!(&mut ((*debug_spec).debug_files) as *mut sudo_conf_debug_file_list);
+        }
+        debug_spec = (*debug_spec).entries.tqe_next;
+    } //  while !debug_spec.is_null()
+
+    debug_return_ptr!(0 as *mut sudo_conf_debug_file_list);
 }
 
 /*
