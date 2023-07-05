@@ -3,6 +3,7 @@
  *
  * SPDX-License-Identifier: MulanPSL-2.0
  */
+
  #![allow(
     non_camel_case_types,
     unused_variables,
@@ -21,7 +22,6 @@ macro_rules! __LC_MESSAGES {
         5
     };
 }
-
 
 extern "C" {
     fn free(__ptr: *mut libc::c_void);
@@ -114,5 +114,106 @@ pub type sudo_conv_t = Option<
 
 #[no_mangle]
 pub fn do_cleanup() {
+    let mut cb: *mut sudo_fatal_callback = 0 as *mut sudo_fatal_callback;
 
+    loop {
+        cb = unsafe { callbacks.slh_first };
+        if cb.is_null() {
+            break;
+        }
+        unsafe {
+            callbacks.slh_first = (*callbacks.slh_first).entries.sle_next;
+            ((*cb).func).expect("the pointer is not null")();
+            free(cb as *mut libc::c_void)
+        };
+    }
+}
+
+#[no_mangle]
+unsafe fn sudo_fatal_callback_register_v1(mut func: sudo_fatal_callback_t) -> libc::c_int {
+    let mut cb: *mut sudo_fatal_callback = callbacks.slh_first as *mut sudo_fatal_callback;
+    cb = callbacks.slh_first;
+    while !cb.is_null() {
+        if func == (*cb).func {
+            return -1;
+        }
+    }
+
+    cb = malloc(std::mem::size_of::<sudo_fatal_callback>() as libc::c_ulong)
+        as *mut sudo_fatal_callback;
+    if cb.is_null() {
+        return -1;
+    }
+    (*cb).func = func;
+    (*cb).entries.sle_next = cb;
+    return 0;
+}
+
+#[no_mangle]
+fn sudo_fatal_callback_deregister_v1(mut func: sudo_fatal_callback_t) -> libc::c_int {
+    let mut cb: *mut sudo_fatal_callback = 0 as *mut sudo_fatal_callback;
+    let mut prev: *mut *mut sudo_fatal_callback = 0 as *mut *mut sudo_fatal_callback;
+    loop {
+        cb = unsafe { *prev };
+        if cb.is_null() {
+            break;
+        }
+        unsafe {
+            if (*cb).func == func {
+                if cb == callbacks.slh_first {
+                    callbacks.slh_first = (*callbacks.slh_first).entries.sle_next;
+                } else {
+                    let ref mut fresh8 = (**prev).entries.sle_next;
+                    *fresh8 = (*(**prev).entries.sle_next).entries.sle_next;
+                }
+                free(cb as *mut libc::c_void);
+                return 0;
+            }
+            prev = &mut (*cb).entries.sle_next;
+        }
+    }
+    return -1;
+}
+
+#[no_mangle]
+extern "C" fn sudo_warn_set_conversation_v1(mut conv: sudo_conv_t) {
+    unsafe { sudo_warn_conversation = conv };
+}
+
+//#[allow(improper_ctypes_definitions)]
+#[no_mangle]
+pub unsafe extern "C" fn sudo_warn_set_locale_func_v1(
+    mut func: Option<unsafe extern "C" fn(bool, *mut libc::c_int) -> bool>,
+) {
+    sudo_warn_setlocale_prev = sudo_warn_setlocale;
+    sudo_warn_setlocale = func;
+}
+
+#[no_mangle]
+fn sudo_warn_gettext_v1(
+    domainname: *const libc::c_char,
+    msgid: *const libc::c_char,
+) -> *mut libc::c_char {
+    let mut cookie: libc::c_int = 0;
+    let mut msg: *mut libc::c_char = 0 as *mut libc::c_char;
+
+    unsafe {
+        if sudo_warn_setlocale.is_some() {
+            sudo_warn_setlocale.expect("is not null func pointer")(
+                0 as libc::c_int != 0,
+                &mut cookie,
+            );
+        }
+    }
+    msg = unsafe { dcgettext(domainname, msgid, __LC_MESSAGES!() as libc::c_int) };
+
+    unsafe {
+        if sudo_warn_setlocale.is_some() {
+            sudo_warn_setlocale.expect("is not null function pointer")(
+                1 as libc::c_int != 0,
+                &mut cookie,
+            );
+        }
+    }
+    return msg;
 }
