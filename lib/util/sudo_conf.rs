@@ -809,6 +809,12 @@ pub unsafe extern "C" fn sudo_conf_disable_coredump_v1() -> bool {
     return sudo_conf_data.disable_coredump;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_probe_interfaces_v1() -> bool {
+    return sudo_conf_data.probe_interfaces;
+}
+
+
 /*
  * Used by the sudo_conf regress test to clear compile-time path settings.
  */
