@@ -463,5 +463,25 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
     let mut debug_file: *mut sudo_debug_file = 0 as *mut sudo_debug_file;
     let mut idx: libc::c_int = -1;
     let mut free_idx: libc::c_int = -1;
+
+    debug_decl_func!(sudo_debug_register);
+
+    if debug_files.is_null() {
+        return SUDO_DEBUG_INSTANCE_INITIALIZER!();
+    }
+
+    if subsystems.is_null() {
+        subsystems = sudo_debug_default_subsystems.as_ptr();
+    } else if ids.is_null() {
+        return SUDO_DEBUG_INSTANCE_ERROR!();
+    }
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_deregister_v1(mut idx: libc::c_int) -> libc::c_int {
+    let mut instance: *mut sudo_debug_instance = 0 as *mut sudo_debug_instance;
+    let mut output: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+    let mut next: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+
+    debug_decl_func!(sudo_debug_deregister);
+}
