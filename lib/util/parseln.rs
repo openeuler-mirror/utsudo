@@ -117,10 +117,13 @@ pub unsafe extern "C" fn sudo_parseln_v2(
             break;
         }
         if !lineno.is_null() {
-
+            *lineno = (*lineno).wrapping_add(1) //(*lineno)++
         }
         if !cp.is_null() {
-            
+            if cp == line || (flags & PARSELN_COMM_BOL) == 0 {
+                *cp = '\u{0}' as i32 as libc::c_char;
+                len = cp.offset_from(line) as libc::c_long; //cp-line
+            }            
         }
     }
 }
