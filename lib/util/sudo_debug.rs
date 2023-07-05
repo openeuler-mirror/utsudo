@@ -154,6 +154,21 @@ macro_rules! sudo_setbit {
     }};
 }
 
+#[macro_export]
+macro_rules! SUDO_DEBUG_SUBSYS {
+    ($_n:expr) => {
+        ((($_n) >> 6) - 1)
+    };
+}
+
+#[macro_export]
+macro_rules! SUDO_DEBUG_PRI {
+    ($_n:expr) => {
+        ((($_n) & 0x0f) - 1)
+    };
+}
+
+
 /* Flag to include string version of errno in debug info. */
 // #define SUDO_DEBUG_ERRNO     (1<<4)
 #[macro_export]
