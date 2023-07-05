@@ -475,6 +475,20 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
     } else if ids.is_null() {
         return SUDO_DEBUG_INSTANCE_ERROR!();
     }
+
+    for i in 0..sudo_debug_last_instance + 1 {
+        if sudo_debug_instances[i as usize].is_null() {
+            free_idx = i;
+            continue;
+        }
+
+        if (*sudo_debug_instances[i as usize]).subsystems == subsystems
+            && strcmp((*sudo_debug_instances[i as usize]).program, program) == 0
+        {
+            instance = sudo_debug_instances[i as usize];
+            break;
+        }
+    }
 }
 
 #[no_mangle]
@@ -484,4 +498,19 @@ pub unsafe extern "C" fn sudo_debug_deregister_v1(mut idx: libc::c_int) -> libc:
     let mut next: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
 
     debug_decl_func!(sudo_debug_deregister);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_get_instance_v1(
+    mut program: *const libc::c_char,
+) -> libc::c_int {
+    for idx in 0..sudo_debug_last_instance {
+        if sudo_debug_instances[idx as usize].is_null() {
+            continue;
+        }
+        if strcmp((*sudo_debug_instances[idx as usize]).program, program) == 0 {
+            return idx;
+        }
+    }
+    return SUDO_DEBUG_INSTANCE_INITIALIZER!();
 }
