@@ -516,6 +516,34 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
             break;
         }
     }
+
+    if instance.is_null() {
+        let mut i: libc::c_uint = 0;
+        let mut max_id: libc::c_uint = NUM_DEF_SUBSYSTEMS!() - 1;
+
+        /* Fill in subsystem name -> id mapping as needed. */
+        if !ids.is_null() {
+            while !subsystems.offset(i as isize).is_null() {
+                i += 1;
+                /* Check default subsystems. */
+                for mut j in 0..NUM_DEF_SUBSYSTEMS!() {
+                    if strcmp(
+                        *subsystems.offset(i as isize),
+                        sudo_debug_default_subsystems[j as usize],
+                    ) == 0
+                    {
+                        break;
+                    }
+
+                    if j == NUM_DEF_SUBSYSTEMS!() {
+                        max_id += 1;
+                        j = max_id;
+                    }
+                    *(ids.offset(i as isize)) = (j + 1) << 6;
+                } // for j in NUM_DEF_SUBSYSTEMS!()
+            } // !while !subsystems[i].is_null()
+        } // !!ids.is_null()
+    }
 }
 
 #[no_mangle]
