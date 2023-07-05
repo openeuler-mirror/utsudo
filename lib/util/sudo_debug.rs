@@ -444,11 +444,38 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                             }
                             continue;
                         }
+
+                        ret = strcasecmp(subsys, *((*instance).subsystems).offset(j as isize));
+                        if ret == 0 {
+                            let mut idx: libc::c_uint = if (*instance).subsystem_ids.is_null() {
+                                SUDO_DEBUG_SUBSYS!(*((*instance).subsystem_ids).offset(j as isize))
+                                    as libc::c_uint
+                            } else {
+                                j
+                            };
+                            if i > *((*output).settings).offset(idx as isize) {
+                                *((*output).settings).offset(idx as isize) = i;
+                            }
+                            break;
+                        } // strcasecmp
                     }
                 }
             }
         }
+        break 'oom;
     }
+
+    free(buf as *mut libc::c_void);
+
+    if !isbad {
+        sudo_warn_nodebug_v1(0 as *const libc::c_char);
+    }
+
+    /* bad: */
+    if output.is_null() {
+        sudo_debug_free_output(output);
+    }
+    return 0 as *mut sudo_debug_output;
 }
 
 #[no_mangle]
