@@ -158,7 +158,19 @@ fn sudo_fatal_callback_deregister_v1(mut func: sudo_fatal_callback_t) -> libc::c
         if cb.is_null() {
             break;
         }
-
+        unsafe {
+            if (*cb).func == func {
+                if cb == callbacks.slh_first {
+                    callbacks.slh_first = (*callbacks.slh_first).entries.sle_next;
+                } else {
+                    let ref mut fresh8 = (**prev).entries.sle_next;
+                    *fresh8 = (*(**prev).entries.sle_next).entries.sle_next;
+                }
+                free(cb as *mut libc::c_void);
+                return 0;
+            }
+            prev = &mut (*cb).entries.sle_next;
+        }
     }
     return -1;
 }
