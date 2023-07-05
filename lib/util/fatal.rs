@@ -151,7 +151,16 @@ unsafe fn sudo_fatal_callback_register_v1(mut func: sudo_fatal_callback_t) -> li
 
 #[no_mangle]
 fn sudo_fatal_callback_deregister_v1(mut func: sudo_fatal_callback_t) -> libc::c_int {
+    let mut cb: *mut sudo_fatal_callback = 0 as *mut sudo_fatal_callback;
+    let mut prev: *mut *mut sudo_fatal_callback = 0 as *mut *mut sudo_fatal_callback;
+    loop {
+        cb = unsafe { *prev };
+        if cb.is_null() {
+            break;
+        }
 
+    }
+    return -1;
 }
 
 #[no_mangle]
