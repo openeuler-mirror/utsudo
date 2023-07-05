@@ -743,6 +743,10 @@ pub unsafe extern "C" fn sudo_conf_max_groups_v1() -> libc::c_int {
     return sudo_conf_data.max_groups;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_plugins_v1() -> *mut plugin_info_list {
+    return &mut sudo_conf_data.plugins;
+}
 
 /*
  * Used by the sudo_conf regress test to clear compile-time path settings.
