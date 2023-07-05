@@ -195,6 +195,18 @@ fn sudo_warn_gettext_v1(
     msgid: *const libc::c_char,
 ) -> *mut libc::c_char {
     let mut msg: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut cookie: libc::c_int = 0;
+    let mut msg: *mut libc::c_char = 0 as *mut libc::c_char;
+
+    unsafe {
+        if sudo_warn_setlocale.is_some() {
+            sudo_warn_setlocale.expect("is not null func pointer")(
+                0 as libc::c_int != 0,
+                &mut cookie,
+            );
+        }
+    }
+    msg = unsafe { dcgettext(domainname, msgid, __LC_MESSAGES!() as libc::c_int)
 
     return msg;
 }
