@@ -52,6 +52,7 @@ extern "C" {
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong) -> libc::c_int;
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     fn strndup(_: *const libc::c_char, _: libc::c_ulong) -> *mut libc::c_char;
+    fn strrchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     fn strcasecmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     fn strncasecmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong)
@@ -750,6 +751,11 @@ pub unsafe extern "C" fn sudo_conf_max_groups_v1() -> libc::c_int {
 #[no_mangle]
 pub unsafe extern "C" fn sudo_conf_plugins_v1() -> *mut plugin_info_list {
     return &mut sudo_conf_data.plugins;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_debugging_v1() -> *mut sudo_conf_debug_list {
+    return &mut sudo_conf_data.debugging;
 }
 
 /* Return the debug files list for a program, or NULL if none. */
