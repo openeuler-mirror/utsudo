@@ -28,11 +28,17 @@ use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 use crate::sudo_debug_macro::SUDO_DEBUG_WARN;
 
 /* Indexes into path_table[] below (order is important). */
-#define SUDO_CONF_PATH_ASKPASS		0
-#define SUDO_CONF_PATH_SESH		    1
-#define SUDO_CONF_PATH_NOEXEC		2
-#define SUDO_CONF_PATH_PLUGIN_DIR	3
-#define SUDO_CONF_PATH_DEVSEARCH	4
+// #define SUDO_CONF_PATH_ASKPASS		0
+// #define SUDO_CONF_PATH_SESH		    1
+// #define SUDO_CONF_PATH_NOEXEC		2
+// #define SUDO_CONF_PATH_PLUGIN_DIR	3
+// #define SUDO_CONF_PATH_DEVSEARCH 	4
+pub const SUDO_CONF_PATH_ASKPASS: libc::c_int = 0;
+pub const SUDO_CONF_PATH_SESH: libc::c_int = 1;
+pub const SUDO_CONF_PATH_NOEXEC: libc::c_int = 2;
+pub const SUDO_CONF_PATH_PLUGIN_DIR: libc::c_int = 3;
+pub const SUDO_CONF_PATH_DEVSEARCH: libc::c_int = 4;
+
 
 /* Values of sudo_conf_group_source() */
 // #define GROUP_SOURCE_ADAPTIVE	0
