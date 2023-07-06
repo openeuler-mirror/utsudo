@@ -152,25 +152,55 @@ macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
+<<<<<<< v9
+}
+
+macro_rules! sudo_clrbit {
+    ($_a:expr, $_i:expr) => {{
+        (*(($_a).offset((($_i) / NBBY) as isize)) &= !(1 << (($_i) % NBBY)))
+    }};
+}
+
+macro_rules! sudo_setbit {
+    ($_a:expr, $_i:expr) => {{
+        (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
+    }};
+
 <<<<<<< v1
 }
 
 /* Flag to include string version of errno in debug info. */
 // #define SUDO_DEBUG_ERRNO     (1<<4)
+>>>>>>> master
 }
 
 
 /* Flag to include function, file and line number in debug info. */
 // #define SUDO_DEBUG_LINENO    (1<<5)
 #[macro_export]
-macro_rules! SUDO_DEBUG_LINENO {
-    () => {
-        (1 << 5)
+macro_rules! SUDO_DEBUG_SUBSYS {
+    ($_n:expr) => {
+        ((($_n) >> 6) - 1)
+    };
+}
+
+<<<<<<< v9
+#[macro_export]
+macro_rules! SUDO_DEBUG_PRI {
+    ($_n:expr) => {
+        ((($_n) & 0x0f) - 1)
     };
 }
 
 
 /* Flag to include string version of errno in debug info. */
+<<<<<<< v9
+// #define SUDO_DEBUG_ERRNO     (1<<4)
+
+
+
+/* Flag to include string version of errno in debug info. */
+>>>>>>> master
 // #define SUDO_DEBUG_ERRNO (1<<4)
 >>>>>>> master
 #[macro_export]
@@ -308,6 +338,13 @@ pub struct sudo_conf_debug_file_list {
 
 static mut sudo_debug_fds_size: libc::c_int = -1;
 static mut sudo_debug_fds: *mut libc::c_uchar = 0 as *const libc::c_char as *mut libc::c_uchar;
+static mut sudo_debug_max_fd: libc::c_int = -1;
+static mut sudo_debug_instances: [*mut sudo_debug_instance; SUDO_DEBUG_INSTANCE_MAX!()] =
+    [0 as *const sudo_debug_instance as *mut sudo_debug_instance; SUDO_DEBUG_INSTANCE_MAX!()];
+static mut sudo_debug_last_instance: libc::c_int = -1;
+static mut sudo_debug_active_instance: libc::c_int = -(1 as libc::c_int);
+static mut sudo_debug_pidstr: [libc::c_char; 14] = [0; 14];
+static mut sudo_debug_pidlen: size_t = 0;
 
 static mut sudo_debug_max_fd: libc::c_int = -1;
 static mut sudo_debug_instances: [*mut sudo_debug_instance; SUDO_DEBUG_INSTANCE_MAX!()] =
@@ -428,7 +465,10 @@ pub unsafe extern "C" fn sudo_debug_new_output(
             }
             pri = pri.offset(1);
 
+<<<<<<< v9
+
              /* Look up priority and subsystem, fill in sudo_debug_settings[]. */
+>>>>>>> master
             while !(sudo_debug_priorities[i as usize]).is_null() {
                 let mut ret = strcasecmp(
                     pri,
@@ -448,7 +488,10 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                                 *((*output).settings).offset(idx as isize) = i;
                             }
                             continue;
+<<<<<<< v9
 
+
+>>>>>>> master
                         }
 
                         ret = strcasecmp(subsys, *((*instance).subsystems).offset(j as isize));
@@ -463,13 +506,29 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                                 *((*output).settings).offset(idx as isize) = i;
                             }
                             break;
+<<<<<<< v9
+                        } // strcasecmp
+
                         }
+>>>>>>> master
                     }
                 }
             }
         }
-
+        break 'oom;
     }
+
+    free(buf as *mut libc::c_void);
+
+    if !isbad {
+        sudo_warn_nodebug_v1(0 as *const libc::c_char);
+    }
+
+    /* bad: */
+    if output.is_null() {
+        sudo_debug_free_output(output);
+    }
+    return 0 as *mut sudo_debug_output;
 }
 
 #[no_mangle]
@@ -491,14 +550,20 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
         return SUDO_DEBUG_INSTANCE_INITIALIZER!();
     }
 
+<<<<<<< v9
+
     /* Use default subsystem names if none are provided. */
+>>>>>>> master
     if subsystems.is_null() {
         subsystems = sudo_debug_default_subsystems.as_ptr();
     } else if ids.is_null() {
         return SUDO_DEBUG_INSTANCE_ERROR!();
     }
 
+<<<<<<< v9
+
      /* Search for existing instance. */
+>>>>>>> master
     for i in 0..sudo_debug_last_instance + 1 {
         if sudo_debug_instances[i as usize].is_null() {
             free_idx = i;
@@ -539,6 +604,51 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
                 } // for j in NUM_DEF_SUBSYSTEMS!()
             } // !while !subsystems[i].is_null()
         } // !!ids.is_null()
+<<<<<<< v9
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_deregister_v1(mut idx: libc::c_int) -> libc::c_int {
+    let mut instance: *mut sudo_debug_instance = 0 as *mut sudo_debug_instance;
+    let mut output: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+    let mut next: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+
+    debug_decl_func!(sudo_debug_deregister);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_get_instance_v1(
+    mut program: *const libc::c_char,
+) -> libc::c_int {
+    for idx in 0..sudo_debug_last_instance {
+        if sudo_debug_instances[idx as usize].is_null() {
+            continue;
+        }
+        if strcmp((*sudo_debug_instances[idx as usize]).program, program) == 0 {
+            return idx;
+        }
+    }
+    return SUDO_DEBUG_INSTANCE_INITIALIZER!();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_fork_v1() -> pid_t {
+    let mut pid: pid_t = 0 as pid_t;
+
+    pid = fork();
+    if pid == 0 {
+        snprintf(
+            sudo_debug_pidstr.as_mut_ptr(),
+            ::std::mem::size_of::<[libc::c_char; 14]>() as libc::c_ulong,
+            b"[%d] \0" as *const u8 as *const libc::c_char,
+            getpid(),
+        );
+        sudo_debug_pidlen = strlen(sudo_debug_pidstr.as_mut_ptr()) as usize;
+    }
+
+    return pid;
+
      }
 }
 
@@ -628,5 +738,25 @@ pub unsafe extern "C" fn sudo_debug_update_fd_v1(ofd: libc::c_int, nfd: libc::c_
 pub unsafe extern "C" fn sudo_debug_get_fds_v1(mut fds: *mut *mut libc::c_uchar) -> libc::c_int {
     *fds = sudo_debug_fds;
     return sudo_debug_max_fd;
+>>>>>>> master
 }
 
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_enter_v1(
+    func: *const libc::c_char,
+    file: *const libc::c_char,
+    line: libc::c_int,
+    subsys: libc::c_int,
+) {
+    sudo_debug_printf2_v1(
+        0 as *mut libc::c_char,
+        0 as *mut libc::c_char,
+        0,
+        subsys | SUDO_DEBUG_TRACE!(),
+        b"-> %s @ %s:%d\0" as *const u8 as *const libc::c_char,
+        func,
+        file,
+        line,
+    );
+}
