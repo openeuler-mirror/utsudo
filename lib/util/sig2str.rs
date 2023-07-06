@@ -14,6 +14,9 @@
     unused_mut
 )]
 
+use crate::EINVAL;
+
+// #define SIGRTMIN        (__libc_current_sigrtmin ())
 #[macro_export]
 macro_rules! SIGRTMIN {
     () => {
@@ -21,6 +24,7 @@ macro_rules! SIGRTMIN {
     };
 }
 
+// #define SIGRTMAX        (__libc_current_sigrtmax ())
 #[macro_export]
 macro_rules! SIGRTMAX {
     () => {
@@ -28,6 +32,7 @@ macro_rules! SIGRTMAX {
     };
 }
 
+// # define SIG2STR_MAX 32
 #[macro_export]
 macro_rules! SIG2STR_MAX {
     () => {
@@ -35,6 +40,8 @@ macro_rules! SIG2STR_MAX {
     };
 }
 
+/* Biggest signal number + 1 (including real-time signals).  */
+// #define _NSIG		(__SIGRTMAX + 1)
 #[macro_export]
 macro_rules! NSIG {
     () => {
@@ -42,6 +49,8 @@ macro_rules! NSIG {
     };
 }
 
+/* sys_sigabbrev is not declared by glibc */
+//   #  define sudo_sys_signame	sys_sigabbrev
 #[macro_export]
 macro_rules! sudo_sys_signame {
     () => {
@@ -79,10 +88,15 @@ unsafe extern "C" fn toupper(mut __c: libc::c_int) -> libc::c_int {
     };
 }
 
+/*
+ * Translate signal number to name.
+ */
+#[no_mangle]
 pub unsafe extern "C" fn sudo_sig2str(
     signo: libc::c_int,
     signame: *mut libc::c_char,
 ) -> libc::c_int {
+    /* Realtime signal support. */
     if signo >= SIGRTMIN!() && signo <= SIGRTMAX!() {
         let mut rtmax: libc::c_long = sysconf(_SC_RTSIG_MAX);
         if rtmax > 0 {
@@ -121,3 +135,16 @@ pub unsafe extern "C" fn sudo_sig2str(
 
     if signo > 0 && signo < NSIG!() && !sudo_sys_signame!()[signo as usize].is_null() {
         sudo_strlcpy(signame, sudo_sys_signame!()[signo as usize], SIG2STR_MAX!());
+
+        /* Make sure we always return an upper case signame. */
+        if *(*__ctype_b_loc()).offset(*signame.offset(0 as isize) as isize) as libc::c_int {
+            let mut i: libc::c_int = 0;
+            while *signame.offset(i as isize) as libc::c_int != '\u{0}' as i32 {
+                *signame.offset(i as isize) =
+                    toupper((*signame.offset(i as isize)).into()) as libc::c_char;
+                i += 1;
+            }
+        }
+    }
+    *__errno_location() = EINVAL!();
+}
