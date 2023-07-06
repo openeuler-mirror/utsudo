@@ -798,6 +798,11 @@ pub unsafe extern "C" fn sudo_conf_debug_files_v1(
     debug_return_ptr!(0 as *mut sudo_conf_debug_file_list);
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_disable_coredump_v1() -> bool {
+    return sudo_conf_data.disable_coredump;
+}
+
 /*
  * Used by the sudo_conf regress test to clear compile-time path settings.
  */
