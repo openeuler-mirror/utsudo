@@ -15,7 +15,9 @@
     unreachable_code
 )]
 
-use crate::fatal::sudo_warnx_nodebug_v1;
+use crate::INT_MAX;
+
+// use crate::fatal::sudo_warnx_nodebug_v1;
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_bool_v1;
 use crate::sudo_debug::sudo_debug_exit_int_v1;
@@ -67,6 +69,7 @@ extern "C" {
         _: libc::c_longlong,
         _: *mut *const libc::c_char,
     ) -> libc::c_longlong;
+    fn sudo_warnx_nodebug_v1(fmt: *const libc::c_char, _: ...);
 }
 // #define isblank(c)	__isctype((c), _ISblank)
 macro_rules! isblank {
@@ -734,6 +737,12 @@ pub unsafe extern "C" fn sudo_conf_devsearch_path_v1() -> *const libc::c_char {
 pub unsafe extern "C" fn sudo_conf_group_source_v1() -> libc::c_int {
     return sudo_conf_data.group_source;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_max_groups_v1() -> libc::c_int {
+    return sudo_conf_data.max_groups;
+}
+
 
 /*
  * Used by the sudo_conf regress test to clear compile-time path settings.
