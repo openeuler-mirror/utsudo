@@ -133,5 +133,15 @@ pub unsafe extern "C" fn sudo_sig2str(
 
     if signo > 0 && signo < NSIG!() && !sudo_sys_signame!()[signo as usize].is_null() {
         sudo_strlcpy(signame, sudo_sys_signame!()[signo as usize], SIG2STR_MAX!());
+
+        /* Make sure we always return an upper case signame. */
+        if *(*__ctype_b_loc()).offset(*signame.offset(0 as isize) as isize) as libc::c_int {
+            let mut i: libc::c_int = 0;
+            while *signame.offset(i as isize) as libc::c_int != '\u{0}' as i32 {
+                *signame.offset(i as isize) =
+                    toupper((*signame.offset(i as isize)).into()) as libc::c_char;
+                i += 1;
+            }
+        }
     }
 }
