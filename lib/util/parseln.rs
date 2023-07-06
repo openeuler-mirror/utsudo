@@ -101,14 +101,22 @@ pub struct _IO_FILE {
     pub _unused2: [libc::c_char; 20],
 }
 
+pub const PARSELN_COMM_BOL: libc::c_int = 0x01;
+pub const PARSELN_CONT_IGN: libc::c_int = 0x02;
+pub const _ISblank: libc::c_int = 1;
+
 #[no_mangle]
 pub unsafe extern "C" fn sudo_parseln_v2(
     mut bufp: *mut *mut libc::c_char, //**bufp -> *mut *mut
     mut bufsizep: *mut size_t,        //*bufsizep -> *mut
+    mut lineno: *mut libc::c_uint,
     mut fp: *mut FILE,
+    mut flags: libc::c_int,
 ) -> ssize_t {
     let mut linesize: size_t = 0;
+    let mut total: size_t = 0;
     let mut len: ssize_t = 0;
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut line: *mut libc::c_char = 0 as *mut libc::c_char;
     //return ;
     loop {
@@ -117,10 +125,13 @@ pub unsafe extern "C" fn sudo_parseln_v2(
             break;
         }
         if !lineno.is_null() {
-
+            *lineno = (*lineno).wrapping_add(1) //(*lineno)++
         }
         if !cp.is_null() {
-            
+            if cp == line || (flags & PARSELN_COMM_BOL) == 0 {
+                *cp = '\u{0}' as i32 as libc::c_char;
+                len = cp.offset_from(line) as libc::c_long; //cp-line
+            }            
         }
     }
 }
