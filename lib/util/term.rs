@@ -242,15 +242,39 @@ extern "C" {
     fn cfgetispeed(__termios_p: *const termios) -> speed_t;
 }
 
-unsafe extern "C" fn sigttou()
+unsafe extern "C" fn sigttou(_signo: libc::c_int) {
+    got_sigttou = 1;
+}
 
-unsafe extern "C" fn tcsetattr_nobg()
 
-unsafe extern "C" fn sudo_term_restore_v1()
+unsafe extern "C" fn tcsetattr_nobg(
+    fd: libc::c_int,
+    flags: libc::c_int,
+    tp: *mut termios,
+) -> libc::c_int {
+    };
 
-unsafe extern "C" fn sudo_term_noecho_v1()
+unsafe extern "C" fn sudo_term_restore_v1(fd: libc::c_int, flush: bool) -> bool {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+}
 
-unsafe extern "C" fn sudo_term_raw_v1()
+unsafe extern "C" fn sudo_term_noecho_v1(fd: libc::c_int) -> bool {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+}
+
+unsafe extern "C" fn sudo_term_raw_v1(fd: libc::c_int, isig: libc::c_int) -> bool {
+    let mut term_t: termios = termios {
+        c_iflag: 0,
+        c_oflag: 0,
+        c_cflag: 0,
+        c_lflag: 0,
+        c_line: 0,
+        c_cc: [0; NCCS as usize],
+        c_ispeed: 0,
+        c_ospeed: 0,
+    };
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+}
 
 unsafe extern "C" fn sudo_term_cbreak_v1()
     
