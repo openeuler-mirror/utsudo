@@ -146,23 +146,26 @@ macro_rules! sudo_clrbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) &= !(1 << (($_i) % NBBY)))
     }};
+<<<<<<< v2
 }
 
 macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
-<<<<<<< v8
-<<<<<<< v8
-
-<<<<<<< v9
 >>>>>>> master
 }
+
+/* Flag to include string version of errno in debug info. */
+// #define SUDO_DEBUG_ERRNO     (1<<4)
+
+
 
 macro_rules! sudo_clrbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) &= !(1 << (($_i) % NBBY)))
     }};
+
 }
 
 macro_rules! sudo_setbit {
@@ -170,7 +173,6 @@ macro_rules! sudo_setbit {
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
 
-<<<<<<< v1
 }
 
 /* Flag to include string version of errno in debug info. */
@@ -188,10 +190,22 @@ macro_rules! SUDO_DEBUG_SUBSYS {
     };
 }
 
-<<<<<<< v8
-<<<<<<< v8
 
-<<<<<<< v9
+/* Flag to include string version of errno in debug info. */
+// #define SUDO_DEBUG_ERRNO (1<<4)
+
+
+
+/* Flag to include string version of errno in debug info. */
+// #define SUDO_DEBUG_ERRNO (1<<4)
+
+
+
+
+/* Flag to include string version of errno in debug info. */
+// #define SUDO_DEBUG_ERRNO (1<<4)
+
+>>>>>>> master
 >>>>>>> master
 #[macro_export]
 macro_rules! SUDO_DEBUG_PRI {
@@ -202,19 +216,24 @@ macro_rules! SUDO_DEBUG_PRI {
 
 
 /* Flag to include string version of errno in debug info. */
-<<<<<<< v8
-<<<<<<< v8
 
-<<<<<<< v9
+
+// #define SUDO_DEBUG_ERRNO     (1<<4)
+
+
+
 >>>>>>> master
 // #define SUDO_DEBUG_ERRNO     (1<<4)
 
+<<<<<<< v9
+// #define SUDO_DEBUG_ERRNO     (1<<4)
 
 
 /* Flag to include string version of errno in debug info. */
 >>>>>>> master
 // #define SUDO_DEBUG_ERRNO (1<<4)
->>>>>>> master
+
+
 #[macro_export]
 macro_rules! SUDO_DEBUG_ERRNO {
     () => {
@@ -477,12 +496,8 @@ pub unsafe extern "C" fn sudo_debug_new_output(
             }
             pri = pri.offset(1);
 
-<<<<<<< v8
-<<<<<<< v8
 
-<<<<<<< v9
 >>>>>>> master
-
              /* Look up priority and subsystem, fill in sudo_debug_settings[]. */
 >>>>>>> master
             while !(sudo_debug_priorities[i as usize]).is_null() {
@@ -504,12 +519,6 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                                 *((*output).settings).offset(idx as isize) = i;
                             }
                             continue;
-<<<<<<< v8
-<<<<<<< v8
-
-<<<<<<< v9
->>>>>>> master
-
 
 >>>>>>> master
                         }
@@ -526,15 +535,9 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                                 *((*output).settings).offset(idx as isize) = i;
                             }
                             break;
-<<<<<<< v8
-<<<<<<< v8
 
-<<<<<<< v9
 >>>>>>> master
-                        } // strcasecmp
-
                         }
->>>>>>> master
                     }
                 }
             }
@@ -574,12 +577,8 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
         return SUDO_DEBUG_INSTANCE_INITIALIZER!();
     }
 
-<<<<<<< v8
-<<<<<<< v8
 
-<<<<<<< v9
 >>>>>>> master
-
     /* Use default subsystem names if none are provided. */
 >>>>>>> master
     if subsystems.is_null() {
@@ -588,12 +587,9 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
         return SUDO_DEBUG_INSTANCE_ERROR!();
     }
 
-<<<<<<< v8
-<<<<<<< v8
-
-<<<<<<< v9
+    
 >>>>>>> master
-
+>>>>>>> master
      /* Search for existing instance. */
 >>>>>>> master
     for i in 0..sudo_debug_last_instance + 1 {
@@ -609,6 +605,15 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
             break;
         }
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_deregister_v1(mut idx: libc::c_int) -> libc::c_int {
+    let mut instance: *mut sudo_debug_instance = 0 as *mut sudo_debug_instance;
+    let mut output: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+    let mut next: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+
+    debug_decl_func!(sudo_debug_deregister);
 
     if instance.is_null() {
         let mut i: libc::c_uint = 0;
@@ -636,10 +641,7 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
                 } // for j in NUM_DEF_SUBSYSTEMS!()
             } // !while !subsystems[i].is_null()
         } // !!ids.is_null()
-<<<<<<< v8
-<<<<<<< v8
-======
-<<<<<<< v9
+
 >>>>>>> master
     }
 }
@@ -683,11 +685,7 @@ pub unsafe extern "C" fn sudo_debug_fork_v1() -> pid_t {
         );
         sudo_debug_pidlen = strlen(sudo_debug_pidstr.as_mut_ptr()) as usize;
     }
-
     return pid;
-
->>>>>>> master
-     }
 }
 
 
@@ -776,8 +774,6 @@ pub unsafe extern "C" fn sudo_debug_update_fd_v1(ofd: libc::c_int, nfd: libc::c_
 pub unsafe extern "C" fn sudo_debug_get_fds_v1(mut fds: *mut *mut libc::c_uchar) -> libc::c_int {
     *fds = sudo_debug_fds;
     return sudo_debug_max_fd;
->>>>>>> master
-<<<<<<< v8
 }
 
 #[no_mangle]
@@ -794,6 +790,15 @@ pub unsafe extern "C" fn sudo_debug_get_instance_v1(
     }
     return SUDO_DEBUG_INSTANCE_INITIALIZER!();
 
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_deregister_v1(mut idx: libc::c_int) -> libc::c_int {
+    let mut instance: *mut sudo_debug_instance = 0 as *mut sudo_debug_instance;
+    let mut output: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+    let mut next: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+
+    debug_decl_func!(sudo_debug_deregister);
 >>>>>>> master
 }
 
