@@ -250,6 +250,18 @@ extern "C" {
     fn cfgetispeed(__termios_p: *const termios) -> speed_t;
 }
 
+// #define	SIGTTOU		22	/* Background write to control terminal.  */
+pub const SIGTTOU: libc::c_int = 22;
+
+// # define TCSASOFT	0
+pub const TCSASOFT: libc::c_int = 0 as libc::c_int;
+
+// #define	TCSADRAIN	1
+pub const TCSADRAIN: libc::c_int = 1 as libc::c_int;
+
+// #define	TCSAFLUSH	2
+pub const TCSAFLUSH: libc::c_int = 2 as libc::c_int;
+
 unsafe extern "C" fn sigttou(_signo: libc::c_int) {
     got_sigttou = 1;
 }
