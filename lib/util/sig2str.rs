@@ -14,6 +14,8 @@
     unused_mut
 )]
 
+use crate::EINVAL;
+
 // #define SIGRTMIN        (__libc_current_sigrtmin ())
 #[macro_export]
 macro_rules! SIGRTMIN {
@@ -144,4 +146,5 @@ pub unsafe extern "C" fn sudo_sig2str(
             }
         }
     }
+    *__errno_location() = EINVAL!();
 }
