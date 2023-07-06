@@ -230,8 +230,12 @@ pub struct winsize {
 
 extern "C" {
     fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong) -> *mut libc::c_void;
-    fn sigemptyset()
-    fn sigaction()
+    fn sigemptyset(__set: *mut sigset_t) -> libc::c_int;
+    fn sigaction(
+        __sig: libc::c_int,
+        __act: *const sigaction,
+        __oact: *mut sigaction,
+    ) -> libc::c_int;
     fn __errno_location() -> *mut libc::c_int;
     fn tcsetattr(
         __fd: libc::c_int,
