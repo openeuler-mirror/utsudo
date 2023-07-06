@@ -229,7 +229,7 @@ pub struct winsize {
 }
 
 extern "C" {
-    fn memset()
+    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong) -> *mut libc::c_void;
     fn sigemptyset()
     fn sigaction()
     fn __errno_location() -> *mut libc::c_int;
@@ -239,7 +239,7 @@ extern "C" {
         __termios_p: *const termios,
     ) -> libc::c_int;
     fn tcgetattr(__fd: libc::c_int, __termios_p: *mut termios) -> libc::c_int;
-    fn memcpy()
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn cfsetispeed(__termios_p: *mut termios, __speed: speed_t) -> libc::c_int;
     fn cfsetospeed(__termios_p: *mut termios, __speed: speed_t) -> libc::c_int;
     fn cfgetospeed(__termios_p: *const termios) -> speed_t;
