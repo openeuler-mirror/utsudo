@@ -135,6 +135,18 @@ macro_rules! round_nfds {
     };
 }
 
+macro_rules! sudo_isset {
+    ($_a:expr, $_i:expr) => {{
+        (*(($_a).offset((($_i) / NBBY) as isize)) & (1 << (($_i) % NBBY)))
+    }};
+}
+
+macro_rules! sudo_clrbit {
+    ($_a:expr, $_i:expr) => {{
+        (*(($_a).offset((($_i) / NBBY) as isize)) &= !(1 << (($_i) % NBBY)))
+    }};
+}
+
 macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
