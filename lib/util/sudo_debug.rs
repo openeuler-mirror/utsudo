@@ -153,12 +153,12 @@ macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
-
 }
 
 /* Flag to include string version of errno in debug info. */
 // #define SUDO_DEBUG_ERRNO     (1<<4)
 
+>>>>>>> master
 }
 
 macro_rules! sudo_clrbit {
@@ -192,9 +192,11 @@ macro_rules! SUDO_DEBUG_SUBSYS {
 
 
 
+
 /* Flag to include string version of errno in debug info. */
 // #define SUDO_DEBUG_ERRNO (1<<4)
 
+>>>>>>> master
 #[macro_export]
 macro_rules! SUDO_DEBUG_PRI {
     ($_n:expr) => {
@@ -207,10 +209,16 @@ macro_rules! SUDO_DEBUG_PRI {
 
 // #define SUDO_DEBUG_ERRNO     (1<<4)
 
+
+
+// #define SUDO_DEBUG_ERRNO     (1<<4)
+>>>>>>> master
+
 <<<<<<< v9
 // #define SUDO_DEBUG_ERRNO     (1<<4)
 
 
+>>>>>>> master
 
 /* Flag to include string version of errno in debug info. */
 >>>>>>> master
@@ -479,6 +487,7 @@ pub unsafe extern "C" fn sudo_debug_new_output(
             pri = pri.offset(1);
 
 
+>>>>>>> master
 
              /* Look up priority and subsystem, fill in sudo_debug_settings[]. */
 >>>>>>> master
@@ -556,6 +565,8 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
         return SUDO_DEBUG_INSTANCE_INITIALIZER!();
     }
 
+
+>>>>>>> master
     /* Use default subsystem names if none are provided. */
 >>>>>>> master
     if subsystems.is_null() {
@@ -563,7 +574,7 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
     } else if ids.is_null() {
         return SUDO_DEBUG_INSTANCE_ERROR!();
     }
-
+>>>>>>> master
      /* Search for existing instance. */
 >>>>>>> master
     for i in 0..sudo_debug_last_instance + 1 {
@@ -579,6 +590,18 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
             break;
         }
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_deregister_v1(mut idx: libc::c_int) -> libc::c_int {
+    let mut instance: *mut sudo_debug_instance = 0 as *mut sudo_debug_instance;
+    let mut output: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+    let mut next: *mut sudo_debug_output = 0 as *mut sudo_debug_output;
+
+    debug_decl_func!(sudo_debug_deregister);
+
+
+>>>>>>> master
 
     if instance.is_null() {
         let mut i: libc::c_uint = 0;
