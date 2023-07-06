@@ -127,6 +127,13 @@ pub unsafe extern "C" fn sudo_parseln_v2(
         if !lineno.is_null() {
             *lineno = (*lineno).wrapping_add(1) //(*lineno)++
         }
+        while len > 0 as libc::c_long
+            && (*line.offset((len - 1 as libc::c_long) as isize) as libc::c_int == '\n' as i32)
+        {
+            len -= 1;
+            *line.offset(len as isize) = '\u{0}' as i32 as libc::c_char;
+        }
+        cp = strchr(line, '#' as i32);
         if !cp.is_null() {
             if cp == line || (flags & PARSELN_COMM_BOL) == 0 {
                 *cp = '\u{0}' as i32 as libc::c_char;
