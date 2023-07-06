@@ -118,8 +118,12 @@ pub unsafe extern "C" fn sudo_parseln_v2(
     let mut len: ssize_t = 0;
     let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut line: *mut libc::c_char = 0 as *mut libc::c_char;
-    //return ;
+    let mut continued: bool = false;
+    let mut comment: bool = false;
+
     loop {
+        comment = false;
+        continued = false;
         len = getdelim(&mut line, &mut linesize, '\n' as i32, fp);
         if len == -1 {
             break;
