@@ -191,7 +191,7 @@ static mut term: termios = termios {
     c_cflag: 0,
     c_lflag: 0,
     c_line: 0,
-    c_cc: 0,
+    c_cc: [0; NCCS as usize],
     c_ispeed: 0,
     c_ospeed: 0,
 };
@@ -201,7 +201,7 @@ static mut oterm: termios = termios {
     c_cflag: 0,
     c_lflag: 0,
     c_line: 0,
-    c_cc: 0,
+    c_cc: [0; NCCS as usize],
     c_ispeed: 0,
     c_ospeed: 0,
 };
