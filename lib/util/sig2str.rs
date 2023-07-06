@@ -61,6 +61,7 @@ macro_rules! sudo_sys_signame {
 pub type size_t = libc::c_ulong;
 pub const _SC_RTSIG_MAX: libc::c_int = 31;
 pub type __int32_t = libc::c_int;
+pub const _ISlower: libc::c_int = 512;
 
 extern "C" {
     fn __errno_location() -> *mut libc::c_int;
@@ -137,7 +138,9 @@ pub unsafe extern "C" fn sudo_sig2str(
         sudo_strlcpy(signame, sudo_sys_signame!()[signo as usize], SIG2STR_MAX!());
 
         /* Make sure we always return an upper case signame. */
-        if *(*__ctype_b_loc()).offset(*signame.offset(0 as isize) as isize) as libc::c_int {
+        if *(*__ctype_b_loc()).offset(*signame.offset(0 as isize) as isize) as libc::c_int
+            & _ISlower != 0
+        {
             let mut i: libc::c_int = 0;
             while *signame.offset(i as isize) as libc::c_int != '\u{0}' as i32 {
                 *signame.offset(i as isize) =
