@@ -152,6 +152,7 @@ macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
+<<<<<<< v5
 }
 
 macro_rules! sudo_clrbit {
@@ -164,6 +165,13 @@ macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
+
+<<<<<<< v1
+}
+
+/* Flag to include string version of errno in debug info. */
+// #define SUDO_DEBUG_ERRNO     (1<<4)
+>>>>>>> master
 }
 
 
@@ -176,6 +184,7 @@ macro_rules! SUDO_DEBUG_SUBSYS {
     };
 }
 
+<<<<<<< v5
 #[macro_export]
 macro_rules! SUDO_DEBUG_PRI {
     ($_n:expr) => {
@@ -188,6 +197,10 @@ macro_rules! SUDO_DEBUG_PRI {
 <<<<<<< v5
 // #define SUDO_DEBUG_ERRNO     (1<<4)
 
+
+
+/* Flag to include string version of errno in debug info. */
+>>>>>>> master
 // #define SUDO_DEBUG_ERRNO (1<<4)
 >>>>>>> master
 #[macro_export]
