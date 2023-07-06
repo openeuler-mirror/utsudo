@@ -153,13 +153,19 @@ macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
+<<<<<<< v3
+<<<<<<< v3
+<<<<<<< v3
+
 <<<<<<< v2
 }
 
 /* Flag to include string version of errno in debug info. */
 // #define SUDO_DEBUG_ERRNO     (1<<4)
+>>>>>>> master
 
 <<<<<<< v9
+>>>>>>> master
 }
 
 macro_rules! sudo_clrbit {
@@ -173,8 +179,12 @@ macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
+<<<<<<< v3
+<<<<<<< v3
+
 <<<<<<< v2
 <<<<<<< v2
+>>>>>>> master
 
 
 >>>>>>> master
@@ -196,7 +206,14 @@ macro_rules! SUDO_DEBUG_SUBSYS {
     };
 }
 
+<<<<<<< v3
+
+/* Flag to include string version of errno in debug info. */
+// #define SUDO_DEBUG_ERRNO (1<<4)
+<<<<<<< v3
+
 <<<<<<< v9
+>>>>>>> master
 #[macro_export]
 macro_rules! SUDO_DEBUG_PRI {
     ($_n:expr) => {
@@ -208,12 +225,17 @@ macro_rules! SUDO_DEBUG_PRI {
 /* Flag to include string version of errno in debug info. */
 <<<<<<< v9
 // #define SUDO_DEBUG_ERRNO     (1<<4)
+<<<<<<< v3
+
+>>>>>>> master
+
 
 
 
 /* Flag to include string version of errno in debug info. */
 >>>>>>> master
 // #define SUDO_DEBUG_ERRNO (1<<4)
+>>>>>>> master
 >>>>>>> master
 #[macro_export]
 macro_rules! SUDO_DEBUG_ERRNO {
@@ -476,8 +498,13 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                 continue;
             }
             pri = pri.offset(1);
+<<<<<<< v3
+<<<<<<< v3
+<<<<<<< v3
+
 <<<<<<< v2
 <<<<<<< v2
+>>>>>>> master
 
 
 <<<<<<< v9
@@ -522,7 +549,11 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                                 *((*output).settings).offset(idx as isize) = i;
                             }
                             break;
+<<<<<<< v3
+<<<<<<< v3
+
 <<<<<<< v2
+>>>>>>> master
                         }
                     }
                 }
