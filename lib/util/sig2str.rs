@@ -113,7 +113,7 @@ pub unsafe extern "C" fn sudo_sig2str(
                     SIG2STR_MAX!(),
                 );
             } else if signo as libc::c_long
-                <= (SIGRTMIN!() as libc::c_long + rtmax / 2) as libc::c_long
+                <= (SIGRTMIN!() as libc::c_long + (rtmax / 2) - 1) as libc::c_long
             {
                 snprintf(
                     signame,
