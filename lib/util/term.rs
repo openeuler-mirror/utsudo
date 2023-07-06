@@ -250,6 +250,18 @@ extern "C" {
     fn cfgetispeed(__termios_p: *const termios) -> speed_t;
 }
 
+// #define	SIGTTOU		22	/* Background write to control terminal.  */
+pub const SIGTTOU: libc::c_int = 22;
+
+// # define TCSASOFT	0
+pub const TCSASOFT: libc::c_int = 0 as libc::c_int;
+
+// #define	TCSADRAIN	1
+pub const TCSADRAIN: libc::c_int = 1 as libc::c_int;
+
+// #define	TCSAFLUSH	2
+pub const TCSAFLUSH: libc::c_int = 2 as libc::c_int;
+
 unsafe extern "C" fn sigttou(_signo: libc::c_int) {
     got_sigttou = 1;
 }
@@ -264,6 +276,11 @@ unsafe extern "C" fn tcsetattr_nobg(
     flags: libc::c_int,
     tp: *mut termios,
 ) -> libc::c_int {
+    let mut sa: sigaction = sigaction {
+        __sigaction_handler: __sigaction_handler_union { sa_handler: None },
+        sa_mask: sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
     };
 
 unsafe extern "C" fn sudo_term_restore_v1(fd: libc::c_int, flush: bool) -> bool {
