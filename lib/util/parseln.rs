@@ -109,10 +109,14 @@ pub const _ISblank: libc::c_int = 1;
 pub unsafe extern "C" fn sudo_parseln_v2(
     mut bufp: *mut *mut libc::c_char, //**bufp -> *mut *mut
     mut bufsizep: *mut size_t,        //*bufsizep -> *mut
+    mut lineno: *mut libc::c_uint,
     mut fp: *mut FILE,
+    mut flags: libc::c_int,
 ) -> ssize_t {
     let mut linesize: size_t = 0;
+    let mut total: size_t = 0;
     let mut len: ssize_t = 0;
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut line: *mut libc::c_char = 0 as *mut libc::c_char;
     //return ;
     loop {
