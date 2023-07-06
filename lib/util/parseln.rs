@@ -101,6 +101,10 @@ pub struct _IO_FILE {
     pub _unused2: [libc::c_char; 20],
 }
 
+pub const PARSELN_COMM_BOL: libc::c_int = 0x01;
+pub const PARSELN_CONT_IGN: libc::c_int = 0x02;
+pub const _ISblank: libc::c_int = 1;
+
 #[no_mangle]
 pub unsafe extern "C" fn sudo_parseln_v2(
     mut bufp: *mut *mut libc::c_char, //**bufp -> *mut *mut
