@@ -163,6 +163,13 @@ macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
+<<<<<<< v2
+<<<<<<< v1
+}
+
+/* Flag to include string version of errno in debug info. */
+// #define SUDO_DEBUG_ERRNO     (1<<4)
+>>>>>>> master
 }
 
 

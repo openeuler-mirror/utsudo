@@ -15,7 +15,9 @@
     unreachable_code
 )]
 
-use crate::fatal::sudo_warnx_nodebug_v1;
+use crate::INT_MAX;
+
+// use crate::fatal::sudo_warnx_nodebug_v1;
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_bool_v1;
 use crate::sudo_debug::sudo_debug_exit_int_v1;
@@ -26,11 +28,17 @@ use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 use crate::sudo_debug_macro::SUDO_DEBUG_WARN;
 
 /* Indexes into path_table[] below (order is important). */
-#define SUDO_CONF_PATH_ASKPASS		0
-#define SUDO_CONF_PATH_SESH		    1
-#define SUDO_CONF_PATH_NOEXEC		2
-#define SUDO_CONF_PATH_PLUGIN_DIR	3
-#define SUDO_CONF_PATH_DEVSEARCH	4
+// #define SUDO_CONF_PATH_ASKPASS		0
+// #define SUDO_CONF_PATH_SESH		    1
+// #define SUDO_CONF_PATH_NOEXEC		2
+// #define SUDO_CONF_PATH_PLUGIN_DIR	3
+// #define SUDO_CONF_PATH_DEVSEARCH 	4
+pub const SUDO_CONF_PATH_ASKPASS: libc::c_int = 0;
+pub const SUDO_CONF_PATH_SESH: libc::c_int = 1;
+pub const SUDO_CONF_PATH_NOEXEC: libc::c_int = 2;
+pub const SUDO_CONF_PATH_PLUGIN_DIR: libc::c_int = 3;
+pub const SUDO_CONF_PATH_DEVSEARCH: libc::c_int = 4;
+
 
 /* Values of sudo_conf_group_source() */
 // #define GROUP_SOURCE_ADAPTIVE	0
@@ -50,6 +58,7 @@ extern "C" {
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong) -> libc::c_int;
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     fn strndup(_: *const libc::c_char, _: libc::c_ulong) -> *mut libc::c_char;
+    fn strrchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     fn strcasecmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     fn strncasecmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong)
@@ -67,6 +76,7 @@ extern "C" {
         _: libc::c_longlong,
         _: *mut *const libc::c_char,
     ) -> libc::c_longlong;
+    fn sudo_warnx_nodebug_v1(fmt: *const libc::c_char, _: ...);
 }
 // #define isblank(c)	__isctype((c), _ISblank)
 macro_rules! isblank {
@@ -574,8 +584,12 @@ unsafe extern "C" fn parse_plugin(
         (*info).options = options;
         (*info).lineno = lineno;
 
-        TAILQ_INSERT_TAIL(&sudo_conf_data.plugins, info, entries);
-
+        // TAILQ_INSERT_TAIL(&sudo_conf_data.plugins, info, entries);
+        (*info).entries.tqe_next = 0 as *mut plugin_info;
+        (*info).entries.tqe_prev = sudo_conf_data.plugins.tqh_last;
+        *sudo_conf_data.plugins.tqh_last = info;
+        sudo_conf_data.plugins.tqh_last = &mut (*info).entries.tqe_next;
+        
         debug_return_int!(true as libc::c_int);
 
         break 'oom;
@@ -735,6 +749,72 @@ pub unsafe extern "C" fn sudo_conf_group_source_v1() -> libc::c_int {
     return sudo_conf_data.group_source;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_max_groups_v1() -> libc::c_int {
+    return sudo_conf_data.max_groups;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_plugins_v1() -> *mut plugin_info_list {
+    return &mut sudo_conf_data.plugins;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_debugging_v1() -> *mut sudo_conf_debug_list {
+    return &mut sudo_conf_data.debugging;
+}
+
+/* Return the debug files list for a program, or NULL if none. */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_debug_files_v1(
+    progname: *const libc::c_char,
+) -> *mut sudo_conf_debug_file_list {
+    let mut debug_spec: *mut sudo_conf_debug = 0 as *mut sudo_conf_debug;
+    let mut progbaselen: size_t = 0 as size_t;
+    let mut progbase: *const libc::c_char = progname;
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    /* Determine basename if program is fully qualified (like for plugins). */
+    progbaselen = strlen(progname) as size_t;
+    if *progname as libc::c_int == '/' as i32 {
+        progbase = strrchr(progname, '/' as i32);
+        progbase = progbase.offset(1 as isize);
+        progbaselen = strlen(progbase);
+    }
+
+    /* Convert sudoedit -> sudo. */
+    if progbaselen > 4
+    {
+        progbaselen = progbaselen - 4;
+    }
+
+    debug_spec = sudo_conf_data.debugging.tqh_first;
+    while !debug_spec.is_null() {
+        let mut prog: *const libc::c_char = progbase;
+        let mut len: size_t = progbaselen;
+
+        if strncasecmp((*debug_spec).progname, prog, len) == 0
+        {
+            debug_return_ptr!(&mut ((*debug_spec).debug_files) as *mut sudo_conf_debug_file_list);
+        }
+        debug_spec = (*debug_spec).entries.tqe_next;
+    } //  while !debug_spec.is_null()
+
+    debug_return_ptr!(0 as *mut sudo_conf_debug_file_list);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_disable_coredump_v1() -> bool {
+    return sudo_conf_data.disable_coredump;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_probe_interfaces_v1() -> bool {
+    return sudo_conf_data.probe_interfaces;
+}
+
+
 /*
  * Used by the sudo_conf regress test to clear compile-time path settings.
  */
@@ -799,6 +879,23 @@ unsafe extern "C" fn run_static_initializers() {
                     as libc::c_uint,
                 parser: Some(
                     parse_plugin
+                        as unsafe extern "C" fn(
+                            *const libc::c_char,
+                            *const libc::c_char,
+                            libc::c_uint,
+                        ) -> libc::c_int,
+                ),
+            };
+            init
+        },
+        {
+            let mut init = sudo_conf_table {
+                name: b"Set\0" as *const u8 as *const libc::c_char,
+                namelen: (::std::mem::size_of::<[libc::c_char; 4]>() as libc::c_ulong)
+                    .wrapping_sub(1 as libc::c_int as libc::c_ulong)
+                    as libc::c_uint,
+                parser: Some(
+                    parse_variable
                         as unsafe extern "C" fn(
                             *const libc::c_char,
                             *const libc::c_char,
