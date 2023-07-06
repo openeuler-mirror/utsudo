@@ -146,12 +146,19 @@ macro_rules! sudo_clrbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) &= !(1 << (($_i) % NBBY)))
     }};
+<<<<<<< v2
 }
 
 macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
+<<<<<<< v2
+}
+
+/* Flag to include string version of errno in debug info. */
+// #define SUDO_DEBUG_ERRNO     (1<<4)
+
 <<<<<<< v9
 }
 
@@ -159,13 +166,18 @@ macro_rules! sudo_clrbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) &= !(1 << (($_i) % NBBY)))
     }};
+>>>>>>> master
 }
 
 macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
+<<<<<<< v2
+<<<<<<< v2
 
+
+>>>>>>> master
 <<<<<<< v1
 }
 
@@ -464,8 +476,12 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                 continue;
             }
             pri = pri.offset(1);
+<<<<<<< v2
+<<<<<<< v2
+
 
 <<<<<<< v9
+>>>>>>> master
 
              /* Look up priority and subsystem, fill in sudo_debug_settings[]. */
 >>>>>>> master
@@ -506,8 +522,17 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                                 *((*output).settings).offset(idx as isize) = i;
                             }
                             break;
+<<<<<<< v2
+                        }
+                    }
+                }
+            }
+        }
+>>>>>>> master
+
 <<<<<<< v9
                         } // strcasecmp
+>>>>>>> master
 
                         }
 >>>>>>> master
