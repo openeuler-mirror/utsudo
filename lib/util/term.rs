@@ -264,6 +264,11 @@ unsafe extern "C" fn tcsetattr_nobg(
     flags: libc::c_int,
     tp: *mut termios,
 ) -> libc::c_int {
+    let mut sa: sigaction = sigaction {
+        __sigaction_handler: __sigaction_handler_union { sa_handler: None },
+        sa_mask: sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
     };
 
 unsafe extern "C" fn sudo_term_restore_v1(fd: libc::c_int, flush: bool) -> bool {
