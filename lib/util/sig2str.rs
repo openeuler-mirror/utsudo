@@ -150,4 +150,5 @@ pub unsafe extern "C" fn sudo_sig2str(
         }
     }
     *__errno_location() = EINVAL!();
+    return -(1 as libc::c_int);
 }
