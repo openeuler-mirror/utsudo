@@ -48,6 +48,7 @@ static mut sudo_debug_priorities: [*const libc::c_char; 9] = [
     0 as *const u8 as *const libc::c_char,
 ];
 
+/* Note: this must match the order in sudo_debug.h */
 static mut sudo_debug_default_subsystems: [*const libc::c_char; 15] = [
     b"args\0" as *const u8 as *const libc::c_char,
     b"conv\0" as *const u8 as *const libc::c_char,
@@ -151,18 +152,11 @@ macro_rules! sudo_setbit {
     ($_a:expr, $_i:expr) => {{
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
+<<<<<<< v1
 }
 
-macro_rules! sudo_clrbit {
-    ($_a:expr, $_i:expr) => {{
-        (*(($_a).offset((($_i) / NBBY) as isize)) &= !(1 << (($_i) % NBBY)))
-    }};
-}
-
-macro_rules! sudo_setbit {
-    ($_a:expr, $_i:expr) => {{
-        (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
-    }};
+/* Flag to include string version of errno in debug info. */
+// #define SUDO_DEBUG_ERRNO     (1<<4)
 }
 
 
@@ -178,6 +172,7 @@ macro_rules! SUDO_DEBUG_LINENO {
 
 /* Flag to include string version of errno in debug info. */
 // #define SUDO_DEBUG_ERRNO (1<<4)
+>>>>>>> master
 #[macro_export]
 macro_rules! SUDO_DEBUG_ERRNO {
     () => {
@@ -185,6 +180,8 @@ macro_rules! SUDO_DEBUG_ERRNO {
     };
 }
 
+/* Flag to include function, file and line number in debug info. */
+// #define SUDO_DEBUG_LINENO    (1<<5)
 #[macro_export]
 macro_rules! SUDO_DEBUG_LINENO {
     () => {

@@ -212,6 +212,11 @@ unsafe extern "C" fn sudo_lbuf_println(
     debug_return!()
 }
 
+/*
+ * Print the buffer with word wrap based on the tty width.
+ * The lbuf is reset on return.
+ * XXX - check output function return value
+ */
 #[no_mangle]
 pub unsafe extern "C" fn sudo_lbuf_print_v1(mut lbuf: *mut sudo_lbuf) {
     let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
