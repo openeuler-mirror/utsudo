@@ -577,8 +577,12 @@ unsafe extern "C" fn parse_plugin(
         (*info).options = options;
         (*info).lineno = lineno;
 
-        TAILQ_INSERT_TAIL(&sudo_conf_data.plugins, info, entries);
-
+        // TAILQ_INSERT_TAIL(&sudo_conf_data.plugins, info, entries);
+        (*info).entries.tqe_next = 0 as *mut plugin_info;
+        (*info).entries.tqe_prev = sudo_conf_data.plugins.tqh_last;
+        *sudo_conf_data.plugins.tqh_last = info;
+        sudo_conf_data.plugins.tqh_last = &mut (*info).entries.tqe_next;
+        
         debug_return_int!(true as libc::c_int);
 
         break 'oom;
