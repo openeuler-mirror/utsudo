@@ -232,9 +232,13 @@ extern "C" {
     fn memset()
     fn sigemptyset()
     fn sigaction()
-    fn __errno_location()
-    fn tcsetattr()
-    fn tcgetattr()
+    fn __errno_location() -> *mut libc::c_int;
+    fn tcsetattr(
+        __fd: libc::c_int,
+        __optional_actions: libc::c_int,
+        __termios_p: *const termios,
+    ) -> libc::c_int;
+    fn tcgetattr(__fd: libc::c_int, __termios_p: *mut termios) -> libc::c_int;
     fn memcpy()
     fn cfsetispeed(__termios_p: *mut termios, __speed: speed_t) -> libc::c_int;
     fn cfsetospeed(__termios_p: *mut termios, __speed: speed_t) -> libc::c_int;
