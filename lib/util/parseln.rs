@@ -143,7 +143,16 @@ pub unsafe extern "C" fn sudo_parseln_v2(
             if cp == line || (flags & PARSELN_COMM_BOL) == 0 {
                 *cp = '\u{0}' as i32 as libc::c_char;
                 len = cp.offset_from(line) as libc::c_long; //cp-line
-            }            
+                comment = true;
+            }
+        }
+        if !comment && (flags & PARSELN_CONT_IGN) == 0 {
+            if len > 0 as libc::c_long
+                && *line.offset((len - 1 as libc::c_long) as isize) as libc::c_int == '\\' as i32
+            {
+                *line.offset((len - 1 as libc::c_long) as isize) = '\u{0}' as i32 as libc::c_char;
+                continued = true;
+            }
         }
     }
 }
