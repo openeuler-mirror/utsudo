@@ -11,8 +11,20 @@
     unused_mut
 )]
 
+extern "C" {
+    fn __ctype_b_loc() -> *mut *const libc::c_ushort;
+    fn sudo_strtonum(
+        _: *const libc::c_char,
+        _: libc::c_longlong,
+        _: libc::c_longlong,
+        _: *mut *const libc::c_char,
+    ) -> libc::c_longlong
+}        
 
-#[no_mangle]
+pub const __SIGRTMIN: libc::c_uint = 64;
+pub const NSIG: libc::c_uint = __SIGRTMIN + 1;
+
+;#[no_mangle]
 pub unsafe extern "C" fn sudo_str2sig(
     mut signame: *const libc::c_char,
     mut result: *mut libc::c_int,
