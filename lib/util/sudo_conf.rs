@@ -93,6 +93,26 @@ macro_rules! __isctype {
     };
 }
 
+// define _ISbit(bit)	((bit) < 8 ? ((1 << (bit)) << 8) : ((1 << (bit)) >> 8))
+//   _ISblank = _ISbit (8),	/* Blank (usually SPC and TAB).  */
+#[macro_export]
+macro_rules! _ISbit {
+    ($bit:expr) => {
+        if ($bit) < 8 {
+            ((1 << ($bit)) << 8)
+        } else {
+            ((1 << ($bit)) >> 8)
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! _ISblank {
+    () => {
+        _ISbit!(8)
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct plugin_info_list {
@@ -916,6 +936,14 @@ unsafe extern "C" fn run_static_initializers() {
                             libc::c_uint,
                         ) -> libc::c_int,
                 ),
+            };
+            init
+        },
+        {
+            let mut init = sudo_conf_table {
+                name: 0 as *const libc::c_char,
+                namelen: 0,
+                parser: None,
             };
             init
         },
