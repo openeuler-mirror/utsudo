@@ -776,12 +776,14 @@ pub unsafe extern "C" fn sudo_conf_debug_files_v1(
     progname: *const libc::c_char,
 ) -> *mut sudo_conf_debug_file_list {
     let mut debug_spec: *mut sudo_conf_debug = 0 as *mut sudo_conf_debug;
+    let mut prognamelen: size_t = 0 as size_t;
     let mut progbaselen: size_t = 0 as size_t;
     let mut progbase: *const libc::c_char = progname;
 
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
     /* Determine basename if program is fully qualified (like for plugins). */
+    prognamelen = strlen(progname) as size_t;
     progbaselen = strlen(progname) as size_t;
     if *progname as libc::c_int == '/' as i32 {
         progbase = strrchr(progname, '/' as i32);
@@ -799,6 +801,12 @@ pub unsafe extern "C" fn sudo_conf_debug_files_v1(
     while !debug_spec.is_null() {
         let mut prog: *const libc::c_char = progbase;
         let mut len: size_t = progbaselen;
+
+        if ((*debug_spec).progname).offset(0 as isize) as libc::c_int == '/' as i32 {
+            /* Match fully-qualified name, if possible. */
+            prog = progname;
+            len = prognamelen;
+        }
 
         if strncasecmp((*debug_spec).progname, prog, len) == 0
         {
