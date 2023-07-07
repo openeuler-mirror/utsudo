@@ -163,6 +163,5 @@ pub unsafe fn sudo_parseln_v1(
     mut bufsizep: *mut size_t,
     mut fp: *mut FILE,
 ) -> ssize_t {
-    return sudo_parseln_v2(bufp, bufsizep, fp);
+    return sudo_parseln_v2(bufp, bufsizep, lineno, fp, 0);
 }
-
