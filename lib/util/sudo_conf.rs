@@ -138,6 +138,12 @@ pub struct sudo_conf_path_table {
     pub pval: *mut libc::c_char,
 }
 
+static mut sudo_conf_table: [sudo_conf_table; 5] = [sudo_conf_table {
+    name: 0 as *const libc::c_char,
+    namelen: 0,
+    parser: None,
+}; 5];
+
 static mut sudo_conf_var_table: [sudo_conf_table; 5] = [sudo_conf_table {
     name: 0 as *const libc::c_char,
     namelen: 0,
