@@ -889,5 +889,27 @@ unsafe extern "C" fn sudo_ev_handler(
     mut info: *mut siginfo_t,
     mut _context: *mut libc::c_void,
 ) {
-    
+    let mut ch: libc::c_uchar = signo as libc::c_uchar;
+    if !signal_base.is_null() {
+        if info.is_null() {
+            memset(
+                (*signal_base).siginfo[signo as usize] as *mut libc::c_void,
+                0 as libc::c_int,
+                ::core::mem::size_of::<siginfo_t>() as libc::c_ulong,
+            );
+        } else {
+            memcpy(
+                (*signal_base).siginfo[signo as usize] as *mut libc::c_void,
+                info as *const libc::c_void,
+                ::core::mem::size_of::<siginfo_t>() as libc::c_ulong,
+            );
+        }
+        (*signal_base).signal_pending[signo as usize] = 1 as libc::c_int;
+        (*signal_base).signal_caught = 1 as libc::c_int;
+        let mut _y: ssize_t = write(
+            (*signal_base).signal_pipe[1 as libc::c_int as usize],
+            &mut ch as *mut libc::c_uchar as *const libc::c_void,
+            1 as libc::c_int as size_t,
+        );
+    }
 }
