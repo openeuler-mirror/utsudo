@@ -773,5 +773,14 @@ pub unsafe extern "C" fn sudo_ev_alloc_v1(
         (*container).closure = closure;
         closure = container as *mut libc::c_void;
     }
-
+    sudo_ev_init(ev, fd, events, callback, closure);
+    let mut sudo_debug_ret_1: *mut libc::c_void = ev as *mut libc::c_void;
+    sudo_debug_exit_ptr_v1(
+        (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0")).as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        312 as libc::c_int,
+        sudo_debug_subsys,
+        sudo_debug_ret_1,
+    );
+    return sudo_debug_ret_1 as *mut sudo_event;
 }
