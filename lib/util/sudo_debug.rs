@@ -229,6 +229,20 @@ macro_rules! EXEC_PREFIX {
     };
 }
 
+#[macro_export]
+macro_rules! NUM_DEF_SUBSYSTEMS {
+    () => {
+        (nitems!() - 1)
+    };
+}
+
+#[macro_export]
+macro_rules! SUDO_DEBUG_TRACE {
+    () => {
+        7
+    };
+}
+
 extern "C" {
     fn free(__ptr: *mut libc::c_void);
     fn close(__fd: libc::c_int) -> libc::c_int;
