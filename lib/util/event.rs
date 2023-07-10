@@ -180,6 +180,8 @@ pub union C2RustUnnamed_9 {
     pub sa_sigaction:
         Option<unsafe extern "C" fn(libc::c_int, *mut siginfo_t, *mut libc::c_void) -> ()>,
 }
+pub type sudo_ev_callback_t =
+    Option<unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> ()>;
 
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
