@@ -21,6 +21,21 @@ extern "C" {
     ) -> libc::c_longlong
 }        
 
+pub struct sigalias {
+    pub name: *const libc::c_char,
+    pub number: libc::c_int,
+}
+
+static mut sigaliases: [sigalias; ] = [
+    {
+        let mut init = sigalias {
+            name: 0 as *const libc::c_char,
+            number: -1,
+        };
+        init
+    },
+]
+
 pub const __SIGRTMIN: libc::c_uint = 64;
 pub const NSIG: libc::c_uint = __SIGRTMIN + 1;
 
