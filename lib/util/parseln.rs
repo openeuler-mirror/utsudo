@@ -156,6 +156,17 @@ pub unsafe extern "C" fn sudo_parseln_v2(
                 continued = true;
             }
         }
+
+        //for->while
+        cp = line;
+        while *(*__ctype_b_loc()).offset(*cp as libc::c_uchar as libc::c_int as isize)
+            as libc::c_int
+            & _ISblank as libc::c_ushort as libc::c_int
+            != 0
+        {
+            len -= 1;
+            cp = cp.offset(1)
+        }
     }
 }
 
