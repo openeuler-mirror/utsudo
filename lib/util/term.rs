@@ -305,6 +305,10 @@ macro_rules! TIOCSWINSZ {
     };
 }
 
+/*
+ * SIGTTOU signal handler for term_restore that just sets a flag.
+ */
+#[no_mangle]
 unsafe extern "C" fn sigttou(_signo: libc::c_int) {
     got_sigttou = 1;
 }
@@ -326,14 +330,30 @@ unsafe extern "C" fn tcsetattr_nobg(
         sa_restorer: None,
     };
 
+/*
+ * Restore saved terminal settings if we are in the foreground process group.
+ * Returns true on success or false on failure.
+ */
+// #[named]
+#[no_mangle]
 unsafe extern "C" fn sudo_term_restore_v1(fd: libc::c_int, flush: bool) -> bool {
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 }
 
+/*
+ * Disable terminal echo.
+ * Returns true on success or false on failure.
+ */
+#[no_mangle]
 unsafe extern "C" fn sudo_term_noecho_v1(fd: libc::c_int) -> bool {
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 }
 
+/*
+ * Set terminal to raw mode.
+ * Returns true on success or false on failure.
+ */
+#[no_mangle]
 unsafe extern "C" fn sudo_term_raw_v1(fd: libc::c_int, isig: libc::c_int) -> bool {
     let mut term_t: termios = termios {
         c_iflag: 0,
@@ -348,10 +368,22 @@ unsafe extern "C" fn sudo_term_raw_v1(fd: libc::c_int, isig: libc::c_int) -> boo
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 }
 
+/*
+ * Set terminal to cbreak mode.
+ * Returns true on success or false on failure.
+ */
+#[no_mangle]
 unsafe extern "C" fn sudo_term_cbreak_v1(fd: libc::c_int) -> bool {
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 }
 
+/*
+ * Copy terminal settings from one descriptor to another.
+ * We cannot simply copy the struct termios as src and dst may be
+ * different terminal types (pseudo-tty vs. console or glass tty).
+ * Returns true on success or false on failure.
+ */
+#[no_mangle]
 unsafe extern "C" fn sudo_term_copy_v1(src: libc::c_int, dst: libc::c_int) -> bool {
     let mut tt_src: termios = termios {
         c_iflag: 0,
