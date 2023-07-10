@@ -206,6 +206,26 @@ pub struct sudo_event {
     pub timeout: timespec,
     pub closure: *mut libc::c_void,
 }
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_event_base {
+    pub events: sudo_event_list,
+    pub active: sudo_event_list,
+    pub timeouts: sudo_event_list,
+    pub signal_event: sudo_event,
+    pub signals: [sudo_event_list; 65],
+    pub orig_handlers: [*mut sigaction; 65],
+    pub siginfo: [*mut siginfo_t; 65],
+    pub signal_pending: [sig_atomic_t; 65],
+    pub signal_caught: sig_atomic_t,
+    pub num_handlers: libc::c_int,
+    pub signal_pipe: [libc::c_int; 2],
+    pub pfds: *mut pollfd,
+    pub pfd_max: libc::c_int,
+    pub pfd_high: libc::c_int,
+    pub pfd_free: libc::c_int,
+    pub flags: libc::c_uint,
+}
 
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
