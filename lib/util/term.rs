@@ -280,6 +280,22 @@ pub const VTIME: libc::c_int = 5 as libc::c_int;
 // #define VMIN 6
 pub const VMIN: libc::c_int = 6 as libc::c_int;
 
+// #define CLR(t, f)	((t) &= ~(f))
+#[macro_export]
+macro_rules! CLR {
+    ($t:expr, $f:expr) => {
+        (($t) &= !($f))
+    };
+}
+
+// #define SET(t, f)	((t) |= (f))
+#[macro_export]
+macro_rules! SET {
+    ($t:expr, $f:expr) => {
+        (($t) |= ($f))
+    };
+}
+
 unsafe extern "C" fn sigttou(_signo: libc::c_int) {
     got_sigttou = 1;
 }
