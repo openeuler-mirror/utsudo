@@ -659,33 +659,26 @@ pub unsafe extern "C" fn sudo_debug_deregister_v1(mut idx: libc::c_int) -> libc:
 
     debug_decl_func!(sudo_debug_deregister);
 
-    if instance.is_null() {
-        let mut i: libc::c_uint = 0;
-        let mut max_id: libc::c_uint = NUM_DEF_SUBSYSTEMS!() - 1;
-
-        /* Fill in subsystem name -> id mapping as needed. */
-        if !ids.is_null() {
-            while !subsystems.offset(i as isize).is_null() {
-                i += 1;
-                /* Check default subsystems. */
-                for mut j in 0..NUM_DEF_SUBSYSTEMS!() {
-                    if strcmp(
-                        *subsystems.offset(i as isize),
-                        sudo_debug_default_subsystems[j as usize],
-                    ) == 0
-                    {
-                        break;
-                    }
-
-                    if j == NUM_DEF_SUBSYSTEMS!() {
-                        max_id += 1;
-                        j = max_id;
-                    }
-                    *(ids.offset(i as isize)) = (j + 1) << 6;
-                } // for j in NUM_DEF_SUBSYSTEMS!()
-            } // !while !subsystems[i].is_null()
-        } // !!ids.is_null()
+    if idx < 0 || idx > sudo_debug_last_instance {
+        sudo_warnx_nodebug_v1(
+            b"%s: invalid instance ID %d, max %d\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            idx,
+            sudo_debug_last_instance,
+        );
+        return -1;
     }
+
+     /* Reset active instance as needed. */
+    if sudo_debug_active_instance == idx {
+        sudo_debug_active_instance = -1;
+    }
+
+    instance = sudo_debug_instances[idx as usize];
+    if instance.is_null() {
+        return -1; /* already deregistered */
+    }
+
 }
 
 #[no_mangle]
