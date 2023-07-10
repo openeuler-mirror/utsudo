@@ -182,6 +182,15 @@ pub union C2RustUnnamed_9 {
 }
 pub type sudo_ev_callback_t =
     Option<unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> ()>;
+    
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_ev_siginfo_container {
+    pub closure: *mut libc::c_void,
+    pub siginfo: *mut siginfo_t,
+    pub si_buf: [libc::c_char; 1],
+}
+
 
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
