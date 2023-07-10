@@ -200,6 +200,21 @@ macro_rules! SUDO_DEBUG_INSTANCE_INITIALIZER {
     };
 }
 
+#[macro_export]
+macro_rules! SUDO_DEBUG_INSTANCE_ERROR {
+    () => {
+        -2
+    };
+}
+
+
+#[macro_export]
+macro_rules! SUDO_DEBUG_INSTANCE_MAX {
+    () => {
+        10
+    };
+}
+
 extern "C" {
     fn free(__ptr: *mut libc::c_void);
     fn close(__fd: libc::c_int) -> libc::c_int;
