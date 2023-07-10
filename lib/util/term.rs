@@ -15,6 +15,9 @@
     clashing_extern_declarations
 )]
 
+//ttysize.rs文件中定义
+use crate::TIOCGWINSZ;
+
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_bool_v1;
 
