@@ -884,3 +884,10 @@ pub unsafe extern "C" fn sudo_ev_free_v1(mut ev: *mut sudo_event) {
         sudo_debug_subsys,
     );
 }
+unsafe extern "C" fn sudo_ev_handler(
+    mut signo: libc::c_int,
+    mut info: *mut siginfo_t,
+    mut _context: *mut libc::c_void,
+) {
+    
+}
