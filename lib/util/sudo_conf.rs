@@ -1113,7 +1113,18 @@ unsafe extern "C" fn run_static_initializers() {
                         pval: _PATH_SUDO_NOEXEC!(),
                     };
                     noexec
-                },            ]
+                },
+                {
+                    let mut plugin_dir = sudo_conf_path_table {
+                        pname: b"plugin_dir\0" as *const u8 as *const libc::c_char,
+                        pnamelen: (::std::mem::size_of::<[libc::c_char; 11]>() as libc::c_ulong)
+                            .wrapping_sub(1) as libc::c_uint,
+                        dynamic: false,
+                        pval: _PATH_SUDO_PLUGIN_DIR!(),
+                    };
+                    plugin_dir
+                },
+            ]
         };
         init
     };
