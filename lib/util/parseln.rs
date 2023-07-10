@@ -17,7 +17,7 @@
 
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_ssize_t_v1;
-use crate::sudo_debug::sudo_debug_printf2_v1;
+// use crate::sudo_debug::sudo_debug_printf2_v1;
 use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
 use crate::sudo_debug_macro::SUDO_DEBUG_LINENO;
 use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
@@ -120,6 +120,8 @@ pub unsafe extern "C" fn sudo_parseln_v2(
     let mut line: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut continued: bool = false;
     let mut comment: bool = false;
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
     loop {
         comment = false;
