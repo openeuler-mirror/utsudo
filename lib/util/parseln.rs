@@ -167,6 +167,12 @@ pub unsafe extern "C" fn sudo_parseln_v2(
             len -= 1;
             cp = cp.offset(1)
         }
+        if (*bufp).is_null() || total.wrapping_add(len as libc::c_ulong) >= *bufsizep {
+            let mut tmp: *mut libc::c_void = 0 as *mut libc::c_void;
+            let mut size: size_t = total
+                .wrapping_add(len as libc::c_ulong)
+                .wrapping_add(1 as libc::c_ulong);
+        }
     }
 }
 
