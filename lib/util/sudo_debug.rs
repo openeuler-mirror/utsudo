@@ -431,6 +431,29 @@ pub unsafe extern "C" fn sudo_debug_new_output(
             S_IRUSR!() | S_IWUSR!(),
         );
 
+        if (*output).fd == -1 {
+            /* Create debug file as needed and set group ownership. */
+            if *__errno_location() == libc::ENOENT as libc::c_int {
+                (*output).fd = open(
+                    (*output).filename,
+                    O_WRONLY!() | O_APPEND!() | O_CREAT!(),
+                    S_IRUSR!() | S_IWUSR!(),
+                );
+            }
+            if (*output).fd == -1 {
+                sudo_warn_nodebug_v1((*output).filename);
+                /*goto bad;*/
+                isbad = true;
+                break 'oom;
+            }
+            // ignore_result(fchown(output->fd, (uid_t)-1, 0));
+            let mut _y: libc::c_int = fchown(
+                (*output).fd,
+                -(1 as libc::c_int) as uid_t,
+                0 as libc::c_int as __gid_t,
+            );
+        }
+
         fcntl((*output).fd, F_SETFD!() | FD_CLOEXEC!());
         if sudo_debug_fds_size < (*output).fd {
             /* Bump fds size to the next multiple of 4 * NBBY. */
