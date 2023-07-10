@@ -115,6 +115,20 @@ macro_rules! _ISblank {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub struct sudo_debug_file {
+    pub debug_file: *mut libc::c_char,
+    pub debug_flags: *mut libc::c_char,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conf_debug_file_list {
+    pub tqh_first: *mut sudo_debug_file,
+    pub tqh_last: *mut *mut sudo_debug_file,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub struct plugin_info_list {
     pub tqh_first: *mut plugin_info,
     pub tqh_last: *mut *mut plugin_info,
