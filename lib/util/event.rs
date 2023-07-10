@@ -165,6 +165,15 @@ pub struct C2RustUnnamed_8 {
 }
 pub type __sighandler_t = Option<unsafe extern "C" fn(libc::c_int) -> ()>;
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sigaction {
+    pub __sigaction_handler: C2RustUnnamed_9,
+    pub sa_mask: __sigset_t,
+    pub sa_flags: libc::c_int,
+    pub sa_restorer: Option<unsafe extern "C" fn() -> ()>,
+}
+
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 
