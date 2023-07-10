@@ -265,6 +265,21 @@ pub const TCSADRAIN: libc::c_int = 1 as libc::c_int;
 // #define	TCSAFLUSH	2
 pub const TCSAFLUSH: libc::c_int = 2 as libc::c_int;
 
+// #define VERASE 2
+pub const VERASE: libc::c_int = 2 as libc::c_int;
+
+// #define VKILL 3
+pub const VKILL: libc::c_int = 3 as libc::c_int;
+
+// #define VEOF 4
+pub const VEOF: libc::c_int = 4 as libc::c_int;
+
+// #define VTIME 5
+pub const VTIME: libc::c_int = 5 as libc::c_int;
+
+// #define VMIN 6
+pub const VMIN: libc::c_int = 6 as libc::c_int;
+
 unsafe extern "C" fn sigttou(_signo: libc::c_int) {
     got_sigttou = 1;
 }
