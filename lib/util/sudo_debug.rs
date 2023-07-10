@@ -733,6 +733,25 @@ pub unsafe extern "C" fn sudo_debug_enter_v1(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn sudo_debug_exit_v1(
+    func: *const libc::c_char,
+    file: *const libc::c_char,
+    line: libc::c_int,
+    subsys: libc::c_int,
+) {
+    sudo_debug_printf2_v1(
+        0 as *mut libc::c_char,
+        0 as *mut libc::c_char,
+        0,
+        subsys | SUDO_DEBUG_TRACE!(),
+        b"<- %s @ %s:%d\0" as *const u8 as *const libc::c_char,
+        func,
+        file,
+        line,
+    );
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn sudo_debug_execve2_v1(
     mut level: libc::c_int,
     mut path: *const libc::c_char,
@@ -812,39 +831,4 @@ pub unsafe extern "C" fn sudo_debug_update_fd_v1(ofd: libc::c_int, nfd: libc::c_
 pub unsafe extern "C" fn sudo_debug_get_fds_v1(mut fds: *mut *mut libc::c_uchar) -> libc::c_int {
     *fds = sudo_debug_fds;
     return sudo_debug_max_fd;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn sudo_debug_get_instance_v1(
-    mut program: *const libc::c_char,
-) -> libc::c_int {
-    for idx in 0..sudo_debug_last_instance {
-        if sudo_debug_instances[idx as usize].is_null() {
-            continue;
-        }
-        if strcmp((*sudo_debug_instances[idx as usize]).program, program) == 0 {
-            return idx;
-        }
-    }
-    return SUDO_DEBUG_INSTANCE_INITIALIZER!();
-
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn sudo_debug_exit_v1(
-    func: *const libc::c_char,
-    file: *const libc::c_char,
-    line: libc::c_int,
-    subsys: libc::c_int,
-) {
-    sudo_debug_printf2_v1(
-        0 as *mut libc::c_char,
-        0 as *mut libc::c_char,
-        0,
-        subsys | SUDO_DEBUG_TRACE!(),
-        b"<- %s @ %s:%d\0" as *const u8 as *const libc::c_char,
-        func,
-        file,
-        line,
-    );
 }
