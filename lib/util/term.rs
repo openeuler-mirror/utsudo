@@ -20,6 +20,7 @@ use crate::TIOCGWINSZ;
 
 use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_bool_v1;
+use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
 /* Type of a signal handler.  */
 // typedef void (*__sighandler_t) (int);
