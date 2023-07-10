@@ -46,5 +46,32 @@ pub unsafe extern "C" fn sudo_str2sig(
         *result = signo;
         return 0;
     }
+    if strncmp(
+        signame,
+        b"RTMIN\0" as *const u8 as *const libc::c_char,
+        5 as libc::c_ulong,
+    ) == 0
+    {
+        if *signame.offset(5 as isize) as libc::c_int == '\u{0}' as i32 {
+            *result = SIGRTMIN!();
+            return 0;
+        }
+        if *signame.offset(5 as isize) as libc::c_int == '+' as i32 {
+            if (*(*__ctype_b_loc()).offset(*signame.offset(6 as isize) as libc::c_uchar as isize)
+                as libc::c_int
+                )
+                != 0
+            {
+                let rtmax: libc::c_long = sysconf(_SC_RTSIG_MAX);
+                let off: libc::c_int = *signame.offset(6 as isize) as libc::c_int - '0' as i32;
+
+                if rtmax > 0 as libc::c_long && (off as libc::c_long) < (rtmax / 2 as libc::c_long)
+                {
+                    *result = SIGRTMIN!() + off;
+                    return 0;
+                }
+            }
+        }
+    }
     return 0;
 }
