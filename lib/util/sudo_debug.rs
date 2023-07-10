@@ -706,6 +706,23 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
         }
         debug_file = (*debug_file).entries.tqe_next;
     }
+
+    /* Set active instance. */
+    sudo_debug_active_instance = idx;
+
+    /* Stash the pid string so we only have to format it once. */
+
+    if sudo_debug_pidlen == 0 {
+        snprintf(
+            sudo_debug_pidstr.as_mut_ptr(),
+            ::std::mem::size_of::<[libc::c_char; 14]>() as libc::c_ulong,
+            b"[%d] \0" as *const u8 as *const libc::c_char,
+            getpid(),
+        );
+        sudo_debug_pidlen = strlen(sudo_debug_pidstr.as_mut_ptr()) as size_t;
+    }
+
+    return idx;
 }
 
 #[no_mangle]
