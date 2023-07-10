@@ -200,6 +200,8 @@ macro_rules! SUDO_DEBUG_INSTANCE_INITIALIZER {
     };
 }
 
+/* Error return for sudo_debug_register().  */
+// #define SUDO_DEBUG_INSTANCE_ERROR	-2
 #[macro_export]
 macro_rules! SUDO_DEBUG_INSTANCE_ERROR {
     () => {
@@ -207,7 +209,8 @@ macro_rules! SUDO_DEBUG_INSTANCE_ERROR {
     };
 }
 
-
+/* Support up to 10 instances. */
+// #define SUDO_DEBUG_INSTANCE_MAX 10
 #[macro_export]
 macro_rules! SUDO_DEBUG_INSTANCE_MAX {
     () => {
@@ -215,6 +218,7 @@ macro_rules! SUDO_DEBUG_INSTANCE_MAX {
     };
 }
 
+// #define SUDO_DEBUG_DEBUG	8	/* very verbose debugging */
 #[macro_export]
 macro_rules! SUDO_DEBUG_DEBUG {
     () => {
@@ -222,6 +226,7 @@ macro_rules! SUDO_DEBUG_DEBUG {
     };
 }
 
+// #define EXEC_PREFIX "exec "
 #[macro_export]
 macro_rules! EXEC_PREFIX {
     () => {
@@ -239,6 +244,7 @@ macro_rules! nitems {
     };
 }
 
+// #define NUM_DEF_SUBSYSTEMS (nitems(sudo_debug_default_subsystems) - 1)
 #[macro_export]
 macro_rules! NUM_DEF_SUBSYSTEMS {
     () => {
@@ -246,6 +252,7 @@ macro_rules! NUM_DEF_SUBSYSTEMS {
     };
 }
 
+// #define SUDO_DEBUG_TRACE	7	/* log function enter/exit */
 #[macro_export]
 macro_rules! SUDO_DEBUG_TRACE {
     () => {
