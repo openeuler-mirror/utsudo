@@ -1016,6 +1016,23 @@ unsafe extern "C" fn run_static_initializers() {
         },
         {
             let mut init = sudo_conf_table {
+                name: b"max_groups\0" as *const u8 as *const libc::c_char,
+                namelen: (::std::mem::size_of::<[libc::c_char; 11]>() as libc::c_ulong)
+                    .wrapping_sub(1 as libc::c_int as libc::c_ulong)
+                    as libc::c_uint,
+                parser: Some(
+                    set_var_max_groups
+                        as unsafe extern "C" fn(
+                            *const libc::c_char,
+                            *const libc::c_char,
+                            libc::c_uint,
+                        ) -> libc::c_int,
+                ),
+            };
+            init
+        },
+        {
+            let mut init = sudo_conf_table {
                 name: 0 as *const libc::c_char,
                 namelen: 0,
                 parser: None,
