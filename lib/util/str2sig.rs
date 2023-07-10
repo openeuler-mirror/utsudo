@@ -26,7 +26,14 @@ pub struct sigalias {
     pub number: libc::c_int,
 }
 
-static mut sigaliases: [sigalias; ] = [
+static mut sigaliases: [sigalias; 2] = [
+    {
+        let mut sigabrt = sigalias {
+            name: b"ABRT\0" as *const u8 as *const libc::c_char,
+            number: SIGABRT,
+        };
+        sigabrt
+    },
     {
         let mut init = sigalias {
             name: 0 as *const libc::c_char,
