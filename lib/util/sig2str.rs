@@ -139,7 +139,8 @@ pub unsafe extern "C" fn sudo_sig2str(
 
         /* Make sure we always return an upper case signame. */
         if *(*__ctype_b_loc()).offset(*signame.offset(0 as isize) as isize) as libc::c_int
-            & _ISlower != 0
+            & _ISlower
+            != 0
         {
             let mut i: libc::c_int = 0;
             while *signame.offset(i as isize) as libc::c_int != '\u{0}' as i32 {
@@ -148,6 +149,7 @@ pub unsafe extern "C" fn sudo_sig2str(
                 i += 1;
             }
         }
+        return 0 as libc::c_int;
     }
     *__errno_location() = EINVAL!();
     return -(1 as libc::c_int);
