@@ -1066,6 +1066,13 @@ unsafe extern "C" fn run_static_initializers() {
                 };
                 init
             },
+            plugins: {
+                let mut init = plugin_info_list {
+                    tqh_first: 0 as *mut plugin_info,
+                    tqh_last: &mut sudo_conf_data.plugins.tqh_first,
+                };
+                init
+            },
         };
         init
     };
