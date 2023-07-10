@@ -95,5 +95,10 @@ pub unsafe extern "C" fn sudo_str2sig(
             }
         }
     }
+
+    alias = sigaliases.as_mut_ptr();
+    while !((*alias).name).is_null() {
+        alias = alias.offset(1);
+    }
     return 0;
 }
