@@ -648,6 +648,37 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
             );
             return SUDO_DEBUG_INSTANCE_ERROR!();
         }
+
+        if (idx != (sudo_debug_last_instance + 1)) && (idx != free_idx) {
+            sudo_warnx_nodebug_v1(
+                b"%s: instance number mismatch: expected %d or %d, got %d\0" as *const u8
+                    as *const libc::c_char,
+                stdext::function_name!().as_ptr() as *const libc::c_char,
+                sudo_debug_last_instance + 1,
+                free_idx,
+                idx,
+            );
+            return SUDO_DEBUG_INSTANCE_ERROR!();
+        }
+        instance = malloc(std::mem::size_of::<sudo_debug_instance>() as libc::size_t)
+            as *mut sudo_debug_instance;
+        if instance.is_null() {
+            return SUDO_DEBUG_INSTANCE_ERROR!();
+        }
+
+        (*instance).program = strdup(program);
+        if (*instance).program.is_null() {
+            free(instance as *mut libc::c_void);
+            return SUDO_DEBUG_INSTANCE_ERROR!();
+        }
+        (*instance).subsystems = subsystems;
+        (*instance).subsystem_ids = ids;
+        (*instance).max_subsystem = max_id;
+        (*instance).outputs.slh_first = 0 as *mut sudo_debug_output;
+        sudo_debug_instances[idx as usize] = instance;
+        if idx != free_idx {
+            sudo_debug_last_instance += 1;
+        }
     }
 }
 
