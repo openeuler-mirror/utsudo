@@ -296,6 +296,14 @@ macro_rules! SET {
     };
 }
 
+// #define TIOCSWINSZ	0x5414
+#[macro_export]
+macro_rules! TIOCSWINSZ {
+    () => {
+        0x5414
+    };
+}
+
 unsafe extern "C" fn sigttou(_signo: libc::c_int) {
     got_sigttou = 1;
 }
