@@ -232,6 +232,12 @@ pub struct sudo_event_list {
     pub tqh_first: *mut sudo_event,
     pub tqh_last: *mut *mut sudo_event,
 }
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_10 {
+    pub tqe_next: *mut sudo_event,
+    pub tqe_prev: *mut *mut sudo_event,
+}
 
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
