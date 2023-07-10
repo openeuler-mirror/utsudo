@@ -1073,6 +1073,18 @@ unsafe extern "C" fn run_static_initializers() {
                 };
                 init
             },
+            path_table: [
+                {
+                    let mut askpass = sudo_conf_path_table {
+                        pname: b"askpass\0" as *const u8 as *const libc::c_char,
+                        pnamelen: (::std::mem::size_of::<[libc::c_char; 8]>() as libc::c_ulong)
+                            .wrapping_sub(1) as libc::c_uint,
+                        dynamic: false,
+                        pval: _PATH_SUDO_ASKPASS!(),
+                    };
+                    askpass
+                },
+            ]
         };
         init
     };
