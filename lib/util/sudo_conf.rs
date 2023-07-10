@@ -1057,4 +1057,16 @@ unsafe extern "C" fn run_static_initializers() {
             init
         },
     ]
+    sudo_conf_data = {
+        let mut init = sudo_conf_data {
+            debugging: {
+                let mut init = sudo_conf_debug_list {
+                    tqh_first: 0 as *mut sudo_conf_debug,
+                    tqh_last: &mut sudo_conf_data.debugging.tqh_first,
+                };
+                init
+            },
+        };
+        init
+    };
 }
