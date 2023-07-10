@@ -710,6 +710,27 @@ pub unsafe extern "C" fn sudo_debug_deregister_v1(mut idx: libc::c_int) -> libc:
         return -1; /* already deregistered */
     }
 
+    sudo_debug_instances[idx as usize] = 0 as *mut sudo_debug_instance;
+
+    while output.is_null() && {
+        next = (*output).entries.sle_next;
+        1 as libc::c_int != 0
+    } {
+        close((*output).fd);
+        free((*output).filename as *mut libc::c_void);
+        free((*output).settings as *mut libc::c_void);
+        free(output as *mut libc::c_void);
+        output = next;
+    }
+
+    free((*instance).program as *mut libc::c_void);
+    free(instance as *mut libc::c_void);
+
+    if idx == sudo_debug_last_instance {
+        sudo_debug_last_instance -= 1;
+    }
+
+    return 0;
 }
 
 #[no_mangle]
