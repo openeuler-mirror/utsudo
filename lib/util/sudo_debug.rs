@@ -686,6 +686,25 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
         if idx != free_idx {
             sudo_debug_last_instance += 1;
         }
+    } else if !ids.is_null() && (*instance).subsystem_ids != ids {
+        let mut i: libc::c_uint = 0;
+        loop {
+            if subsystems.offset(i as isize).is_null() {
+                break;
+            }
+            *(ids.offset(i as isize)) = *((*instance).subsystem_ids).offset(i as isize);
+            i += 1;
+        }
+    }
+
+    debug_file = (*debug_files).tqh_first;
+    while !debug_file.is_null() {
+        output = sudo_debug_new_output(instance, debug_file);
+        if output.is_null() {
+            (*output).entries.sle_next = (*instance).outputs.slh_first;
+            (*instance).outputs.slh_first = output;
+        }
+        debug_file = (*debug_file).entries.tqe_next;
     }
 }
 
