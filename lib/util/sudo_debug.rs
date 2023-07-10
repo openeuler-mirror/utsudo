@@ -230,6 +230,16 @@ macro_rules! EXEC_PREFIX {
 }
 
 #[macro_export]
+macro_rules! nitems {
+    () => {
+        (::std::mem::size_of::<[*const libc::c_char; 15]>() as libc::c_ulong)
+            .wrapping_div(::std::mem::size_of::<*const libc::c_char>() as libc::c_ulong)
+            .wrapping_sub(1)
+            .wrapping_sub(1) as libc::c_uint
+    };
+}
+
+#[macro_export]
 macro_rules! NUM_DEF_SUBSYSTEMS {
     () => {
         (nitems!() - 1)
@@ -626,6 +636,18 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
                 } // for j in NUM_DEF_SUBSYSTEMS!()
             } // !while !subsystems[i].is_null()
         } // !!ids.is_null()
+        
+        if free_idx != -1 {
+            idx = free_idx;
+        }
+        if idx == SUDO_DEBUG_INSTANCE_MAX!() {
+            /* XXX - realloc? */
+            sudo_warnx_nodebug_v1(
+                b"too many debug instances (max %d)\0" as *const u8 as *const libc::c_char,
+                SUDO_DEBUG_INSTANCE_MAX!(),
+            );
+            return SUDO_DEBUG_INSTANCE_ERROR!();
+        }
     }
 }
 
