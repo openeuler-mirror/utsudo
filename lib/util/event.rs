@@ -173,6 +173,13 @@ pub struct sigaction {
     pub sa_flags: libc::c_int,
     pub sa_restorer: Option<unsafe extern "C" fn() -> ()>,
 }
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union C2RustUnnamed_9 {
+    pub sa_handler: __sighandler_t,
+    pub sa_sigaction:
+        Option<unsafe extern "C" fn(libc::c_int, *mut siginfo_t, *mut libc::c_void) -> ()>,
+}
 
 static mut default_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
 static mut signal_base: *mut sudo_event_base = 0 as *const sudo_event_base as *mut sudo_event_base;
