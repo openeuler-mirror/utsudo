@@ -11,6 +11,10 @@
     unused_mut
 )]
 
+use crate::EINVAL;
+use crate::SIGRTMAX;
+use crate::SIGRTMIN;
+
 extern "C" {
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
     fn sudo_strtonum(
@@ -19,6 +23,14 @@ extern "C" {
         _: libc::c_longlong,
         _: *mut *const libc::c_char,
     ) -> libc::c_longlong
+    fn strncmp(
+        __s1: *const libc::c_char,
+        __s2: *const libc::c_char,
+        __n: libc::c_ulong,
+    ) -> libc::c_int;
+    fn __libc_current_sigrtmin() -> libc::c_int;
+    fn __libc_current_sigrtmax() -> libc::c_int;
+    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     fn sysconf(__name: libc::c_int) -> libc::c_long;
     fn strcasecmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     static sys_sigabbrev: [*const libc::c_char; 65];
