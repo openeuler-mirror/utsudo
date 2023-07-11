@@ -145,8 +145,13 @@ mut errstrp: *mut *const libc::c_char,
                 *errstrp = 0 as *const libc::c_char;
             }
         }
-
-
+        strtonum_err::STN_INVALID => {
+            result = 0 as libc::c_longlong;
+            *__errno_location() = EINVAL;
+            if !errstrp.is_null() {
+                *errstrp = b"invalid value\0" as *const u8 as *const libc::c_char;
+            }
+        }
 
 
 
