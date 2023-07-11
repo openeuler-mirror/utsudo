@@ -1118,6 +1118,21 @@ pub unsafe extern "C" fn sudo_debug_write2_v1(
         iov[iovcnt as usize].iov_len = len as size_t;
         iovcnt += 1;
     }
+
+    /* Append error string if errno is specified. */
+    if errnum != 0 {
+        if len > 0 {
+            iov[iovcnt as usize].iov_base =
+                b": \0" as *const u8 as *const libc::c_char as *mut libc::c_void;
+            iov[iovcnt as usize].iov_len = 2;
+        }
+        iov[iovcnt as usize].iov_base =
+            strerror(errnum) as *const libc::c_char as *mut libc::c_void;
+        iov[iovcnt as usize].iov_len =
+            strlen(iov[iovcnt as usize].iov_base as *const libc::c_char) as size_t;
+        iovcnt += 1;
+    } // !if errnum != 0
+
 }
 
 //end
