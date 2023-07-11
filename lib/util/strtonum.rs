@@ -139,6 +139,28 @@ mut errstrp: *mut *const libc::c_char,
     }
 
 
+  match errval {
+        strtonum_err::STN_INITIAL | strtonum_err::STN_VALID => {
+            if !errstrp.is_null() {
+                *errstrp = 0 as *const libc::c_char;
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+  }
+
+
+
 
 
 
