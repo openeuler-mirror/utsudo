@@ -45,8 +45,23 @@ mut errstrp: *mut *const libc::c_char,
             }
         }
 
-
-
+        match ch as u8 as char {
+            '-' => {
+                sign = '-' as i32 as libc::c_char;
+                let fresh1 = cp;
+                cp = cp.offset(1);
+                ch = *fresh1 as libc::c_uchar;
+            }
+            '+' => {
+                let fresh2 = cp;
+                cp = cp.offset(1);
+                ch = *fresh2 as libc::c_uchar;
+                sign = '+' as i32 as libc::c_char;
+            }
+            _ => {
+                sign = '+' as i32 as libc::c_char;
+            }
+        }
 
 
 
