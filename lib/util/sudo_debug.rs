@@ -1084,6 +1084,27 @@ pub unsafe extern "C" fn sudo_debug_exit_ptr_v1(
     );
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_write2_v1(
+    mut fd: libc::c_int,
+    mut func: *const libc::c_char,
+    mut file: *const libc::c_char,
+    mut lineno: libc::c_int,
+    mut str: *const libc::c_char,
+    mut len: libc::c_int,
+    mut errnum: libc::c_int,
+) {
+    let mut timestr: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut numbuf: [libc::c_char; 13] = [0; 13];
+
+    let mut now: time_t = 0 as time_t;
+    let mut iov: [iovec; 12] = [iovec {
+        iov_base: 0 as *mut libc::c_void,
+        iov_len: 0,
+    }; 12];
+    let mut iovcnt: libc::c_int = 3;
+}
+
 //end
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_execve2_v1(
