@@ -885,6 +885,10 @@ pub unsafe extern "C" fn sudo_conf_debug_files_v1(
 
     /* Convert sudoedit -> sudo. */
     if progbaselen > 4
+    && strcmp(
+        progbase.offset(4 as isize),
+        b"edit\0" as *const u8 as *const libc::c_char,
+    ) == 0
     {
         progbaselen = progbaselen - 4;
     }
@@ -901,6 +905,7 @@ pub unsafe extern "C" fn sudo_conf_debug_files_v1(
         }
 
         if strncasecmp((*debug_spec).progname, prog, len) == 0
+          && ((*debug_spec).progname).offset(len as isize) as libc::c_int == '\u{0}' as i32
         {
             debug_return_ptr!(&mut ((*debug_spec).debug_files) as *mut sudo_conf_debug_file_list);
         }
