@@ -1059,4 +1059,54 @@ unsafe extern "C" fn sudo_ev_add_signal(
             return sudo_debug_ret_2;
         }
     }
+    if ((*base).signals[signo as usize].tqh_first).is_null() {
+        let mut sa: sigaction = sigaction {
+            __sigaction_handler: C2RustUnnamed_9 { sa_handler: None },
+            sa_mask: sigset_t { __val: [0; 16] },
+            sa_flags: 0,
+            sa_restorer: None,
+        };
+        memset(
+            &mut sa as *mut sigaction as *mut libc::c_void,
+            0 as libc::c_int,
+            ::core::mem::size_of::<sigaction>() as libc::c_ulong,
+        );
+        sigfillset(&mut sa.sa_mask);
+        sa.sa_flags = 0x10000000 as libc::c_int | 4 as libc::c_int;
+        sa.__sigaction_handler.sa_sigaction = Some(
+            sudo_ev_handler
+                as unsafe extern "C" fn(libc::c_int, *mut siginfo_t, *mut libc::c_void) -> (),
+        );
+        if sigaction(signo, &mut sa, (*base).orig_handlers[signo as usize]) != 0 as libc::c_int {
+            sudo_debug_printf2_v1(
+                (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(
+                    b"sudo_ev_add_signal\0",
+                ))
+                .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                409 as libc::c_int,
+                2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys,
+                b"%s: unable to install handler for signo %d\0" as *const u8 as *const libc::c_char,
+                (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(
+                    b"sudo_ev_add_signal\0",
+                ))
+                .as_ptr(),
+                signo,
+            );
+            let mut sudo_debug_ret_3: libc::c_int = -(1 as libc::c_int);
+            sudo_debug_exit_int_v1(
+                (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(
+                    b"sudo_ev_add_signal\0",
+                ))
+                .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                410 as libc::c_int,
+                sudo_debug_subsys,
+                sudo_debug_ret_3,
+            );
+            return sudo_debug_ret_3;
+        }
+        (*base).num_handlers += 1;
+    }
+    (*ev).base = base;
 }
