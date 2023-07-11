@@ -1,4 +1,8 @@
 
+#![allow(
+    non_camel_case_types,
+    non_snake_case,
+)]
 
 
 pub const _ISspace: libc::c_uint = 8192;
