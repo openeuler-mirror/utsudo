@@ -33,6 +33,13 @@ pub type __gid_t = libc::c_uint;
 pub type __ino_t = libc::c_ulong;
 pub type __mode_t = libc::c_uint;
 pub type __nlink_t = libc::c_ulong;
+pub type __off_t = libc::c_long;
+pub type __off64_t = libc::c_long;
+pub type __time_t = libc::c_long;
+pub type __blksize_t = libc::c_long;
+pub type __blkcnt_t = libc::c_long;
+pub type __ssize_t = libc::c_long;
+pub type __syscall_slong_t = libc::c_long;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -52,9 +59,13 @@ pub struct stat {
     pub st_gid: __gid_t,
     pub __pad0: libc::c_int,
     pub st_rdev: __dev_t,
+    pub st_size: __off_t,
+    pub st_blksize: __blksize_t,
+    pub st_blocks: __blkcnt_t,
     pub st_atim: timespec,
     pub st_mtim: timespec,
     pub st_ctim: timespec,
+    pub __glibc_reserved: [__syscall_slong_t; 3],
 }
 
 /* Indexes into path_table[] below (order is important). */
