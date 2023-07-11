@@ -1163,6 +1163,24 @@ pub unsafe extern "C" fn sudo_debug_write2_v1(
         iov[iovcnt as usize].iov_len = strlen(numbuf.as_mut_ptr()) as size_t;
         iovcnt += 1;
     }
+
+    /* Append newline. */
+    iov[iovcnt as usize].iov_base =
+        b"\n\0" as *const u8 as *const libc::c_char as *mut libc::c_void;
+    iov[iovcnt as usize].iov_len = 1;
+    iovcnt += 1;
+
+    /* Do timestamp last due to ctime's static buffer. */
+    time(&mut now);
+    timestr = ctime(&mut now).offset(4 as isize);
+    *(timestr.offset(15 as isize)) = ' ' as i32 as libc::c_char; /* replace year with a space */
+    *(timestr.offset(16 as isize)) = '\0' as i32 as libc::c_char;
+    iov[0 as usize].iov_base = timestr as *mut libc::c_void;
+    iov[0 as usize].iov_len = 16;
+
+    /* Write message in a single syscall */
+    // ignore_result(writev(fd, iov, iovcnt));
+    let mut _y: ssize_t = writev(fd, iov.as_mut_ptr(), iovcnt);
 }
 
 //end
