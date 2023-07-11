@@ -27,6 +27,26 @@ use crate::sudo_debug_macro::SUDO_DEBUG_INFO;
 use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 use crate::sudo_debug_macro::SUDO_DEBUG_WARN;
 
+pub type __dev_t = libc::c_ulong;
+pub type __uid_t = libc::c_uint;
+pub type __gid_t = libc::c_uint;
+pub type __ino_t = libc::c_ulong;
+pub type __mode_t = libc::c_uint;
+pub type __nlink_t = libc::c_ulong;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct stat {
+    pub st_dev: __dev_t,
+    pub st_ino: __ino_t,
+    pub st_nlink: __nlink_t,
+    pub st_mode: __mode_t,
+    pub st_uid: __uid_t,
+    pub st_gid: __gid_t,
+    pub __pad0: libc::c_int,
+    pub st_rdev: __dev_t,
+}
+
 /* Indexes into path_table[] below (order is important). */
 // #define SUDO_CONF_PATH_ASKPASS		0
 // #define SUDO_CONF_PATH_SESH		    1
