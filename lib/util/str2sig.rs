@@ -35,6 +35,13 @@ static mut sigaliases: [sigalias; 2] = [
         sigabrt
     },
     {
+        let mut sigcld = sigalias {
+            name: b"CLD\0" as *const u8 as *const libc::c_char,
+            number: SIGCLD,
+        };
+        sigcld
+    },
+    {
         let mut init = sigalias {
             name: 0 as *const libc::c_char,
             number: -1,
@@ -43,6 +50,8 @@ static mut sigaliases: [sigalias; 2] = [
     },
 ]
 
+pub const SIGABRT: libc::c_int = 6;
+pub const SIGCLD: libc::c_int = 17;
 pub const __SIGRTMIN: libc::c_uint = 64;
 pub const NSIG: libc::c_uint = __SIGRTMIN + 1;
 
