@@ -1098,6 +1098,31 @@ pub unsafe extern "C" fn sudo_debug_execve2_v1(
         if subsys > (*instance).max_subsystem {
             break 'out;
         }
+
+        output = (*instance).outputs.slh_first;
+        while !output.is_null() {
+            let mut log_envp: bool = false;
+
+            /* Make sure we want debug info at this level. */
+            if *((*output).settings).offset(subsys as isize) < pri {
+                continue;
+            }
+
+            /* Log envp for debug level "debug". */
+            if *((*output).settings).offset(subsys as isize) >= SUDO_DEBUG_DEBUG!() - 1
+                && !(*envp.offset(0 as isize)).is_null()
+            {
+                log_envp = true;
+            }
+
+            /* Alloc and build up buffer. */
+            plen = strlen(path) as size_t;
+            let EXEC_PREFIX_len: libc::c_int =
+                ::std::mem::size_of::<[libc::c_char; 6]>() as libc::c_int;
+            buflen = EXEC_PREFIX_len
+                .wrapping_sub(1)
+                .wrapping_add(plen as libc::c_int) as libc::c_int;
+        }
     }
 }
 
