@@ -14,7 +14,7 @@
     unused_mut,
     unreachable_code
 )]
-
+use crate::ISSET;
 use crate::INT_MAX;
 
 // use crate::fatal::sudo_warnx_nodebug_v1;
@@ -40,6 +40,10 @@ pub type __blksize_t = libc::c_long;
 pub type __blkcnt_t = libc::c_long;
 pub type __ssize_t = libc::c_long;
 pub type __syscall_slong_t = libc::c_long;
+pub type gid_t = __gid_t;
+pub type uid_t = __uid_t;
+pub type ssize_t = __ssize_t;
+pub type size_t = libc::c_ulong;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
