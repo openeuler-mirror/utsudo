@@ -297,6 +297,298 @@ macro_rules! SET {
     };
 }
 
+// #define ECHO	0000010
+#[macro_export]
+macro_rules! ECHO {
+    () => {
+        0000010
+    };
+}
+
+// #define ECHONL	0000100
+#[macro_export]
+macro_rules! ECHONL {
+    () => {
+        0000100
+    };
+}
+
+// #define ICRNL	0000400
+#[macro_export]
+macro_rules! ICRNL {
+    () => {
+        0000400
+    };
+}
+
+// #define IGNCR	0000200
+#[macro_export]
+macro_rules! IGNCR {
+    () => {
+        0000200
+    };
+}
+
+// #define INLCR	0000100
+#[macro_export]
+macro_rules! INLCR {
+    () => {
+        0000100
+    };
+}
+
+// #define IUCLC	0001000
+#[macro_export]
+macro_rules! IUCLC {
+    () => {
+        0001000
+    };
+}
+
+// #define IXON	0002000
+#[macro_export]
+macro_rules! IXON {
+    () => {
+        0002000
+    };
+}
+
+// #define OPOST	0000001
+#[macro_export]
+macro_rules! OPOST {
+    () => {
+        0000001
+    };
+}
+
+// #define ICANON	0000002
+#[macro_export]
+macro_rules! ICANON {
+    () => {
+        0000002
+    };
+}
+
+// #define ISIG	0000001
+#[macro_export]
+macro_rules! ISIG {
+    () => {
+        0000001
+    };
+}
+
+// #define IEXTEN	0100000
+#[macro_export]
+macro_rules! IEXTEN {
+    () => {
+        0100000
+    };
+}
+
+// #define IGNPAR	0000004
+#[macro_export]
+macro_rules! IGNPAR {
+    () => {
+        0000004
+    };
+}
+
+// #define PARMRK	0000010
+#[macro_export]
+macro_rules! PARMRK {
+    () => {
+        0000010
+    };
+}
+// #define INPCK	0000020
+#[macro_export]
+macro_rules! INPCK {
+    () => {
+        0000020
+    };
+}
+// #define ISTRIP	0000040
+#[macro_export]
+macro_rules! ISTRIP {
+    () => {
+        0000040
+    };
+}
+// #define IXANY	0004000
+#[macro_export]
+macro_rules! IXANY {
+    () => {
+        0004000
+    };
+}
+// #define IXOFF	0010000
+#[macro_export]
+macro_rules! IXOFF {
+    () => {
+        0010000
+    };
+}
+// #define IMAXBEL	0020000
+#[macro_export]
+macro_rules! IMAXBEL {
+    () => {
+        0020000
+    };
+}
+// #define IUTF8	0040000
+#[macro_export]
+macro_rules! IUTF8 {
+    () => {
+        0040000
+    };
+}
+
+/* c_oflag bits */
+// #define OLCUC	0000002
+#[macro_export]
+macro_rules! OLCUC {
+    () => {
+        0000002
+    };
+}
+// #define ONLCR	0000004
+#[macro_export]
+macro_rules! ONLCR {
+    () => {
+        0000004
+    };
+}
+// #define OCRNL	0000010
+#[macro_export]
+macro_rules! OCRNL {
+    () => {
+        0000010
+    };
+}
+// #define ONOCR	0000020
+#[macro_export]
+macro_rules! ONOCR {
+    () => {
+        0000020
+    };
+}
+// #define ONLRET	0000040
+#[macro_export]
+macro_rules! ONLRET {
+    () => {
+        0000040
+    };
+}
+
+// #define   CS7	0000040
+#[macro_export]
+macro_rules! CS7 {
+    () => {
+        0000040
+    };
+}
+// #define   CS8	0000060
+#[macro_export]
+macro_rules! CS8 {
+    () => {
+        0000060
+    };
+}
+// #define PARENB	0000400
+#[macro_export]
+macro_rules! PARENB {
+    () => {
+        0000400
+    };
+}
+// #define PARODD	0001000
+#[macro_export]
+macro_rules! PARODD {
+    () => {
+        0001000
+    };
+}
+
+// # define XCASE	0000004
+#[macro_export]
+macro_rules! XCASE {
+    () => {
+        0000004
+    };
+}
+
+// #define ECHOE	0000020
+#[macro_export]
+macro_rules! ECHOE {
+    () => {
+        0000020
+    };
+}
+
+// #define ECHOK	0000040
+#[macro_export]
+macro_rules! ECHOK {
+    () => {
+        0000040
+    };
+}
+
+// #define NOFLSH	0000200
+#[macro_export]
+macro_rules! NOFLSH {
+    () => {
+        0000200
+    };
+}
+
+// #define TOSTOP	0000400
+#[macro_export]
+macro_rules! TOSTOP {
+    () => {
+        0000400
+    };
+}
+
+// # define ECHOCTL 0001000
+#[macro_export]
+macro_rules! ECHOCTL {
+    () => {
+        0001000
+    };
+}
+
+// # define ECHOKE	 0004000
+#[macro_export]
+macro_rules! ECHOKE {
+    () => {
+        0004000
+    };
+}
+
+// # define PENDIN	 0040000
+#[macro_export]
+macro_rules! PENDIN {
+    () => {
+        0040000
+    };
+}
+
+// #define  B0	0000000		/* hang up */
+#[macro_export]
+macro_rules! B0 {
+    () => {
+        0000000
+    };
+}
+
+// #define  B38400	0000017
+#[macro_export]
+macro_rules! B38400 {
+    () => {
+        0000017
+    };
+}
+
 // #define TIOCSWINSZ	0x5414
 #[macro_export]
 macro_rules! TIOCSWINSZ {
