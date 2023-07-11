@@ -19,6 +19,10 @@ extern "C" {
         _: libc::c_longlong,
         _: *mut *const libc::c_char,
     ) -> libc::c_longlong
+    fn sysconf(__name: libc::c_int) -> libc::c_long;
+    fn strcasecmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
+    static sys_sigabbrev: [*const libc::c_char; 65];
+    fn __errno_location() -> *mut libc::c_int;
 }        
 
 pub struct sigalias {
