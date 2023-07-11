@@ -1103,6 +1103,21 @@ pub unsafe extern "C" fn sudo_debug_write2_v1(
         iov_len: 0,
     }; 12];
     let mut iovcnt: libc::c_int = 3;
+
+    iov[1].iov_base = sudo_getprogname() as *mut libc::c_char as *mut libc::c_void;
+    iov[1].iov_len = strlen(iov[1 as usize].iov_base as *const libc::c_char) as size_t;
+    iov[2].iov_base = sudo_debug_pidstr.as_mut_ptr() as *mut libc::c_void;
+    iov[2].iov_len = sudo_debug_pidlen;
+
+    while len > 0 && *(str.offset((len - 1) as isize)) == '\n' as i32 as libc::c_char {
+        len -= 1;
+    }
+
+    if len > 0 {
+        iov[iovcnt as usize].iov_base = str as *mut libc::c_char as *mut libc::c_void;
+        iov[iovcnt as usize].iov_len = len as size_t;
+        iovcnt += 1;
+    }
 }
 
 //end
