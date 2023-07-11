@@ -56,6 +56,13 @@ static mut sigaliases: [sigalias; 2] = [
         sigiot
     },
     {
+        let mut sigpoll = sigalias {
+            name: b"POLL\0" as *const u8 as *const libc::c_char,
+            number: SIGPOLL,
+        };
+        sigpoll
+    },
+    {
         let mut init = sigalias {
             name: 0 as *const libc::c_char,
             number: -1,
@@ -68,6 +75,7 @@ pub const SIGABRT: libc::c_int = 6;
 pub const SIGCLD: libc::c_int = 17;
 pub const SIGIO: libc::c_int = 29;
 pub const SIGIOT: libc::c_int = 6;
+pub const SIGPOLL: libc::c_int = 29;
 pub const __SIGRTMIN: libc::c_uint = 64;
 pub const NSIG: libc::c_uint = __SIGRTMIN + 1;
 
