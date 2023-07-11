@@ -159,14 +159,13 @@ mut errstrp: *mut *const libc::c_char,
                 *errstrp = b"value too small\0" as *const u8 as *const libc::c_char;
             }
         }
-
-
-
-
-
-
-
-
+        strtonum_err::STN_TOOBIG => {
+            result = 0 as libc::c_longlong;
+            *__errno_location() = ERANGE;
+            if !errstrp.is_null() {
+                *errstrp = b"value too large\0" as *const u8 as *const libc::c_char;
+            }
+        }
   }
 
 
