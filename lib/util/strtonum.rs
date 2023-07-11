@@ -201,6 +201,14 @@ pub unsafe extern "C" fn sudo_strtonum(
 
     ret = sudo_strtonumx(str, minval, maxval, &mut ep, &mut errstr);
 
+ if str == ep || *ep as libc::c_int != '\u{0}' as i32 {
+        *__errno_location() = EINVAL;
+        errstr = b"invalid value\0" as *const u8 as *const libc::c_char;
+        ret = 0 as libc::c_longlong;
+    }
+
+
+
 
     return ret;
 }
