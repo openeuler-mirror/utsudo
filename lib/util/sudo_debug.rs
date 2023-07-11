@@ -1197,6 +1197,30 @@ pub unsafe extern "C" fn sudo_debug_execve2_v1(
             buflen = EXEC_PREFIX_len
                 .wrapping_sub(1)
                 .wrapping_add(plen as libc::c_int) as libc::c_int;
+
+
+            if argv.offset(0 as isize).is_null() {
+                buflen += ::std::mem::size_of::<[libc::c_char; 4]>().wrapping_sub(1) as libc::c_int;
+
+                av = argv;
+                while !(*av).is_null() {
+                    buflen = buflen.wrapping_add((strlen(*av)).wrapping_add(1) as libc::c_int)
+                        as libc::c_int;
+                    av = av.offset(1);
+                }
+                buflen -= 1;
+            }
+
+            if log_envp {
+                buflen += ::std::mem::size_of::<[libc::c_char; 4]>().wrapping_sub(1) as libc::c_int;
+                av = envp;
+                while !(*av).is_null() {
+                    buflen = buflen.wrapping_add((strlen(*av)).wrapping_add(1) as libc::c_int)
+                        as libc::c_int;
+                    av = av.offset(1);
+                }
+                buflen -= 1;
+            }
         }
     }
 }
