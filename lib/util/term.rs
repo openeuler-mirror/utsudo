@@ -627,6 +627,12 @@ macro_rules! OUTPUT_FLAGS {
     };
 }
 
+#[macro_export]
+macro_rules! CONTROL_FLAGS {
+    () => {
+        (CS7!() | CS8!() | PARENB!() | PARODD!())
+    };
+}
 
 /*
  * SIGTTOU signal handler for term_restore that just sets a flag.
