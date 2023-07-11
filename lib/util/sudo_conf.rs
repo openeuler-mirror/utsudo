@@ -165,6 +165,13 @@ macro_rules! _PATH_SUDO_ASKPASS {
     };
 }
 
+// # define _PATH_SUDO_SESH "/usr/libexec/utsudo/sesh"
+macro_rules! _PATH_SUDO_SESH {
+    () => {
+        (b"/usr/libexec/utsudo/sesh\0" as *const u8 as *const libc::c_char as *mut libc::c_char)
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_debug_file {
