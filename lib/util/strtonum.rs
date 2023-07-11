@@ -30,14 +30,15 @@ mut errstrp: *mut *const libc::c_char,
     let mut remainder: libc::c_int = 0;
     let mut sign: libc::c_char = 0;
 
+    if minval > maxval {
+        errval = strtonum_err::STN_INVALID;
+    } else {
 
 
 
 
 
-
-
-
+    }
 
 
     return result;
