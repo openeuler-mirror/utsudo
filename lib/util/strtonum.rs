@@ -6,6 +6,7 @@
 
 extern "C" {
     fn __errno_location() -> *mut libc::c_int;
+    fn __ctype_b_loc() -> *mut *const libc::c_ushort;
 }
 
 pub const _ISspace: libc::c_uint = 8192;
