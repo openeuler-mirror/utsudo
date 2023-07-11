@@ -33,6 +33,22 @@ mut errstrp: *mut *const libc::c_char,
     if minval > maxval {
         errval = strtonum_err::STN_INVALID;
     } else {
+        loop {
+            let fresh0 = cp;
+            cp = cp.offset(1);
+            ch = *fresh0 as libc::c_uchar;
+            if !(*(*__ctype_b_loc()).offset(ch as isize) as libc::c_int
+                & _ISspace as libc::c_ushort as libc::c_int
+                != 0)
+            {
+                break;
+            }
+        }
+
+
+
+
+
 
 
 
