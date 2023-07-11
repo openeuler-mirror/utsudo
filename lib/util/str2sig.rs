@@ -122,5 +122,17 @@ pub unsafe extern "C" fn sudo_str2sig(
     while !((*alias).name).is_null() {
         alias = alias.offset(1);
     }
-    return 0;
+
+    signo = 1;
+    while signo < NSIG as libc::c_int {
+        if !(sys_sigabbrev[signo as usize]).is_null() {
+            if strcasecmp(signame, sys_sigabbrev[signo as usize]) == 0 {
+                *result = signo;
+                return 0;
+            }
+        }
+        signo += 1;
+    }
+    *__errno_location() = EINVAL!();
+    return -1;
 }
