@@ -183,6 +183,9 @@ pub unsafe extern "C" fn sudo_parseln_v2(
                 total = 0;
                 break;
             }
+            *bufp = tmp as *mut libc::c_char;
+            *bufsizep = size;
+        }
     }
 }
 
