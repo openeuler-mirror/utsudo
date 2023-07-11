@@ -1236,6 +1236,28 @@ pub unsafe extern "C" fn sudo_debug_execve2_v1(
                 }
                 buflen -= 1;
             }
+
+            if buflen >= ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_int {
+                buf = malloc((buflen + 1) as usize) as *mut libc::c_char;
+                if buf.is_null() {
+                    break 'out;
+                }
+            }
+
+            /* Copy prefix and command. */
+            memcpy(
+                buf as *mut libc::c_void,
+                b"exec \0" as *const u8 as *const libc::c_char as *const libc::c_void,
+                EXEC_PREFIX_len.wrapping_sub(1) as libc::c_ulong,
+            );
+            cp = buf.offset(EXEC_PREFIX_len.wrapping_sub(1) as isize);
+            memcpy(
+                cp as *mut libc::c_void,
+                path as *mut libc::c_void,
+                plen as libc::c_ulong,
+            );
+            cp = cp.offset(plen as isize);
+
         }
     }
 }
