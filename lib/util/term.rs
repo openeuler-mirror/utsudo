@@ -213,14 +213,14 @@ static mut oterm: termios = termios {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct termios {
-    c_iflag: tcflag_t, 
-    c_oflag: tcflag_t, 
-    c_cflag: tcflag_t, 
-    c_lflag: tcflag_t, 
-    c_line: cc_t, 
-    c_cc: [cc_t; NCCS as usize], 
-    c_ispeed: speed_t,  
-    c_ospeed: speed_t, 
+    c_iflag: tcflag_t,           /* input mode flags */
+    c_oflag: tcflag_t,           /* output mode flags */
+    c_cflag: tcflag_t,           /* control mode flags */
+    c_lflag: tcflag_t,           /* local mode flags */
+    c_line: cc_t,                /* line discipline */
+    c_cc: [cc_t; NCCS as usize], /* control characters */
+    c_ispeed: speed_t,           /* input speed */
+    c_ospeed: speed_t,           /* output speed */
 }
 
 #[derive(Copy, Clone)]
