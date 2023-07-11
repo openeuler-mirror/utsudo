@@ -190,13 +190,15 @@ pub unsafe extern "C" fn sudo_strtonum(
     mut minval: libc::c_longlong,
     mut maxval: libc::c_longlong,
     mut errstrp: *mut *const libc::c_char, 
-) {
+) -> libc::c_longlong {
     let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
     let mut ep: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut ret: libc::c_longlong = 0;
 
 
 
+
+    return ret;
 }
 
 
