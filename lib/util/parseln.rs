@@ -173,6 +173,7 @@ pub unsafe extern "C" fn sudo_parseln_v2(
                 .wrapping_add(len as libc::c_ulong)
                 .wrapping_add(1 as libc::c_ulong);
         }
+            tmp = realloc(*bufp as *mut libc::c_void, size);
             if tmp.is_null() {
                 sudo_debug_printf!(
                     SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
