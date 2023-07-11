@@ -184,7 +184,9 @@ mut errstrp: *mut *const libc::c_char,
     return result;
 }
 
+pub unsafe extern "C" fn sudo_strtonum() {
 
 
+}
 
 
