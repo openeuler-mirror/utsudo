@@ -2,6 +2,9 @@
 #![allow(
     non_camel_case_types,
     non_snake_case,
+    non_upper_case_globals,
+    unused_assignments,
+    unused_mut    
 )]
 
 extern "C" {
@@ -210,8 +213,6 @@ pub unsafe extern "C" fn sudo_strtonum(
     if !errstrp.is_null() {
         *errstrp = errstr;
     }
-
-
     return ret;
 }
 
