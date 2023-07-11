@@ -995,6 +995,39 @@ pub unsafe extern "C" fn sudo_debug_execve2_v1(
     let mut plen: size_t = 0;
 
     debug_decl_func!(sudo_debug_execve2);
+
+    'out: loop {
+        if sudo_debug_active_instance == -1 {
+            break 'out;
+        }
+
+        pri = SUDO_DEBUG_PRI!(level);
+        subsys = SUDO_DEBUG_SUBSYS!(level) as libc::c_uint;
+
+        if sudo_debug_active_instance > sudo_debug_last_instance {
+            sudo_warnx_nodebug_v1(
+                b"%s: invalid instance ID %d, max %d\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr() as *const libc::c_char,
+                sudo_debug_active_instance,
+                sudo_debug_last_instance,
+            );
+            break 'out;
+        }
+
+        instance = sudo_debug_instances[sudo_debug_active_instance as usize];
+        if instance.is_null() {
+            sudo_warnx_nodebug_v1(
+                b"%s: unregistered instance index %d\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr() as *const libc::c_char,
+                sudo_debug_active_instance,
+            );
+            break 'out;
+        }
+
+        if subsys > (*instance).max_subsystem {
+            break 'out;
+        }
+    }
 }
 
 
