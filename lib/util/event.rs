@@ -873,4 +873,14 @@ pub unsafe extern "C" fn sudo_ev_free_v1(mut ev: *mut sudo_event) {
     if (*ev).flags as libc::c_int & 0x1 as libc::c_int != 0 {
         sudo_ev_del_v1(0 as *mut sudo_event_base, ev);
     }
+    if (*ev).events as libc::c_int & 0x20 as libc::c_int != 0 {
+        free((*ev).closure);
+    }
+    free(ev as *mut libc::c_void);
+    sudo_debug_exit_v1(
+        (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"sudo_ev_free_v1\0")).as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        330 as libc::c_int,
+        sudo_debug_subsys,
+    );
 }
