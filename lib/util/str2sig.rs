@@ -145,6 +145,10 @@ pub unsafe extern "C" fn sudo_str2sig(
         5 as libc::c_ulong,
     ) == 0
     {
+        if *signame.offset(5 as isize) as libc::c_int == '\u{0}' as i32 {
+            *result = SIGRTMAX!();
+            return 0;
+        }
         if *signame.offset(5 as isize) as libc::c_int == '-' as i32 {
             if (*(*__ctype_b_loc()).offset(*signame.offset(6 as isize) as libc::c_uchar as isize)
                 as libc::c_int
@@ -164,6 +168,10 @@ pub unsafe extern "C" fn sudo_str2sig(
 
     alias = sigaliases.as_mut_ptr();
     while !((*alias).name).is_null() {
+        if strcmp(signame, (*alias).name) == 0 {
+            *result = (*alias).number;
+            return 0;
+        }
         alias = alias.offset(1);
     }
 
