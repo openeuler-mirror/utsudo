@@ -1059,6 +1059,10 @@ unsafe extern "C" fn run_static_initializers() {
     ]
     sudo_conf_data = {
         let mut init = sudo_conf_data {
+            disable_coredump: true,
+            probe_interfaces: true,
+            group_source: GROUP_SOURCE_ADAPTIVE,
+            max_groups: -1,
             debugging: {
                 let mut init = sudo_conf_debug_list {
                     tqh_first: 0 as *mut sudo_conf_debug,
