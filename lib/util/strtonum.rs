@@ -9,10 +9,27 @@ mut maxval: libc::c_longlong,
 mut endp: *mut *mut libc::c_char,
 mut errstrp: *mut *const libc::c_char,        
 ) -> libc::c_longlong {
+    let mut errval = strtonum_err::STN_INITIAL;
+    let mut lastval: libc::c_longlong = 0;
+    let mut result: libc::c_longlong = 0 as libc::c_longlong;
+    let mut cp: *const libc::c_char = str;
+    let mut ch: libc::c_uchar = 0;
+    let mut remainder: libc::c_int = 0;
+    let mut sign: libc::c_char = 0;
 
 
 
-    return c_longlong;
+
+
+
+
+
+
+
+
+
+
+    return result;
 }
 
 
