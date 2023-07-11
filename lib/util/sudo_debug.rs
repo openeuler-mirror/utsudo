@@ -999,6 +999,28 @@ pub unsafe extern "C" fn sudo_debug_exit_bool_v1(
     );
 }
 
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_exit_str_masked_v1(
+    func: *const libc::c_char,
+    file: *const libc::c_char,
+    line: libc::c_int,
+    subsys: libc::c_int,
+    ret: *const libc::c_char,
+) {
+    static mut stars: [libc::c_char; 81] = unsafe {
+        *::std::mem::transmute::<&[u8; 81], &[libc::c_char; 81]>(
+            b"********************************************************************************\0",
+        )
+    };
+
+    let mut len: libc::c_int = (if !ret.is_null() {
+        strlen(ret)
+    } else {
+        (::std::mem::size_of::<[libc::c_char; 7]>() as libc::c_ulong).wrapping_sub(1)
+    }) as libc::c_int;
+}
+
 //end
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_execve2_v1(
