@@ -1043,6 +1043,23 @@ pub unsafe extern "C" fn sudo_debug_exit_str_masked_v1(
     } else {
         (::std::mem::size_of::<[libc::c_char; 7]>() as libc::c_ulong).wrapping_sub(1)
     }) as libc::c_int;
+
+    sudo_debug_printf2_v1(
+        0 as *mut libc::c_char,
+        0 as *mut libc::c_char,
+        0,
+        subsys | SUDO_DEBUG_TRACE!(),
+        b"<- %s @ %s:%d := %.*s\0" as *const u8 as *const libc::c_char,
+        func,
+        file,
+        line,
+        len,
+        if !ret.is_null() {
+            stars.as_ptr()
+        } else {
+            b"(null)\0" as *const u8 as *const libc::c_char
+        },
+    );
 }
 
 
