@@ -913,3 +913,10 @@ unsafe extern "C" fn sudo_ev_handler(
         );
     }
 }
+unsafe extern "C" fn sudo_ev_add_signal(
+    mut base: *mut sudo_event_base,
+    mut ev: *mut sudo_event,
+    mut tohead: bool,
+) -> libc::c_int {
+    let signo: libc::c_int = (*ev).fd;
+}
