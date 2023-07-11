@@ -974,6 +974,31 @@ pub unsafe extern "C" fn sudo_debug_exit_time_t_v1(
 }
 
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_debug_exit_bool_v1(
+    func: *const libc::c_char,
+    file: *const libc::c_char,
+    line: libc::c_int,
+    subsys: libc::c_int,
+    ret: bool,
+) {
+    sudo_debug_printf2_v1(
+        0 as *mut libc::c_char,
+        0 as *mut libc::c_char,
+        0,
+        subsys | SUDO_DEBUG_TRACE!(),
+        b"<- %s @ %s:%d := %s\0" as *const u8 as *const libc::c_char,
+        func,
+        file,
+        line,
+        if ret {
+            b"true\0" as *const u8 as *const libc::c_char
+        } else {
+            b"false\0" as *const u8 as *const libc::c_char
+        },
+    );
+}
+
 //end
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_execve2_v1(
