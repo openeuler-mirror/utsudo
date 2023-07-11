@@ -173,6 +173,15 @@ pub unsafe extern "C" fn sudo_parseln_v2(
                 .wrapping_add(len as libc::c_ulong)
                 .wrapping_add(1 as libc::c_ulong);
         }
+            if tmp.is_null() {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                );
+                len = -1;
+                total = 0;
+                break;
+            }
     }
 }
 
