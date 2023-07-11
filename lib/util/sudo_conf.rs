@@ -161,8 +161,16 @@ macro_rules! _ISblank {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_debug_file {
+    pub entries: C2RustUnnamed_0,
     pub debug_file: *mut libc::c_char,
     pub debug_flags: *mut libc::c_char,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_0 {
+    pub tqe_next: *mut sudo_debug_file,
+    pub tqe_prev: *mut *mut sudo_debug_file,
 }
 
 #[derive(Copy, Clone)]
