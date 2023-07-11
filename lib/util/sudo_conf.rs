@@ -36,6 +36,13 @@ pub type __nlink_t = libc::c_ulong;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub struct timespec {
+    pub tv_sec: __time_t,
+    pub tv_nsec: __syscall_slong_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub struct stat {
     pub st_dev: __dev_t,
     pub st_ino: __ino_t,
@@ -45,6 +52,9 @@ pub struct stat {
     pub st_gid: __gid_t,
     pub __pad0: libc::c_int,
     pub st_rdev: __dev_t,
+    pub st_atim: timespec,
+    pub st_mtim: timespec,
+    pub st_ctim: timespec,
 }
 
 /* Indexes into path_table[] below (order is important). */
