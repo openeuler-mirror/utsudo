@@ -168,14 +168,13 @@ mut errstrp: *mut *const libc::c_char,
         }
   }
 
-
-
-
-
-
-
-
-
+    if !endp.is_null() {
+        if errval == strtonum_err::STN_INITIAL || errval == strtonum_err::STN_INVALID {
+            *endp = str as *mut libc::c_char;
+        } else {
+            *endp = cp.offset(-1 as isize) as *mut libc::c_char;
+        }
+    }
 
     return result;
 }
