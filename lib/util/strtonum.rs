@@ -101,12 +101,49 @@ mut errstrp: *mut *const libc::c_char,
             if result > maxval {
                 errval = strtonum_err::STN_TOOBIG;
             }
-        }//else 
-
-
-
-
+        } else {
+            lastval = maxval / 10 as libc::c_longlong;
+            remainder = (maxval % 10 as libc::c_longlong) as libc::c_int;
+            while !(*(*__ctype_b_loc()).offset(ch as isize) as libc::c_int
+                & _ISdigit as libc::c_ushort as libc::c_int
+                == 0)
+            {
+                ch = (ch as libc::c_int - '0' as i32) as libc::c_uchar;
+                if result > lastval || result == lastval && ch as libc::c_int > remainder {
+                    loop {
+                        let fresh5 = cp;
+                        cp = cp.offset(1);
+                        ch = *fresh5 as libc::c_uchar;
+                        if !(*(*__ctype_b_loc()).offset(ch as isize) as libc::c_int
+                            & _ISdigit as libc::c_ushort as libc::c_int
+                            != 0)
+                        {
+                            break;
+                        }
+                    }
+                    errval = strtonum_err::STN_TOOBIG;
+                    break;
+                } else {
+                    result *= 10 as libc::c_longlong;
+                    result += ch as libc::c_longlong;
+                    errval = strtonum_err::STN_VALID;
+                    let fresh6 = cp;
+                    cp = cp.offset(1);
+                    ch = *fresh6 as libc::c_uchar;
+                }
+            }
+            if result < minval {
+                errval = strtonum_err::STN_TOOSMALL;
+            }
+        }
     }
+
+
+
+
+
+
+
 
 
     return result;
