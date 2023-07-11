@@ -76,19 +76,23 @@ pub const SIGCLD: libc::c_int = 17;
 pub const SIGIO: libc::c_int = 29;
 pub const SIGIOT: libc::c_int = 6;
 pub const SIGPOLL: libc::c_int = 29;
+pub const _ISdigit: libc::c_uint = 2048;
 pub const __SIGRTMIN: libc::c_uint = 64;
 pub const NSIG: libc::c_uint = __SIGRTMIN + 1;
+pub const _SC_RTSIG_MAX: libc::c_int = 31;
 
 ;#[no_mangle]
 pub unsafe extern "C" fn sudo_str2sig(
     mut signame: *const libc::c_char,
     mut result: *mut libc::c_int,
 ) -> libc::c_int {
+    let mut alias: *mut sigalias = 0 as *mut sigalias;
     let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
     let mut signo: libc::c_int = 0;
 
     if (*(*__ctype_b_loc()).offset(*signame.offset(0 as isize) as libc::c_uchar as isize)
-        as libc::c_int)
+        as libc::c_int
+        & _ISdigit as libc::c_ushort as libc::c_int)
         != 0
     {
         signo = sudo_strtonum(
@@ -98,6 +102,9 @@ pub unsafe extern "C" fn sudo_str2sig(
             &mut errstr,
         ) as libc::c_int;
         
+       if !errstr.is_null() {
+            return -1;
+        }
         *result = signo;
         return 0;
     }
@@ -114,7 +121,7 @@ pub unsafe extern "C" fn sudo_str2sig(
         if *signame.offset(5 as isize) as libc::c_int == '+' as i32 {
             if (*(*__ctype_b_loc()).offset(*signame.offset(6 as isize) as libc::c_uchar as isize)
                 as libc::c_int
-                )
+                & _ISdigit as libc::c_ushort as libc::c_int)
                 != 0
             {
                 let rtmax: libc::c_long = sysconf(_SC_RTSIG_MAX);
