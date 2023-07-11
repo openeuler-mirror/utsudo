@@ -1133,6 +1133,36 @@ pub unsafe extern "C" fn sudo_debug_write2_v1(
         iovcnt += 1;
     } // !if errnum != 0
 
+    /* If function, file and lineno are specified, append them. */
+    if !func.is_null() && !file.is_null() && lineno != 0 {
+        iov[iovcnt as usize].iov_base =
+            b" @ \0" as *const u8 as *const libc::c_char as *mut libc::c_void;
+        iov[iovcnt as usize].iov_len = 3;
+        iovcnt += 1;
+
+        iov[iovcnt as usize].iov_base = func as *mut libc::c_char as *mut libc::c_void;
+        iov[iovcnt as usize].iov_len = strlen(func as *const libc::c_char) as size_t;
+        iovcnt += 1;
+
+        iov[iovcnt as usize].iov_base =
+            b"() \0" as *const u8 as *const libc::c_char as *mut libc::c_void;
+        iov[iovcnt as usize].iov_len = 3;
+        iovcnt += 1;
+
+        iov[iovcnt as usize].iov_base = file as *mut libc::c_char as *mut libc::c_void;
+        iov[iovcnt as usize].iov_len = strlen(file as *const libc::c_char) as size_t;
+        iovcnt += 1;
+
+        snprintf(
+            numbuf.as_mut_ptr(),
+            ::std::mem::size_of::<[libc::c_char; 13]>() as libc::c_ulong,
+            b":%d\0" as *const u8 as *const libc::c_char,
+            lineno,
+        );
+        iov[iovcnt as usize].iov_base = numbuf.as_mut_ptr() as *mut libc::c_void;
+        iov[iovcnt as usize].iov_len = strlen(numbuf.as_mut_ptr()) as size_t;
+        iovcnt += 1;
+    }
 }
 
 //end
