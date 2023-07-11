@@ -1124,6 +1124,16 @@ unsafe extern "C" fn run_static_initializers() {
                     };
                     plugin_dir
                 },
+                {
+                    let mut devsearch = sudo_conf_path_table {
+                        pname: b"devsearch\0" as *const u8 as *const libc::c_char,
+                        pnamelen: (::std::mem::size_of::<[libc::c_char; 10]>() as libc::c_ulong)
+                            .wrapping_sub(1) as libc::c_uint,
+                        dynamic: false,
+                        pval: _PATH_SUDO_DEVSEARCH!(),
+                    };
+                    devsearch
+                },
             ]
         };
         init
