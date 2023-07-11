@@ -198,7 +198,7 @@ pub unsafe extern "C" fn sudo_strtonum(
     let mut ep: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut ret: libc::c_longlong = 0;
 
-
+    ret = sudo_strtonumx(str, minval, maxval, &mut ep, &mut errstr);
 
 
     return ret;
