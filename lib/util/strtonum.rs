@@ -3,6 +3,17 @@
 
 pub const _ISspace: libc::c_uint = 8192;
 
+#[derive(Eq, PartialEq)]
+enum strtonum_err {
+    STN_INITIAL = 0,
+    STN_VALID = 1,
+    STN_INVALID = 2,
+    STN_TOOSMALL = 3,
+    STN_TOOBIG = 4,
+}
+
+
+
 #[no_mangle]
 pub unsafe extern "C" fn sudo_strtonumx(
 mut str: *const libc::c_char,
@@ -18,8 +29,6 @@ mut errstrp: *mut *const libc::c_char,
     let mut ch: libc::c_uchar = 0;
     let mut remainder: libc::c_int = 0;
     let mut sign: libc::c_char = 0;
-
-
 
 
 
