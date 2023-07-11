@@ -597,6 +597,37 @@ macro_rules! TIOCSWINSZ {
     };
 }
 
+/* Termios flags to copy between terminals. */
+// #define INPUT_FLAGS (IGNPAR|PARMRK|INPCK|ISTRIP|INLCR|IGNCR|ICRNL|IUCLC|IXON|IXANY|IXOFF|IMAXBEL|IUTF8)
+// #define OUTPUT_FLAGS (OPOST|OLCUC|ONLCR|OCRNL|ONOCR|ONLRET)
+
+#[macro_export]
+macro_rules! INPUT_FLAGS {
+    () => {
+        (IGNPAR!()
+            | PARMRK!()
+            | INPCK!()
+            | ISTRIP!()
+            | INLCR!()
+            | IGNCR!()
+            | ICRNL!()
+            | IUCLC!()
+            | IXON!()
+            | IXANY!()
+            | IXOFF!()
+            | IMAXBEL!()
+            | IUTF8!())
+    };
+}
+
+#[macro_export]
+macro_rules! OUTPUT_FLAGS {
+    () => {
+        (OPOST!() | OLCUC!() | ONLCR!() | OCRNL!() | ONOCR!() | ONLRET!())
+    };
+}
+
+
 /*
  * SIGTTOU signal handler for term_restore that just sets a flag.
  */
