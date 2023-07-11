@@ -158,6 +158,13 @@ macro_rules! _ISblank {
     };
 }
 
+// # define _PATH_SUDO_ASKPASS NULL
+macro_rules! _PATH_SUDO_ASKPASS {
+    () => {
+        0 as *mut libc::c_char
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_debug_file {
