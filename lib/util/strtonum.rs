@@ -1,6 +1,8 @@
 
 
 
+pub const _ISspace: libc::c_uint = 8192;
+
 #[no_mangle]
 pub unsafe extern "C" fn sudo_strtonumx(
 mut str: *const libc::c_char,
