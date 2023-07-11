@@ -207,8 +207,9 @@ pub unsafe extern "C" fn sudo_strtonum(
         ret = 0 as libc::c_longlong;
     }
 
-
-
+    if !errstrp.is_null() {
+        *errstrp = errstr;
+    }
 
 
     return ret;
