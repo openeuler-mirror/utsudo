@@ -63,8 +63,45 @@ mut errstrp: *mut *const libc::c_char,
             }
         }
 
-
-
+        if sign as libc::c_int == '-' as i32 {
+            lastval = minval / 10 as libc::c_longlong;
+            remainder = -(minval % 10 as libc::c_longlong) as libc::c_int;
+            if remainder < 0 {
+                lastval += 1 as libc::c_longlong;
+                remainder += 10;
+            }
+            while !(*(*__ctype_b_loc()).offset(ch as isize) as libc::c_int
+                & _ISdigit as libc::c_ushort as libc::c_int
+                == 0)
+            {
+                ch = (ch as libc::c_int - '0' as i32) as libc::c_uchar;
+                if result < lastval || result == lastval && ch as libc::c_int > remainder {
+                    loop {
+                        let fresh3 = cp;
+                        cp = cp.offset(1);
+                        ch = *fresh3 as libc::c_uchar;
+                        if !(*(*__ctype_b_loc()).offset(ch as isize) as libc::c_int
+                            & _ISdigit as libc::c_ushort as libc::c_int
+                            != 0)
+                        {
+                            break;
+                        }
+                    }
+                    errval = strtonum_err::STN_TOOSMALL;
+                    break;
+                } else {
+                    result *= 10 as libc::c_longlong;
+                    result -= ch as libc::c_longlong;
+                    errval = strtonum_err::STN_VALID;
+                    let fresh4 = cp;
+                    cp = cp.offset(1);
+                    ch = *fresh4 as libc::c_uchar;
+                }
+            }
+            if result > maxval {
+                errval = strtonum_err::STN_TOOBIG;
+            }
+        }//else 
 
 
 
