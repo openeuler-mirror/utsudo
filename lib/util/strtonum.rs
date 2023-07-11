@@ -12,6 +12,7 @@ enum strtonum_err {
     STN_TOOBIG = 4,
 }
 
+use crate::macro_struct::*;
 
 
 #[no_mangle]
