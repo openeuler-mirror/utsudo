@@ -4,6 +4,9 @@
     non_snake_case,
 )]
 
+extern "C" {
+    fn __errno_location() -> *mut libc::c_int;
+}
 
 pub const _ISspace: libc::c_uint = 8192;
 
