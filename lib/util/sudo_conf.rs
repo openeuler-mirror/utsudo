@@ -1134,6 +1134,15 @@ unsafe extern "C" fn run_static_initializers() {
                     };
                     devsearch
                 },
+                {
+                    let mut null = sudo_conf_path_table {
+                        pname: 0 as *const libc::c_char,
+                        pnamelen: 0 as libc::c_uint,
+                        dynamic: false,
+                        pval: _PATH_SUDO_SESH!(),
+                    };
+                    null
+                },
             ]
         };
         init
