@@ -205,6 +205,7 @@ pub unsafe extern "C" fn sudo_parseln_v2(
 pub unsafe fn sudo_parseln_v1(
     mut bufp: *mut *mut libc::c_char,
     mut bufsizep: *mut size_t,
+    mut lineno: *mut libc::c_uint,
     mut fp: *mut FILE,
 ) -> ssize_t {
     return sudo_parseln_v2(bufp, bufsizep, lineno, fp, 0);
