@@ -33,6 +33,8 @@ pub type tcflag_t = libc::c_uint;
 pub type cc_t = libc::c_uchar;
 pub const NCCS: libc::c_int = 32;
 pub type speed_t = libc::c_uint;
+// #define	EINTR		 4	/* Interrupted system call */
+pub const EINTR: libc::c_int = 4;
 
 pub struct __dso_public {
     pub sudo_term_eof = libc::c_int,
