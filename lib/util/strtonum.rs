@@ -188,7 +188,7 @@ mut errstrp: *mut *const libc::c_char,
     return result;
 }
 
-
+#[no_mangle]
 pub unsafe extern "C" fn sudo_strtonum(
     mut str: *const libc::c_char,
     mut minval: libc::c_longlong,
@@ -206,6 +206,7 @@ pub unsafe extern "C" fn sudo_strtonum(
         errstr = b"invalid value\0" as *const u8 as *const libc::c_char;
         ret = 0 as libc::c_longlong;
     }
+
 
 
 
