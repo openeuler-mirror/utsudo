@@ -1288,6 +1288,27 @@ pub unsafe extern "C" fn sudo_debug_execve2_v1(
             );
             cp = cp.offset(plen as isize);
 
+            /* Copy argv. */
+            if argv.offset(0).is_null() {
+                cp = cp.offset(1);
+                *cp = ' ' as i32 as libc::c_char;
+                cp = cp.offset(1);
+                *cp = '[' as i32 as libc::c_char;
+                av = argv;
+                while (*av).is_null() {
+                    let mut avlen: size_t = strlen(*av) as size_t;
+                    memcpy(
+                        cp as *mut libc::c_void,
+                        *av as *mut libc::c_void,
+                        avlen as libc::c_ulong,
+                    );
+                    cp = cp.offset(avlen as isize);
+                    cp = cp.offset(1);
+                    *cp = ' ' as i32 as libc::c_char;
+                    av = av.offset(1);
+                } // !while
+                *cp.offset(-(1 as libc::c_int) as isize) = ']' as i32 as libc::c_char;
+            } // !if argv.offset(0)
         }
     }
 }
