@@ -1545,4 +1545,24 @@ pub unsafe extern "C" fn sudo_ev_del_v1(
             *(*ev).timeouts_entries.tqe_prev = (*ev).timeouts_entries.tqe_next;
         }
     }
+    if (*ev).flags as libc::c_int & 0x2 as libc::c_int != 0 {
+        if !((*ev).active_entries.tqe_next).is_null() {
+            (*(*ev).active_entries.tqe_next).active_entries.tqe_prev =
+                (*ev).active_entries.tqe_prev;
+        } else {
+            (*base).active.tqh_last = (*ev).active_entries.tqe_prev;
+        }
+        *(*ev).active_entries.tqe_prev = (*ev).active_entries.tqe_next;
+    }
+    (*ev).flags = 0 as libc::c_int as libc::c_short;
+    (*ev).pfd_idx = -(1 as libc::c_int) as libc::c_short;
+    let mut sudo_debug_ret_4: libc::c_int = 0 as libc::c_int;
+    sudo_debug_exit_int_v1(
+        (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0")).as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        604 as libc::c_int,
+        sudo_debug_subsys,
+        sudo_debug_ret_4,
+    );
+    return sudo_debug_ret_4;
 }
