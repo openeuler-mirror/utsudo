@@ -602,6 +602,8 @@ macro_rules! TIOCSWINSZ {
 /* Termios flags to copy between terminals. */
 // #define INPUT_FLAGS (IGNPAR|PARMRK|INPCK|ISTRIP|INLCR|IGNCR|ICRNL|IUCLC|IXON|IXANY|IXOFF|IMAXBEL|IUTF8)
 // #define OUTPUT_FLAGS (OPOST|OLCUC|ONLCR|OCRNL|ONOCR|ONLRET)
+// #define CONTROL_FLAGS (CS7|CS8|PARENB|PARODD)
+// #define LOCAL_FLAGS (ISIG|ICANON|XCASE|ECHO|ECHOE|ECHOK|ECHONL|NOFLSH|TOSTOP|IEXTEN|ECHOCTL|ECHOKE|PENDIN)
 
 #[macro_export]
 macro_rules! INPUT_FLAGS {
@@ -633,6 +635,25 @@ macro_rules! OUTPUT_FLAGS {
 macro_rules! CONTROL_FLAGS {
     () => {
         (CS7!() | CS8!() | PARENB!() | PARODD!())
+    };
+}
+
+#[macro_export]
+macro_rules! LOCAL_FLAGS {
+    () => {
+        (ISIG!()
+            | ICANON!()
+            | XCASE!()
+            | ECHO!()
+            | ECHOE!()
+            | ECHOK!()
+            | ECHONL!()
+            | NOFLSH!()
+            | TOSTOP!()
+            | IEXTEN!()
+            | ECHOCTL!()
+            | ECHOKE!()
+            | PENDIN!())
     };
 }
 
