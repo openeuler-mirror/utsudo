@@ -1212,4 +1212,88 @@ pub unsafe extern "C" fn sudo_ev_add_v2(
             return sudo_debug_ret;
         }
     }
+    if (*ev).flags as libc::c_int & 0x1 as libc::c_int != 0 {
+        if timo.is_null() && (*ev).flags as libc::c_int & 0x4 as libc::c_int != 0 {
+            sudo_debug_printf2_v1(
+                (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_add_v2\0"))
+                    .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                476 as libc::c_int,
+                6 as libc::c_int | sudo_debug_subsys,
+                b"%s: removing event %p from timeouts queue\0" as *const u8 as *const libc::c_char,
+                (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_add_v2\0"))
+                    .as_ptr(),
+                ev,
+            );
+            (*ev).flags = ((*ev).flags as libc::c_int & !(0x4 as libc::c_int)) as libc::c_short;
+            if !((*ev).timeouts_entries.tqe_next).is_null() {
+                (*(*ev).timeouts_entries.tqe_next).timeouts_entries.tqe_prev =
+                    (*ev).timeouts_entries.tqe_prev;
+            } else {
+                (*base).timeouts.tqh_last = (*ev).timeouts_entries.tqe_prev;
+            }
+            *(*ev).timeouts_entries.tqe_prev = (*ev).timeouts_entries.tqe_next;
+        }
+    } else {
+        if (*ev).events as libc::c_int & (0x10 as libc::c_int | 0x20 as libc::c_int) != 0 {
+            let mut sudo_debug_ret_0: libc::c_int = sudo_ev_add_signal(base, ev, tohead);
+            sudo_debug_exit_int_v1(
+                (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_add_v2\0"))
+                    .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                483 as libc::c_int,
+                sudo_debug_subsys,
+                sudo_debug_ret_0,
+            );
+            return sudo_debug_ret_0;
+        }
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_add_v2\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            488 as libc::c_int,
+            6 as libc::c_int | sudo_debug_subsys,
+            b"%s: adding event %p to base %p, fd %d, events %d\0" as *const u8
+                as *const libc::c_char,
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_add_v2\0"))
+                .as_ptr(),
+            ev,
+            base,
+            (*ev).fd,
+            (*ev).events as libc::c_int,
+        );
+        if (*ev).events as libc::c_int & (0x2 as libc::c_int | 0x4 as libc::c_int) != 0 {
+            if sudo_ev_add_impl(base, ev) != 0 as libc::c_int {
+                let mut sudo_debug_ret_1: libc::c_int = -(1 as libc::c_int);
+                sudo_debug_exit_int_v1(
+                    (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(
+                        b"sudo_ev_add_v2\0",
+                    ))
+                    .as_ptr(),
+                    b"event.c\0" as *const u8 as *const libc::c_char,
+                    491 as libc::c_int,
+                    sudo_debug_subsys,
+                    sudo_debug_ret_1,
+                );
+                return sudo_debug_ret_1;
+            }
+        }
+        (*ev).base = base;
+        if tohead {
+            (*ev).entries.tqe_next = (*base).events.tqh_first;
+            if !((*ev).entries.tqe_next).is_null() {
+                (*(*base).events.tqh_first).entries.tqe_prev = &mut (*ev).entries.tqe_next;
+            } else {
+                (*base).events.tqh_last = &mut (*ev).entries.tqe_next;
+            }
+            (*base).events.tqh_first = ev;
+            (*ev).entries.tqe_prev = &mut (*base).events.tqh_first;
+        } else {
+            (*ev).entries.tqe_next = 0 as *mut sudo_event;
+            (*ev).entries.tqe_prev = (*base).events.tqh_last;
+            *(*base).events.tqh_last = ev;
+            (*base).events.tqh_last = &mut (*ev).entries.tqe_next;
+        }
+        (*ev).flags = ((*ev).flags as libc::c_int | 0x1 as libc::c_int) as libc::c_short;
+    }
 }
