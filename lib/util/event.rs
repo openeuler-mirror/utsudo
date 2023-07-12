@@ -1025,4 +1025,38 @@ unsafe extern "C" fn sudo_ev_add_signal(
             return sudo_debug_ret_1;
         }
     }
+    if ((*base).orig_handlers[signo as usize]).is_null() {
+        (*base).orig_handlers[signo as usize] =
+            malloc(::core::mem::size_of::<sigaction>() as libc::c_ulong) as *mut sigaction;
+        if ((*base).orig_handlers[signo as usize]).is_null() {
+            sudo_debug_printf2_v1(
+                (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(
+                    b"sudo_ev_add_signal\0",
+                ))
+                .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                395 as libc::c_int,
+                2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys,
+                b"%s: unable to allocate orig_handlers for signo %d\0" as *const u8
+                    as *const libc::c_char,
+                (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(
+                    b"sudo_ev_add_signal\0",
+                ))
+                .as_ptr(),
+                signo,
+            );
+            let mut sudo_debug_ret_2: libc::c_int = -(1 as libc::c_int);
+            sudo_debug_exit_int_v1(
+                (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(
+                    b"sudo_ev_add_signal\0",
+                ))
+                .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                396 as libc::c_int,
+                sudo_debug_subsys,
+                sudo_debug_ret_2,
+            );
+            return sudo_debug_ret_2;
+        }
+    }
 }
