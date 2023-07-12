@@ -209,11 +209,15 @@ pub unsafe extern "C" fn sudo_parseln_v2(
             (len + 1 as libc::c_long) as libc::c_ulong,
         );
         total = (total as libc::c_ulong).wrapping_add(len as libc::c_ulong) as size_t;
+        if !continued {
+            break;
+        }
     }
     free(line as *mut libc::c_void);
     if len == -1 as libc::c_long && total == 0 as libc::c_ulong {
         debug_return_ssize_t!(-1 as ssize_t);
     }
+    debug_return_ssize_t!(total as ssize_t)
 }
 
 #[no_mangle]
