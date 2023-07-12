@@ -184,7 +184,6 @@ pub unsafe extern "C" fn sudo_parseln_v2(
             let mut size: size_t = total
                 .wrapping_add(len as libc::c_ulong)
                 .wrapping_add(1 as libc::c_ulong);
-        }
             tmp = realloc(*bufp as *mut libc::c_void, size);
             if tmp.is_null() {
                 sudo_debug_printf!(
@@ -198,6 +197,11 @@ pub unsafe extern "C" fn sudo_parseln_v2(
             *bufp = tmp as *mut libc::c_char;
             *bufsizep = size;
         }
+        memcpy(
+            (*bufp).offset(total as isize) as *mut libc::c_void,
+            cp as *const libc::c_void,
+            (len + 1 as libc::c_long) as libc::c_ulong,
+        );
     }
 }
 
