@@ -1109,4 +1109,22 @@ unsafe extern "C" fn sudo_ev_add_signal(
         (*base).num_handlers += 1;
     }
     (*ev).base = base;
+    if tohead {
+        (*ev).entries.tqe_next = (*base).signals[signo as usize].tqh_first;
+        if !((*ev).entries.tqe_next).is_null() {
+            (*(*base).signals[signo as usize].tqh_first)
+                .entries
+                .tqe_prev = &mut (*ev).entries.tqe_next;
+        } else {
+            (*base).signals[signo as usize].tqh_last = &mut (*ev).entries.tqe_next;
+        }
+        (*base).signals[signo as usize].tqh_first = ev;
+        (*ev).entries.tqe_prev =
+            &mut (*((*base).signals).as_mut_ptr().offset(signo as isize)).tqh_first;
+    } else {
+        (*ev).entries.tqe_next = 0 as *mut sudo_event;
+        (*ev).entries.tqe_prev = (*base).signals[signo as usize].tqh_last;
+        *(*base).signals[signo as usize].tqh_last = ev;
+        (*base).signals[signo as usize].tqh_last = &mut (*ev).entries.tqe_next;
+    }
 }
