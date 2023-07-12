@@ -1349,3 +1349,17 @@ pub unsafe extern "C" fn sudo_ev_add_v2(
     );
     return sudo_debug_ret_2;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ev_del_v1(
+    mut base: *mut sudo_event_base,
+    mut ev: *mut sudo_event,
+) -> libc::c_int {
+    let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
+    sudo_debug_enter_v1(
+        (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0")).as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        532 as libc::c_int,
+        sudo_debug_subsys,
+    );
+}
