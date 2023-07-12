@@ -687,6 +687,13 @@ unsafe extern "C" fn tcsetattr_nobg(
         sa_restorer: None,
     };
 
+    let mut osa: sigaction = sigaction {
+        __sigaction_handler: __sigaction_handler_union { sa_handler: None },
+        sa_mask: sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
+    };
+
 /*
  * Restore saved terminal settings if we are in the foreground process group.
  * Returns true on success or false on failure.
