@@ -1296,4 +1296,47 @@ pub unsafe extern "C" fn sudo_ev_add_v2(
         }
         (*ev).flags = ((*ev).flags as libc::c_int | 0x1 as libc::c_int) as libc::c_short;
     }
+    if !timo.is_null() {
+        let mut evtmp: *mut sudo_event = 0 as *mut sudo_event;
+        if (*ev).flags as libc::c_int & 0x4 as libc::c_int != 0 {
+            if !((*ev).timeouts_entries.tqe_next).is_null() {
+                (*(*ev).timeouts_entries.tqe_next).timeouts_entries.tqe_prev =
+                    (*ev).timeouts_entries.tqe_prev;
+            } else {
+                (*base).timeouts.tqh_last = (*ev).timeouts_entries.tqe_prev;
+            }
+            *(*ev).timeouts_entries.tqe_prev = (*ev).timeouts_entries.tqe_next;
+        }
+        sudo_gettime_mono_v1(&mut (*ev).timeout);
+        (*ev).timeout.tv_sec = (*ev).timeout.tv_sec + (*timo).tv_sec;
+        (*ev).timeout.tv_nsec = (*ev).timeout.tv_nsec + (*timo).tv_nsec;
+        while (*ev).timeout.tv_nsec >= 1000000000 as libc::c_int as libc::c_long {
+            (*ev).timeout.tv_sec += 1;
+            (*ev).timeout.tv_nsec -= 1000000000 as libc::c_int as libc::c_long;
+        }
+        evtmp = (*base).timeouts.tqh_first;
+        while !evtmp.is_null() {
+            if if (*ev).timeout.tv_sec == (*evtmp).timeout.tv_sec {
+                ((*ev).timeout.tv_nsec < (*evtmp).timeout.tv_nsec) as libc::c_int
+            } else {
+                ((*ev).timeout.tv_sec < (*evtmp).timeout.tv_sec) as libc::c_int
+            } != 0
+            {
+                break;
+            }
+            evtmp = (*evtmp).timeouts_entries.tqe_next;
+        }
+        if !evtmp.is_null() {
+            (*ev).timeouts_entries.tqe_prev = (*evtmp).timeouts_entries.tqe_prev;
+            (*ev).timeouts_entries.tqe_next = evtmp;
+            *(*evtmp).timeouts_entries.tqe_prev = ev;
+            (*evtmp).timeouts_entries.tqe_prev = &mut (*ev).timeouts_entries.tqe_next;
+        } else {
+            (*ev).timeouts_entries.tqe_next = 0 as *mut sudo_event;
+            (*ev).timeouts_entries.tqe_prev = (*base).timeouts.tqh_last;
+            *(*base).timeouts.tqh_last = ev;
+            (*base).timeouts.tqh_last = &mut (*ev).timeouts_entries.tqe_next;
+        }
+        (*ev).flags = ((*ev).flags as libc::c_int | 0x4 as libc::c_int) as libc::c_short;
+    }
 }
