@@ -63,6 +63,8 @@ pub struct siginfo_t {
     pub si_signo: libc::c_int,
     pub si_errno: libc::c_int,
     pub si_code: libc::c_int,
+    pub __pad0: libc::c_int,
+    pub _sifields: sifields_union,
 }
 
 #[derive(Copy, Clone)]
@@ -76,6 +78,7 @@ pub struct kill_struct {
 #[repr(C)]
 pub struct timer_struct {
     pub si_tid: libc::c_int,
+    pub si_overrun: libc::c_int,
     pub si_sigval: __sigval_t,
 }
 
@@ -125,6 +128,7 @@ pub struct sigsys_struct {
 pub union sifields_union {
     pub _kill: kill_struct,
     pub _timer: timer_struct,
+    pub _rt: rt_struct,
     pub _sigchld: sigchld_struct,
     pub _sigfault: sigfault_struct,
     pub _sigpoll: sigpoll_struct,
@@ -211,6 +215,7 @@ static mut oterm: termios = termios {
     c_ispeed: 0,
     c_ospeed: 0,
 };
+static mut changed: libc::c_int = 0 as libc::c_int;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
