@@ -926,4 +926,19 @@ unsafe extern "C" fn sudo_ev_add_signal(
         361 as libc::c_int,
         sudo_debug_subsys,
     );
+    sudo_debug_printf2_v1(
+        (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(b"sudo_ev_add_signal\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        365 as libc::c_int,
+        6 as libc::c_int | sudo_debug_subsys,
+        b"%s: adding event %p to base %p, signal %d, events %d\0" as *const u8
+            as *const libc::c_char,
+        (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(b"sudo_ev_add_signal\0"))
+            .as_ptr(),
+        ev,
+        base,
+        signo,
+        (*ev).events as libc::c_int,
+    );
 }
