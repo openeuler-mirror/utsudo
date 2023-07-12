@@ -1138,4 +1138,14 @@ unsafe extern "C" fn sudo_ev_add_signal(
         );
     }
     signal_base = base;
+    let mut sudo_debug_ret_4: libc::c_int = 0 as libc::c_int;
+    sudo_debug_exit_int_v1(
+        (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(b"sudo_ev_add_signal\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        435 as libc::c_int,
+        sudo_debug_subsys,
+        sudo_debug_ret_4,
+    );
+    return sudo_debug_ret_4;
 }
