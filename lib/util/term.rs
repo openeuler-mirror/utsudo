@@ -36,11 +36,10 @@ pub type speed_t = libc::c_uint;
 // #define	EINTR		 4	/* Interrupted system call */
 pub const EINTR: libc::c_int = 4;
 
-pub struct __dso_public {
-    pub sudo_term_eof = libc::c_int,
-    pub sudo_term_erase = libc::c_int,
-    pub sudo_term_kill = libc::c_int,
-}
+/* tgetpass() needs to know the erase and kill chars for cbreak mode. */
+// __dso_public int sudo_term_eof;
+// __dso_public int sudo_term_erase;
+// __dso_public int sudo_term_kill;
 
 #[no_mangle]
 pub static mut sudo_term_eof: libc::c_int = 0;
