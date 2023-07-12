@@ -919,4 +919,11 @@ unsafe extern "C" fn sudo_ev_add_signal(
     mut tohead: bool,
 ) -> libc::c_int {
     let signo: libc::c_int = (*ev).fd;
+    sudo_debug_enter_v1(
+        (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(b"sudo_ev_add_signal\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        361 as libc::c_int,
+        sudo_debug_subsys,
+    );
 }
