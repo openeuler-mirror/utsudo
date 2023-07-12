@@ -189,6 +189,14 @@ pub unsafe extern "C" fn sudo_parseln_v2(
                 .wrapping_add(1 as libc::c_ulong);
             if size < 64 as libc::c_ulong {
                 size = 64 as libc::c_ulong;
+            } else if size <= 0x80000000 as libc::c_ulong {
+                size = size.wrapping_sub(1); //size--
+                size |= size >> 1;
+                size |= size >> 2;
+                size |= size >> 4;
+                size |= size >> 8;
+                size |= size >> 16;
+                size = size.wrapping_add(1); //size++
             }
             tmp = realloc(*bufp as *mut libc::c_void, size);
             if tmp.is_null() {
