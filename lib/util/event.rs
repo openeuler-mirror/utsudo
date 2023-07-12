@@ -1127,4 +1127,15 @@ unsafe extern "C" fn sudo_ev_add_signal(
         *(*base).signals[signo as usize].tqh_last = ev;
         (*base).signals[signo as usize].tqh_last = &mut (*ev).entries.tqe_next;
     }
+    (*ev).events = ((*ev).events as libc::c_int | 0x8 as libc::c_int) as libc::c_short;
+    (*ev).flags = ((*ev).flags as libc::c_int | 0x1 as libc::c_int) as libc::c_short;
+    if (*base).signal_event.flags as libc::c_int & 0x1 as libc::c_int == 0 {
+        sudo_ev_add_v2(
+            base,
+            &mut (*base).signal_event,
+            0 as *mut timespec,
+            1 as libc::c_int != 0,
+        );
+    }
+    signal_base = base;
 }
