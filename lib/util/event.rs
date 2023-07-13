@@ -1776,4 +1776,14 @@ pub unsafe extern "C" fn sudo_ev_loopbreak_v1(mut base: *mut sudo_event_base) {
             return;
         }
     }
+    (*base).flags &=
+    !(0x8 as libc::c_int | 0x2 as libc::c_int | 0x1 as libc::c_int) as libc::c_uint;
+    (*base).flags |= 0x4 as libc::c_int as libc::c_uint;
+    sudo_debug_exit_v1(
+        (*::core::mem::transmute::<&[u8; 21], &[libc::c_char; 21]>(b"sudo_ev_loopbreak_v1\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        756 as libc::c_int,
+        sudo_debug_subsys,
+    );
 }
