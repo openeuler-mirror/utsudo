@@ -715,6 +715,15 @@ unsafe extern "C" fn tcsetattr_nobg(
         &mut osa as *mut sigaction,
     );
 
+    while rc != 0 && (*__errno_location()) == EINTR {
+        rc = tcsetattr(fd, flags, tp);
+    }
+
+    sigaction(SIGTTOU, &mut osa as *const sigaction, 0 as *mut sigaction);
+
+    return rc;
+}
+
 /*
  * Restore saved terminal settings if we are in the foreground process group.
  * Returns true on success or false on failure.
