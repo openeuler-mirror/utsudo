@@ -26,6 +26,17 @@ pub type uint32_t = __uint64_t;
 pub type __uint8_t = libc::c_uchar;
 pub type uint8_t = __uint8_t;
 pub type size_t = libc::c_ulong;
+pub const SHA512_BLOCK_LENGTH: usize = 128;
+pub const SHA256_BLOCK_LENGTH: libc::c_int = 64;
+pub struct SHA2_CTX {
+    pub state: state,
+    pub count: [uint64_t; 2],
+    pub buffer: [uint8_t; SHA512_BLOCK_LENGTH],
+}
+pub union state {
+    pub st32: [uint32_t; 8],
+    pub st64: [uint64_t; 8],
+}
 
 pub unsafe extern "C" fn sudo_SHA224Init
 
