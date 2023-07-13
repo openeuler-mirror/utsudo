@@ -1149,3 +1149,23 @@ unsafe extern "C" fn sudo_ev_add_signal(
     );
     return sudo_debug_ret_4;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ev_add_v1(
+    mut base: *mut sudo_event_base,
+    mut ev: *mut sudo_event,
+    mut timo: *mut timeval,
+    mut tohead: bool,
+) -> libc::c_int {
+    let mut tsbuf: timespec = timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    let mut ts: *mut timespec = 0 as *mut timespec;
+    if !timo.is_null() {
+        tsbuf.tv_sec = (*timo).tv_sec;
+        tsbuf.tv_nsec = (*timo).tv_usec * 1000 as libc::c_int as libc::c_long;
+        ts = &mut tsbuf;
+    }
+    return sudo_ev_add_v2(base, ev, ts, tohead);
+}
