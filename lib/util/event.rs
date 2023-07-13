@@ -1591,4 +1591,115 @@ pub unsafe extern "C" fn sudo_ev_loop_v1(
         623 as libc::c_int,
         sudo_debug_subsys,
     );
+    (*base).flags |= (flags & 0x1 as libc::c_int) as libc::c_uint;
+    (*base).flags &= (0x2 as libc::c_int | 0x1 as libc::c_int) as libc::c_uint;
+    '_rescan: loop {
+        if ((*base).events.tqh_first).is_null() {
+            rc = 1 as libc::c_int;
+            break;
+        } else {
+            (*base).active.tqh_first = 0 as *mut sudo_event;
+            (*base).active.tqh_last = &mut (*base).active.tqh_first;
+            nready = sudo_ev_scan_impl(base, flags);
+            match nready {
+                -1 => {
+                    if *__errno_location() == 12 as libc::c_int {
+                        continue;
+                    }
+                    if *__errno_location() == 4 as libc::c_int {
+                        if !((*base).signal_caught != 0) {
+                            continue;
+                        }
+                        signal_pipe_cb(
+                            (*base).signal_pipe[0 as libc::c_int as usize],
+                            0x2 as libc::c_int,
+                            base as *mut libc::c_void,
+                        );
+                    } else {
+                        rc = -(1 as libc::c_int);
+                        break;
+                    }
+                }
+                0 => {
+                    sudo_gettime_mono_v1(&mut now);
+                    loop {
+                        ev = (*base).timeouts.tqh_first;
+                        if ev.is_null() {
+                            break;
+                        }
+                        if if (*ev).timeout.tv_sec == now.tv_sec {
+                            ((*ev).timeout.tv_nsec > now.tv_nsec) as libc::c_int
+                        } else {
+                            ((*ev).timeout.tv_sec > now.tv_sec) as libc::c_int
+                        } != 0
+                        {
+                            break;
+                        }
+                        (*ev).flags =
+                            ((*ev).flags as libc::c_int & !(0x4 as libc::c_int)) as libc::c_short;
+                        if !((*ev).timeouts_entries.tqe_next).is_null() {
+                            (*(*ev).timeouts_entries.tqe_next).timeouts_entries.tqe_prev =
+                                (*ev).timeouts_entries.tqe_prev;
+                        } else {
+                            (*base).timeouts.tqh_last = (*ev).timeouts_entries.tqe_prev;
+                        }
+                        *(*ev).timeouts_entries.tqe_prev = (*ev).timeouts_entries.tqe_next;
+                        (*ev).revents = 0x1 as libc::c_int as libc::c_short;
+                        (*ev).active_entries.tqe_next = 0 as *mut sudo_event;
+                        (*ev).active_entries.tqe_prev = (*base).active.tqh_last;
+                        *(*base).active.tqh_last = ev;
+                        (*base).active.tqh_last = &mut (*ev).active_entries.tqe_next;
+                        (*ev).flags =
+                            ((*ev).flags as libc::c_int | 0x2 as libc::c_int) as libc::c_short;
+                    }
+                    if flags & 0x2 as libc::c_int != 0 {
+                        if ((*base).active.tqh_first).is_null() {
+                            break;
+                        }
+                    }
+                }
+                _ => {}
+            }
+            loop {
+                ev = (*base).active.tqh_first;
+                if ev.is_null() {
+                    break;
+                }
+                sudo_ev_deactivate(base, ev);
+                if (*ev).events as libc::c_int & 0x8 as libc::c_int == 0 {
+                    sudo_ev_del_v1(base, ev);
+                }
+                ((*ev).callback).expect("non-null function pointer")(
+                    (*ev).fd,
+                    (*ev).revents as libc::c_int,
+                    if (*ev).closure == -(1 as libc::c_int) as *mut libc::c_void {
+                        ev as *mut libc::c_void
+                    } else {
+                        (*ev).closure
+                    },
+                );
+                if (*base).flags & 0x4 as libc::c_int as libc::c_uint != 0 {
+                    (*base).flags |= 0x20 as libc::c_int as libc::c_uint;
+                    sudo_ev_deactivate_all(base);
+                    break '_rescan;
+                } else {
+                    if !((*base).flags & 0x8 as libc::c_int as libc::c_uint != 0) {
+                        continue;
+                    }
+                    (*base).flags &= !(0x8 as libc::c_int) as libc::c_uint;
+                    sudo_ev_deactivate_all(base);
+                    continue '_rescan;
+                }
+            }
+            if !((*base).flags & 0x1 as libc::c_int as libc::c_uint != 0) {
+                continue;
+            }
+            if (*base).flags & 0x2 as libc::c_int as libc::c_uint != 0 {
+                (*base).flags |= 0x10 as libc::c_int as libc::c_uint;
+            }
+            sudo_ev_deactivate_all(base);
+            break;
+        }
+    }
+    (*base).flags &= 0xf0 as libc::c_int as libc::c_uint;
 }
