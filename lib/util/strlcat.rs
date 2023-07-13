@@ -20,6 +20,13 @@ extern "C" {
     fn strlen(__s: *const libc::c_char) -> size_t;
 }
 
+/*
+ * Appends src to string dst of size dsize (unlike strncat, dsize is the
+ * full size of dst, not space left).  At most dsize-1 characters
+ * will be copied.  Always NUL terminates (unless dsize <= strlen(dst)).
+ * Returns strlen(src) + MIN(dsize, strlen(initial dst)).
+ * If retval >= dsize, truncation occurred.
+ */
 #[no_mangle]
 pub unsafe extern "C" fn sudo_strlcat(
     mut dst: *mut libc::c_char,
@@ -31,11 +38,13 @@ pub unsafe extern "C" fn sudo_strlcat(
     let mut n: size_t = dsize;
     let mut dlen: size_t = 0;
 
+    /* Find the end of dst and adjust bytes left but don't go past end. */
     while n != 0 && *dst as libc::c_int != '\u{0}' as i32 {
         dst = dst.offset(1);
         n = n.wrapping_sub(1); // n--
     }
 
+    // dlen = *dst - *odst;
     dlen = dst.offset_from(odst) as size_t;
     n = dsize.wrapping_sub(dlen); //dsize - dlen
 
@@ -54,5 +63,5 @@ pub unsafe extern "C" fn sudo_strlcat(
     }
     *dst = '\u{0}' as libc::c_char;
 
-    return dlen.wrapping_add(src.offset_from(osrc) as libc::c_ulong);
+    return dlen.wrapping_add(src.offset_from(osrc) as libc::c_ulong); /* count does not include NUL */
 }
