@@ -1566,3 +1566,8 @@ pub unsafe extern "C" fn sudo_ev_del_v1(
     );
     return sudo_debug_ret_4;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ev_dispatch_v1(mut base: *mut sudo_event_base) -> libc::c_int {
+    return sudo_ev_loop_v1(base, 0 as libc::c_int);
+}
