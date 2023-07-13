@@ -125,6 +125,7 @@ pub struct sigsys_struct {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub union sifields_union {
+    pub _pad: [libc::c_int; 28],
     pub _kill: kill_struct,
     pub _timer: timer_struct,
     pub _rt: rt_struct,
@@ -258,6 +259,7 @@ extern "C" {
     fn cfsetospeed(__termios_p: *mut termios, __speed: speed_t) -> libc::c_int;
     fn cfgetospeed(__termios_p: *const termios) -> speed_t;
     fn cfgetispeed(__termios_p: *const termios) -> speed_t;
+    fn ioctl(__fd: libc::c_int, __request: libc::c_ulong, _: ...) -> libc::c_int;
 }
 
 // #define	SIGTTOU		22	/* Background write to control terminal.  */
