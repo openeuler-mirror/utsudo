@@ -1723,4 +1723,30 @@ pub unsafe extern "C" fn sudo_ev_loopexit_v1(mut base: *mut sudo_event_base) {
         727 as libc::c_int,
         sudo_debug_subsys,
     );
+    if base.is_null() {
+        base = default_base;
+        if base.is_null() {
+            sudo_debug_exit_v1(
+                (*::core::mem::transmute::<&[u8; 20], &[libc::c_char; 20]>(
+                    b"sudo_ev_loopexit_v1\0",
+                ))
+                .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                731 as libc::c_int,
+                sudo_debug_subsys,
+            );
+            return;
+        }
+    }
+    if (*base).flags & 0x4 as libc::c_int as libc::c_uint == 0 {
+        (*base).flags &= !(0x8 as libc::c_int) as libc::c_uint;
+        (*base).flags |= (0x2 as libc::c_int | 0x1 as libc::c_int) as libc::c_uint;
+    }
+    sudo_debug_exit_v1(
+        (*::core::mem::transmute::<&[u8; 20], &[libc::c_char; 20]>(b"sudo_ev_loopexit_v1\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        740 as libc::c_int,
+        sudo_debug_subsys,
+    );
 }
