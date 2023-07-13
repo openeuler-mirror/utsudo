@@ -1385,4 +1385,52 @@ pub unsafe extern "C" fn sudo_ev_del_v1(
         );
         return sudo_debug_ret;
     }
+    if base.is_null() {
+        if ((*ev).base).is_null() {
+            sudo_debug_printf2_v1(
+                (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                    .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                545 as libc::c_int,
+                2 as libc::c_int | sudo_debug_subsys,
+                b"%s: no base specified\0" as *const u8 as *const libc::c_char,
+                (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                    .as_ptr(),
+            );
+            let mut sudo_debug_ret_0: libc::c_int = -(1 as libc::c_int);
+            sudo_debug_exit_int_v1(
+                (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                    .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                546 as libc::c_int,
+                sudo_debug_subsys,
+                sudo_debug_ret_0,
+            );
+            return sudo_debug_ret_0;
+        }
+        base = (*ev).base;
+    } else if base != (*ev).base {
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            551 as libc::c_int,
+            2 as libc::c_int | sudo_debug_subsys,
+            b"%s: mismatch base %p, ev->base %p\0" as *const u8 as *const libc::c_char,
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                .as_ptr(),
+            base,
+            (*ev).base,
+        );
+        let mut sudo_debug_ret_1: libc::c_int = -(1 as libc::c_int);
+        sudo_debug_exit_int_v1(
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            552 as libc::c_int,
+            sudo_debug_subsys,
+            sudo_debug_ret_1,
+        );
+        return sudo_debug_ret_1;
+    }
 }
