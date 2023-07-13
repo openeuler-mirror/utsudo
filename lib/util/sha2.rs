@@ -37,6 +37,58 @@ pub union state {
     pub st32: [uint32_t; 8],
     pub st64: [uint64_t; 8],
 }
+macro_rules! BE8TO32 {
+    ($x:expr,$y:expr) => {
+        $x = ((*$y.offset(0 as isize) & 255) as uint32_t) << 24
+            | ((*$y.offset(1 as isize) & 255) as uint32_t) << 16
+            | ((*$y.offset(2 as isize) & 255) as uint32_t) << 8
+            | ((*$y.offset(3 as isize) & 255) as uint32_t)
+    };
+}
+macro_rules! BE8TO64 {
+    ($x:expr,$y:expr) => {
+        $x = ((*$y.offset(0 as isize) & 255) as uint64_t) << 56
+            | ((*$y.offset(1 as isize) & 255) as uint64_t) << 48
+            | ((*$y.offset(2 as isize) & 255) as uint64_t) << 40
+            | ((*$y.offset(3 as isize) & 255) as uint64_t) << 32
+            | ((*$y.offset(4 as isize) & 255) as uint64_t) << 24
+            | ((*$y.offset(5 as isize) & 255) as uint64_t) << 16
+            | ((*$y.offset(6 as isize) & 255) as uint64_t) << 8
+            | ((*$y.offset(7 as isize) & 255) as uint64_t)
+    };
+}
+macro_rules! BE32TO8 {
+    ($x:expr,$y:expr) => {
+        *$x.offset(0 as isize) = ($y >> 24 & 255) as uint8_t;
+        *$x.offset(1 as isize) = ($y >> 16 & 255) as uint8_t;
+        *$x.offset(2 as isize) = ($y >> 8 & 255) as uint8_t;
+        *$x.offset(3 as isize) = ($y & 255) as uint8_t;
+    };
+}
+macro_rules! BE64TO8 {
+    ($x:expr,$y:expr) => {
+        *$x.offset(0 as isize) = ($y >> 56 & 255 as libc::c_ulong) as uint8_t;
+        *$x.offset(1 as isize) = ($y >> 48 & 255 as libc::c_ulong) as uint8_t;
+        *$x.offset(2 as isize) = ($y >> 40 & 255 as libc::c_ulong) as uint8_t;
+        *$x.offset(3 as isize) = ($y >> 32 & 255 as libc::c_ulong) as uint8_t;
+        *$x.offset(4 as isize) = ($y >> 24 & 255 as libc::c_ulong) as uint8_t;
+        *$x.offset(5 as isize) = ($y >> 16 & 255 as libc::c_ulong) as uint8_t;
+        *$x.offset(6 as isize) = ($y >> 8 & 255 as libc::c_ulong) as uint8_t;
+        *$x.offset(7 as isize) = ($y & 255 as libc::c_ulong) as uint8_t;
+    };
+}
+macro_rules! BE64TO81 {
+    ($x:expr,$y:expr) => {
+        $x[0 as usize] = ($y >> 56 & 255 as libc::c_ulong) as uint8_t;
+        $x[1 as usize] = ($y >> 48 & 255 as libc::c_ulong) as uint8_t;
+        $x[2 as usize] = ($y >> 40 & 255 as libc::c_ulong) as uint8_t;
+        $x[3 as usize] = ($y >> 32 & 255 as libc::c_ulong) as uint8_t;
+        $x[4 as usize] = ($y >> 24 & 255 as libc::c_ulong) as uint8_t;
+        $x[5 as usize] = ($y >> 16 & 255 as libc::c_ulong) as uint8_t;
+        $x[6 as usize] = ($y >> 8 & 255 as libc::c_ulong) as uint8_t;
+        $x[7 as usize] = ($y & 255 as libc::c_ulong) as uint8_t;
+    };
+}
 
 pub unsafe extern "C" fn sudo_SHA224Init
 
