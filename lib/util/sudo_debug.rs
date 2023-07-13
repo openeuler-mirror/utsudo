@@ -129,6 +129,7 @@ macro_rules! FD_CLOEXEC {
 
 pub const NBBY: libc::c_int = 8;
 
+// #define round_nfds(_n) (((_n) + (4 * NBBY) - 1) & ~((4 * NBBY) - 1))
 #[macro_export]
 macro_rules! round_nfds {
     ($_n:expr) => {
@@ -153,7 +154,6 @@ macro_rules! sudo_setbit {
         (*(($_a).offset((($_i) / NBBY) as isize)) |= (1 << (($_i) % NBBY)))
     }};
 }
-
 
 /* Extract subsystem number and convert to an index. */
 // #define SUDO_DEBUG_SUBSYS(n) (((n) >> 6) - 1)
@@ -378,15 +378,9 @@ static mut sudo_debug_active_instance: libc::c_int = -(1 as libc::c_int);
 static mut sudo_debug_pidstr: [libc::c_char; 14] = [0; 14];
 static mut sudo_debug_pidlen: size_t = 0;
 
-static mut sudo_debug_max_fd: libc::c_int = -1;
-static mut sudo_debug_instances: [*mut sudo_debug_instance; SUDO_DEBUG_INSTANCE_MAX!()] =
-    [0 as *const sudo_debug_instance as *mut sudo_debug_instance; SUDO_DEBUG_INSTANCE_MAX!()];
-static mut sudo_debug_last_instance: libc::c_int = -1;
-static mut sudo_debug_active_instance: libc::c_int = -(1 as libc::c_int);
-static mut sudo_debug_pidstr: [libc::c_char; 14] = [0; 14];
-static mut sudo_debug_pidlen: size_t = 0;
-
-
+/*
+ * Free the specified output structure.
+ */
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_free_output(output: *mut sudo_debug_output) {
     free((*output).filename as *mut libc::c_void);
@@ -397,6 +391,10 @@ pub unsafe extern "C" fn sudo_debug_free_output(output: *mut sudo_debug_output) 
     free(output as *mut libc::c_void);
 }
 
+/*
+ * Create a new output file for the specified debug instance.
+ * Returns NULL if the file cannot be opened or memory cannot be allocated.
+ */
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_new_output(
     instance: *mut sudo_debug_instance,
@@ -412,6 +410,8 @@ pub unsafe extern "C" fn sudo_debug_new_output(
     let i: libc::c_int = 0;
     let mut isbad: bool = false;
 
+    /* Create new output for the instance. */
+    /* XXX - reuse fd for existing filename? */
     output = calloc(1, std::mem::size_of::<sudo_debug_output>() as libc::size_t)
         as *mut sudo_debug_output;
 
@@ -555,16 +555,18 @@ pub unsafe extern "C" fn sudo_debug_new_output(
                                 *((*output).settings).offset(idx as isize) = i;
                             }
                             break;
-                        }
-                    }
-                }
-            }
-        }
+                        } // strcasecmp
+                    } // subsystems
+                } // !strcasecmp
+            } // sudo_debug_priorities
+        } // ! !cp.is_null
+
         break 'oom;
-    }
+    } // 'oom loop
 
     free(buf as *mut libc::c_void);
 
+    /* oom: isbad 默认是false，默认会执行下面语句*/
     if !isbad {
         sudo_warn_nodebug_v1(0 as *const libc::c_char);
     }
@@ -576,6 +578,16 @@ pub unsafe extern "C" fn sudo_debug_new_output(
     return 0 as *mut sudo_debug_output;
 }
 
+/*
+ * Register a program/plugin with the debug framework,
+ * parses settings string from sudo.conf and opens debug_files.
+ * If subsystem names are specified they override the default values.
+ * NOTE: subsystems must not be freed by caller unless deregistered.
+ * Sets the active instance to the newly registered instance.
+ * Returns instance index on success, SUDO_DEBUG_INSTANCE_INITIALIZER
+ * if no debug files are specified and SUDO_DEBUG_INSTANCE_ERROR
+ * on error.
+ */
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_register_v1(
     mut program: *const libc::c_char,
@@ -686,6 +698,7 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
         if idx != free_idx {
             sudo_debug_last_instance += 1;
         }
+        /* Check for matching instance but different ids[]. */
     } else if !ids.is_null() && (*instance).subsystem_ids != ids {
         let mut i: libc::c_uint = 0;
         loop {
@@ -725,6 +738,10 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
     return idx;
 }
 
+/*
+ * De-register the specified instance from the debug subsystem
+ * and free up any associated data structures.
+ */
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_deregister_v1(mut idx: libc::c_int) -> libc::c_int {
     let mut instance: *mut sudo_debug_instance = 0 as *mut sudo_debug_instance;
@@ -753,6 +770,7 @@ pub unsafe extern "C" fn sudo_debug_deregister_v1(mut idx: libc::c_int) -> libc:
         return -1; /* already deregistered */
     }
 
+    /* Free up instance data, note that subsystems[] is owned by caller. */
     sudo_debug_instances[idx as usize] = 0 as *mut sudo_debug_instance;
 
     while output.is_null() && {
@@ -951,7 +969,6 @@ pub unsafe extern "C" fn sudo_debug_exit_ssize_t_v1(
     );
 }
 
-
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_exit_time_t_v1(
     func: *const libc::c_char,
@@ -972,7 +989,6 @@ pub unsafe extern "C" fn sudo_debug_exit_time_t_v1(
         ret as libc::c_longlong,
     );
 }
-
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_exit_bool_v1(
@@ -1061,7 +1077,6 @@ pub unsafe extern "C" fn sudo_debug_exit_str_masked_v1(
         },
     );
 }
-
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_exit_ptr_v1(
@@ -1183,7 +1198,6 @@ pub unsafe extern "C" fn sudo_debug_write2_v1(
     let mut _y: ssize_t = writev(fd, iov.as_mut_ptr(), iovcnt);
 }
 
-//end
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_execve2_v1(
     mut level: libc::c_int,
@@ -1363,7 +1377,6 @@ pub unsafe extern "C" fn sudo_debug_execve2_v1(
     *__errno_location() = saved_errno;
 }
 
-
 /*
  * Returns the active instance or SUDO_DEBUG_INSTANCE_INITIALIZER
  * if no instance is active.
@@ -1389,6 +1402,10 @@ pub unsafe extern "C" fn sudo_debug_set_active_instance_v1(idx: libc::c_int) -> 
     return old_idx;
 }
 
+/*
+ * Replace the ofd with nfd in all outputs if present.
+ * Also updates sudo_debug_fds.
+ */
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_update_fd_v1(ofd: libc::c_int, nfd: libc::c_int) {
     if ofd <= sudo_debug_max_fd && sudo_isset!(sudo_debug_fds, ofd) != 0 {
@@ -1417,6 +1434,10 @@ pub unsafe extern "C" fn sudo_debug_update_fd_v1(ofd: libc::c_int, nfd: libc::c_
     }
 }
 
+/*
+* Returns the highest debug output fd or -1 if no debug files open.
+* Fills in fds with the value of sudo_debug_fds.
+*/
 #[no_mangle]
 pub unsafe extern "C" fn sudo_debug_get_fds_v1(mut fds: *mut *mut libc::c_uchar) -> libc::c_int {
     *fds = sudo_debug_fds;
