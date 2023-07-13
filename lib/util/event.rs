@@ -1362,4 +1362,27 @@ pub unsafe extern "C" fn sudo_ev_del_v1(
         532 as libc::c_int,
         sudo_debug_subsys,
     );
+    if (*ev).flags as libc::c_int & 0x1 as libc::c_int == 0 {
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            537 as libc::c_int,
+            6 as libc::c_int | sudo_debug_subsys,
+            b"%s: event %p not in queue\0" as *const u8 as *const libc::c_char,
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                .as_ptr(),
+            ev,
+        );
+        let mut sudo_debug_ret: libc::c_int = 0 as libc::c_int;
+        sudo_debug_exit_int_v1(
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            538 as libc::c_int,
+            sudo_debug_subsys,
+            sudo_debug_ret,
+        );
+        return sudo_debug_ret;
+    }
 }
