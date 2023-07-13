@@ -1184,4 +1184,32 @@ pub unsafe extern "C" fn sudo_ev_add_v2(
         456 as libc::c_int,
         sudo_debug_subsys,
     );
+    if base.is_null() {
+        if !((*ev).base).is_null() {
+            base = (*ev).base;
+        } else if !default_base.is_null() {
+            base = default_base;
+        } else {
+            sudo_debug_printf2_v1(
+                (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_add_v2\0"))
+                    .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                466 as libc::c_int,
+                2 as libc::c_int | sudo_debug_subsys,
+                b"%s: no base specified\0" as *const u8 as *const libc::c_char,
+                (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_add_v2\0"))
+                    .as_ptr(),
+            );
+            let mut sudo_debug_ret: libc::c_int = -(1 as libc::c_int);
+            sudo_debug_exit_int_v1(
+                (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_add_v2\0"))
+                    .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                467 as libc::c_int,
+                sudo_debug_subsys,
+                sudo_debug_ret,
+            );
+            return sudo_debug_ret;
+        }
+    }
 }
