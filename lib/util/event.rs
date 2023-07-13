@@ -1571,3 +1571,17 @@ pub unsafe extern "C" fn sudo_ev_del_v1(
 pub unsafe extern "C" fn sudo_ev_dispatch_v1(mut base: *mut sudo_event_base) -> libc::c_int {
     return sudo_ev_loop_v1(base, 0 as libc::c_int);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ev_loop_v1(
+    mut base: *mut sudo_event_base,
+    mut flags: libc::c_int,
+) -> libc::c_int {
+    let mut now: timespec = timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    let mut ev: *mut sudo_event = 0 as *mut sudo_event;
+    let mut nready: libc::c_int = 0;
+    let mut rc: libc::c_int = 0 as libc::c_int;
+}
