@@ -10,6 +10,14 @@ extern "C" {
     fn sudo_memset_s()
 }
 
+pub type __uint64_t = libc::c_ulong;
+pub type uint64_t = __uint64_t;
+pub type __uint32_t = libc::c_uint;
+pub type uint32_t = __uint64_t;
+pub type __uint8_t = libc::c_uchar;
+pub type uint8_t = __uint8_t;
+pub type size_t = libc::c_ulong;
+
 pub unsafe extern "C" fn sudo_SHA224Init
 
 pub unsafe extern "C" fn sudo_SHA224Pad
