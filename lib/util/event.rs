@@ -1433,4 +1433,116 @@ pub unsafe extern "C" fn sudo_ev_del_v1(
         );
         return sudo_debug_ret_1;
     }
+    if (*ev).events as libc::c_int & (0x10 as libc::c_int | 0x20 as libc::c_int) != 0 {
+        let signo: libc::c_int = (*ev).fd;
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            560 as libc::c_int,
+            6 as libc::c_int | sudo_debug_subsys,
+            b"%s: removing event %p from base %p, signo %d, events %d\0" as *const u8
+                as *const libc::c_char,
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                .as_ptr(),
+            ev,
+            base,
+            signo,
+            (*ev).events as libc::c_int,
+        );
+        if !((*ev).entries.tqe_next).is_null() {
+            (*(*ev).entries.tqe_next).entries.tqe_prev = (*ev).entries.tqe_prev;
+        } else {
+            (*base).signals[signo as usize].tqh_last = (*ev).entries.tqe_prev;
+        }
+        *(*ev).entries.tqe_prev = (*ev).entries.tqe_next;
+        if ((*base).signals[signo as usize].tqh_first).is_null() {
+            if sigaction(
+                signo,
+                (*base).orig_handlers[signo as usize],
+                0 as *mut sigaction,
+            ) != 0 as libc::c_int
+            {
+                sudo_debug_printf2_v1(
+                    (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(
+                        b"sudo_ev_del_v1\0",
+                    ))
+                    .as_ptr(),
+                    b"event.c\0" as *const u8 as *const libc::c_char,
+                    568 as libc::c_int,
+                    2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys,
+                    b"%s: unable to restore handler for signo %d\0" as *const u8
+                        as *const libc::c_char,
+                    (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(
+                        b"sudo_ev_del_v1\0",
+                    ))
+                    .as_ptr(),
+                    signo,
+                );
+                let mut sudo_debug_ret_2: libc::c_int = -(1 as libc::c_int);
+                sudo_debug_exit_int_v1(
+                    (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(
+                        b"sudo_ev_del_v1\0",
+                    ))
+                    .as_ptr(),
+                    b"event.c\0" as *const u8 as *const libc::c_char,
+                    569 as libc::c_int,
+                    sudo_debug_subsys,
+                    sudo_debug_ret_2,
+                );
+                return sudo_debug_ret_2;
+            }
+            (*base).num_handlers -= 1;
+        }
+        if (*base).num_handlers == 0 as libc::c_int {
+            sudo_ev_del_v1(base, &mut (*base).signal_event);
+        }
+    } else {
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                .as_ptr(),
+            b"event.c\0" as *const u8 as *const libc::c_char,
+            580 as libc::c_int,
+            6 as libc::c_int | sudo_debug_subsys,
+            b"%s: removing event %p from base %p, fd %d, events %d\0" as *const u8
+                as *const libc::c_char,
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_del_v1\0"))
+                .as_ptr(),
+            ev,
+            base,
+            (*ev).fd,
+            (*ev).events as libc::c_int,
+        );
+        if (*ev).events as libc::c_int & (0x2 as libc::c_int | 0x4 as libc::c_int) != 0 {
+            if sudo_ev_del_impl(base, ev) != 0 as libc::c_int {
+                let mut sudo_debug_ret_3: libc::c_int = -(1 as libc::c_int);
+                sudo_debug_exit_int_v1(
+                    (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(
+                        b"sudo_ev_del_v1\0",
+                    ))
+                    .as_ptr(),
+                    b"event.c\0" as *const u8 as *const libc::c_char,
+                    585 as libc::c_int,
+                    sudo_debug_subsys,
+                    sudo_debug_ret_3,
+                );
+                return sudo_debug_ret_3;
+            }
+        }
+        if !((*ev).entries.tqe_next).is_null() {
+            (*(*ev).entries.tqe_next).entries.tqe_prev = (*ev).entries.tqe_prev;
+        } else {
+            (*base).events.tqh_last = (*ev).entries.tqe_prev;
+        }
+        *(*ev).entries.tqe_prev = (*ev).entries.tqe_next;
+        if (*ev).flags as libc::c_int & 0x4 as libc::c_int != 0 {
+            if !((*ev).timeouts_entries.tqe_next).is_null() {
+                (*(*ev).timeouts_entries.tqe_next).timeouts_entries.tqe_prev =
+                    (*ev).timeouts_entries.tqe_prev;
+            } else {
+                (*base).timeouts.tqh_last = (*ev).timeouts_entries.tqe_prev;
+            }
+            *(*ev).timeouts_entries.tqe_prev = (*ev).timeouts_entries.tqe_next;
+        }
+    }
 }
