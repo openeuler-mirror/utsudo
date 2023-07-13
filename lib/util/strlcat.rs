@@ -43,4 +43,16 @@ pub unsafe extern "C" fn sudo_strlcat(
     if n == 0 {
         return dlen + strlen(src);
     }
+
+    while *src as libc::c_int != '\u{0}' as i32 {
+        if n != 0 {
+            *dst = *src;
+            dst = dst.offset(1);
+            n -= 1;
+        }
+        src = src.offset(1);
+    }
+    *dst = '\u{0}' as libc::c_char;
+
+    return dlen.wrapping_add(src.offset_from(osrc) as libc::c_ulong);
 }
