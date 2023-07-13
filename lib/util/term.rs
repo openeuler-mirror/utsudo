@@ -693,6 +693,19 @@ unsafe extern "C" fn tcsetattr_nobg(
         sa_restorer: None,
     };
 
+    let mut rc: libc::c_int = 0;
+
+    /*
+     * If we receive SIGTTOU from tcsetattr() it means we are
+     * not in the foreground process group.
+     * This should be less racy than using tcgetpgrp().
+     */
+    memset(
+        &mut sa as *mut sigaction as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<sigaction>() as libc::c_ulong,
+    );
+
 /*
  * Restore saved terminal settings if we are in the foreground process group.
  * Returns true on success or false on failure.
