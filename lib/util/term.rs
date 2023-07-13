@@ -707,6 +707,13 @@ unsafe extern "C" fn tcsetattr_nobg(
         0,
         ::std::mem::size_of::<sigaction>() as libc::c_ulong,
     );
+    sigemptyset(&mut sa.sa_mask as *mut sigset_t);
+    sa.__sigaction_handler.sa_handler = Some(sigttou as unsafe extern "C" fn(libc::c_int) -> ());
+    sigaction(
+        SIGTTOU,
+        &mut sa as *const sigaction,
+        &mut osa as *mut sigaction,
+    );
 
 /*
  * Restore saved terminal settings if we are in the foreground process group.
