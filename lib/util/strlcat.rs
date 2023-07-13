@@ -30,4 +30,17 @@ pub unsafe extern "C" fn sudo_strlcat(
     let mut osrc: *const libc::c_char = src;
     let mut n: size_t = dsize;
     let mut dlen: size_t = 0;
+
+    while n != 0 && *dst as libc::c_int != '\u{0}' as i32 {
+        dst = dst.offset(1);
+        n = n.wrapping_sub(1); // n--
+    }
+
+    dlen = dst.offset_from(odst) as size_t;
+    n = dsize.wrapping_sub(dlen); //dsize - dlen
+
+    n -= 1;
+    if n == 0 {
+        return dlen + strlen(src);
+    }
 }
