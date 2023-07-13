@@ -1339,4 +1339,13 @@ pub unsafe extern "C" fn sudo_ev_add_v2(
         }
         (*ev).flags = ((*ev).flags as libc::c_int | 0x4 as libc::c_int) as libc::c_short;
     }
+    let mut sudo_debug_ret_2: libc::c_int = 0 as libc::c_int;
+    sudo_debug_exit_int_v1(
+        (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"sudo_ev_add_v2\0")).as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        522 as libc::c_int,
+        sudo_debug_subsys,
+        sudo_debug_ret_2,
+    );
+    return sudo_debug_ret_2;
 }
