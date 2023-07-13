@@ -4,6 +4,15 @@
  * SPDX-License-Identifier: MulanPSL-2.0
  */
 
+#![allow(
+    mutable_transmutes,
+    non_camel_case_types,
+    non_snake_case,
+    non_upper_case_globals,
+    unused_assignments,
+    unused_mut,
+    unused_must_use
+)]
 extern "C" {
     fn memset()
     fn memcpy()
