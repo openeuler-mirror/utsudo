@@ -762,6 +762,9 @@ unsafe extern "C" fn sudo_term_noecho_v1(fd: libc::c_int) -> bool {
         ::std::mem::size_of::<termios>() as libc::c_ulong,
     );
     CLR!(term.c_lflag, ECHO!() | ECHONL!());
+    if tcsetattr_nobg(fd, TCSASOFT | TCSADRAIN, &mut term) == 0 {
+        changed = 1;
+    }
 }
 
 /*
