@@ -171,6 +171,14 @@ pub unsafe extern "C" fn sudo_SHA224Init(mut ctx: *mut SHA2_CTX) {
     (*ctx).state.st32[7] = 0xbefa4fa4 as libc::c_ulong as uint32_t;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA224Transform(
+    mut state: *mut uint32_t,
+    mut buffer: *const uint8_t,
+) {
+    sudo_SHA256Transform(state, buffer);
+}
+
 pub unsafe extern "C" fn sudo_SHA224Pad
 
 pub unsafe extern "C" fn sudo_SHA224Final
