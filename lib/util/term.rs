@@ -756,6 +756,12 @@ unsafe extern "C" fn sudo_term_restore_v1(fd: libc::c_int, flush: bool) -> bool 
 #[no_mangle]
 unsafe extern "C" fn sudo_term_noecho_v1(fd: libc::c_int) -> bool {
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+    memcpy(
+        &mut term as *mut termios as *mut libc::c_void,
+        &mut oterm as *mut termios as *mut libc::c_void,
+        ::std::mem::size_of::<termios>() as libc::c_ulong,
+    );
+    CLR!(term.c_lflag, ECHO!() | ECHONL!());
 }
 
 /*
