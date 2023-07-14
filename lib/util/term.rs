@@ -732,6 +732,18 @@ unsafe extern "C" fn tcsetattr_nobg(
 #[no_mangle]
 unsafe extern "C" fn sudo_term_restore_v1(fd: libc::c_int, flush: bool) -> bool {
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    if changed != 0 {
+        let mut flags: libc::c_int = {
+                TCSASOFT | TCSADRAIN
+            }
+        };
+
+        if tcsetattr_nobg(fd, flags, &mut oterm) != 0 {
+            debug_return_bool!(false);
+        }
+        changed = 0;
+    };
 }
 
 /*
