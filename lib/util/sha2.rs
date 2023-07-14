@@ -89,6 +89,30 @@ macro_rules! BE64TO81 {
         $x[7 as usize] = ($y & 255 as libc::c_ulong) as uint8_t;
     };
 }
+macro_rules! blk0 {
+    ($x:expr) => {
+        W[$x as usize]
+    };
+}
+macro_rules! blk2 {
+    ($x:expr) => {
+        (W[($x & 15) as usize]).wrapping_add(
+            (s1!(W[($x - 2 & 15) as usize]))
+                .wrapping_add(W[($x - 7 & 15) as usize])
+                .wrapping_add(s0!(W[($x - 15 & 15) as usize])),
+        ) as uint32_t as uint32_t
+    };
+}
+macro_rules! Ch {
+    ($x:expr,$y:expr,$z:expr) => {
+        $z ^ ($x & ($y ^ $z))
+    };
+}
+macro_rules! Maj {
+    ($x:expr,$y:expr,$z:expr) => {
+        $y ^ (($x ^ $y) & ($y ^ $z))
+    };
+}
 
 pub unsafe extern "C" fn sudo_SHA224Init
 
