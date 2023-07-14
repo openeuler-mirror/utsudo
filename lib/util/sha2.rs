@@ -14,9 +14,9 @@
     unused_must_use
 )]
 extern "C" {
-    fn memset()
-    fn memcpy()
-    fn sudo_memset_s()
+    fn memset(__dest: *mut libc::c_void, __ch: libc::c_int, __len: size_t) -> *mut libc::c_void;
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
+    fn sudo_memset_s(v: *mut libc::c_void, smax: size_t, c: libc::c_int, n: size_t) -> libc::c_int;
 }
 
 pub type __uint64_t = libc::c_ulong;
