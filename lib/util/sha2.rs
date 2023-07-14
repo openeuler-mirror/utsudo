@@ -113,6 +113,46 @@ macro_rules! Maj {
         $y ^ (($x ^ $y) & ($y ^ $z))
     };
 }
+macro_rules! a {
+    ($x:expr) => {
+        T[(0 - $x & 7) as usize]
+    };
+}
+macro_rules! b {
+    ($x:expr) => {
+        T[(1 - $x & 7) as usize]
+    };
+}
+macro_rules! c {
+    ($x:expr) => {
+        T[(2 - $x & 7) as usize]
+    };
+}
+macro_rules! d {
+    ($x:expr) => {
+        T[(3 - $x & 7) as usize]
+    };
+}
+macro_rules! e {
+    ($x:expr) => {
+        T[(4 - $x & 7) as usize]
+    };
+}
+macro_rules! f {
+    ($x:expr) => {
+        T[(5 - $x & 7) as usize]
+    };
+}
+macro_rules! g {
+    ($x:expr) => {
+        T[(6 - $x & 7) as usize]
+    };
+}
+macro_rules! h {
+    ($x:expr) => {
+        T[(7 - $x & 7) as usize]
+    };
+}
 
 pub unsafe extern "C" fn sudo_SHA224Init
 
