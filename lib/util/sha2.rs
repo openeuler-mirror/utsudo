@@ -154,7 +154,22 @@ macro_rules! h {
     };
 }
 
-pub unsafe extern "C" fn sudo_SHA224Init
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA224Init(mut ctx: *mut SHA2_CTX) {
+    memset(
+        ctx as *mut libc::c_void,
+        0,
+        std::mem::size_of::<SHA2_CTX>() as libc::c_ulong,
+    );
+    (*ctx).state.st32[0] = 0xc1059ed8 as libc::c_ulong as uint32_t;
+    (*ctx).state.st32[1] = 0x367cd507 as libc::c_ulong as uint32_t;
+    (*ctx).state.st32[2] = 0x3070dd17 as libc::c_ulong as uint32_t;
+    (*ctx).state.st32[3] = 0xf70e5939 as libc::c_ulong as uint32_t;
+    (*ctx).state.st32[4] = 0xffc00b31 as libc::c_ulong as uint32_t;
+    (*ctx).state.st32[5] = 0x68581511 as libc::c_ulong as uint32_t;
+    (*ctx).state.st32[6] = 0x64f98fa7 as libc::c_ulong as uint32_t;
+    (*ctx).state.st32[7] = 0xbefa4fa4 as libc::c_ulong as uint32_t;
+}
 
 pub unsafe extern "C" fn sudo_SHA224Pad
 
