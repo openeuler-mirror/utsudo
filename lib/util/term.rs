@@ -735,6 +735,9 @@ unsafe extern "C" fn sudo_term_restore_v1(fd: libc::c_int, flush: bool) -> bool 
 
     if changed != 0 {
         let mut flags: libc::c_int = {
+            if flush {
+                TCSASOFT | TCSAFLUSH
+            } else {
                 TCSASOFT | TCSADRAIN
             }
         };
