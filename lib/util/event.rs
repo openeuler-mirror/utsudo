@@ -1953,4 +1953,22 @@ pub unsafe extern "C" fn sudo_ev_get_timeleft_v2(
     sudo_gettime_mono_v1(&mut now);
     (*ts).tv_sec = (*ev).timeout.tv_sec - now.tv_sec;
     (*ts).tv_nsec = (*ev).timeout.tv_nsec - now.tv_nsec;
+    while (*ts).tv_nsec < 0 as libc::c_int as libc::c_long {
+        (*ts).tv_sec -= 1;
+        (*ts).tv_nsec += 1000000000 as libc::c_int as libc::c_long;
+    }
+    if (*ts).tv_sec < 0 as libc::c_int as libc::c_long {
+        (*ts).tv_nsec = 0 as libc::c_int as __syscall_slong_t;
+        (*ts).tv_sec = (*ts).tv_nsec;
+    }
+    let mut sudo_debug_ret_0: libc::c_int = 0 as libc::c_int;
+    sudo_debug_exit_int_v1(
+        (*::core::mem::transmute::<&[u8; 24], &[libc::c_char; 24]>(b"sudo_ev_get_timeleft_v2\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        827 as libc::c_int,
+        sudo_debug_subsys,
+        sudo_debug_ret_0,
+    );
+    return sudo_debug_ret_0;
 }
