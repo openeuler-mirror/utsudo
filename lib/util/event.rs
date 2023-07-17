@@ -1874,4 +1874,31 @@ pub unsafe extern "C" fn sudo_ev_got_break_v1(mut base: *mut sudo_event_base) ->
         791 as libc::c_int,
         sudo_debug_subsys,
     );
+    if base.is_null() {
+        base = default_base;
+        if base.is_null() {
+            let mut sudo_debug_ret: bool = 0 as libc::c_int != 0;
+            sudo_debug_exit_bool_v1(
+                (*::core::mem::transmute::<&[u8; 21], &[libc::c_char; 21]>(
+                    b"sudo_ev_got_break_v1\0",
+                ))
+                .as_ptr(),
+                b"event.c\0" as *const u8 as *const libc::c_char,
+                795 as libc::c_int,
+                sudo_debug_subsys,
+                sudo_debug_ret,
+            );
+            return sudo_debug_ret;
+        }
+    }
+    let mut sudo_debug_ret_0: bool = (*base).flags & 0x20 as libc::c_int as libc::c_uint != 0;
+    sudo_debug_exit_bool_v1(
+        (*::core::mem::transmute::<&[u8; 21], &[libc::c_char; 21]>(b"sudo_ev_got_break_v1\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        797 as libc::c_int,
+        sudo_debug_subsys,
+        sudo_debug_ret_0,
+    );
+    return sudo_debug_ret_0;
 }
