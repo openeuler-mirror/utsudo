@@ -1902,3 +1902,18 @@ pub unsafe extern "C" fn sudo_ev_got_break_v1(mut base: *mut sudo_event_base) ->
     );
     return sudo_debug_ret_0;
 }
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ev_get_timeleft_v1(
+    mut ev: *mut sudo_event,
+    mut tv: *mut timeval,
+) -> libc::c_int {
+    let mut ts: timespec = timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    let mut ret: libc::c_int = 0;
+    ret = sudo_ev_get_timeleft_v2(ev, &mut ts);
+    (*tv).tv_sec = ts.tv_sec;
+    (*tv).tv_usec = ts.tv_nsec / 1000 as libc::c_int as libc::c_long;
+    return ret;
+}
