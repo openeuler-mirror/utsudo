@@ -193,7 +193,24 @@ pub unsafe extern "C" fn sudo_SHA224Pad(mut ctx: *mut SHA2_CTX) {
     sudo_SHA256Pad(ctx);
 }
 
-pub unsafe extern "C" fn sudo_SHA224Final
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA224Final(mut digest: *mut uint8_t, mut ctx: *mut SHA2_CTX) {
+    sudo_SHA256Pad(ctx);
+    let mut i: libc::c_uint = 0;
+    i = 0;
+    while i < 7 as libc::c_uint {
+        BE32TO8!(
+            digest.offset(i.wrapping_mul(4 as libc::c_uint) as isize),
+            (*ctx).state.st32[i as usize]
+         );
+        i = i.wrapping_add(1);
+     }
+    memset(
+        ctx as *mut libc::c_void,
+        0,
+        std::mem::size_of::<SHA2_CTX>() as libc::c_ulong,
+    );
+}
 
 
 pub unsafe extern "C" fn sudo_SHA256Init
