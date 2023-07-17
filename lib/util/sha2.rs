@@ -279,6 +279,39 @@ static mut SHA256_K: [uint32_t; 64] = [
     0xc67178f2 as libc::c_ulong as uint32_t,
 ];
 
+macro_rules! rotrFixed {
+    ($x:expr,$y:expr) => {
+        if $y != 0 {
+            $x >> $y
+                | $x << (std::mem::size_of::<uint32_t>() as libc::c_ulong)
+                    .wrapping_mul(8 as libc::c_ulong)
+                    .wrapping_sub($y as libc::c_ulong)
+        } else {
+            $x
+        }
+    };
+}
+macro_rules! S0 {
+    ($x:expr) => {
+        (rotrFixed!($x, 2)) ^ (rotrFixed!($x, 13)) ^ (rotrFixed!($x, 22))
+    };
+}
+macro_rules! S1 {
+    ($x:expr) => {
+        (rotrFixed!($x, 6)) ^ (rotrFixed!($x, 11)) ^ (rotrFixed!($x, 25))
+    };
+}
+macro_rules! s1 {
+    ($x:expr) => {
+        (rotrFixed!($x, 17)) ^ (rotrFixed!($x, 19)) ^ $x >> 10
+    };
+}
+macro_rules! s0 {
+    ($x:expr) => {
+        (rotrFixed!($x, 7)) ^ (rotrFixed!($x, 18)) ^ $x >> 3
+    };
+}
+
 pub unsafe extern "C" fn sudo_SHA256Init
 
 pub unsafe extern "C" fn sudo_SHA256Transform
