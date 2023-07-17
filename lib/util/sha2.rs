@@ -179,7 +179,19 @@ pub unsafe extern "C" fn sudo_SHA224Transform(
     sudo_SHA256Transform(state, buffer);
 }
 
-pub unsafe extern "C" fn sudo_SHA224Pad
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA224Update(
+    mut ctx: *mut SHA2_CTX,
+    mut data: *const uint8_t,
+    mut len: size_t,
+) {
+    sudo_SHA256Update(ctx, data, len);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA224Pad(mut ctx: *mut SHA2_CTX) {
+    sudo_SHA256Pad(ctx);
+}
 
 pub unsafe extern "C" fn sudo_SHA224Final
 
