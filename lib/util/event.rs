@@ -1917,3 +1917,10 @@ pub unsafe extern "C" fn sudo_ev_get_timeleft_v1(
     (*tv).tv_usec = ts.tv_nsec / 1000 as libc::c_int as libc::c_long;
     return ret;
 }
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ev_get_timeleft_v2(
+    mut ev: *mut sudo_event,
+    mut ts: *mut timespec,
+) -> libc::c_int {
+    
+}
