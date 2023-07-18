@@ -1008,6 +1008,26 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
     {
         setlocale(LC_ALL, b"C\0" as *const u8 as *mut libc::c_char);
     }
+    'done: loop {
+        if conf_file.is_null() {
+            conf_file = _PATH_SUDO_CONF!();
+            match sudo_secure_file_v1(
+                conf_file,
+                ROOT_UID as uid_t,
+                -(1 as libc::c_int) as gid_t,
+                &mut sb,
+            ) {
+                SUDO_PATH_SECURE => {
+                    break 'done;
+                }
+             
+                _ => {
+                    /* NOTREACHED */
+                    break 'done;
+                }
+            } //match sudo_secure_file_v1
+        } // cong_file.is_null
+    }
 }
 
 /*
