@@ -791,6 +791,26 @@ unsafe extern "C" fn sudo_term_raw_v1(fd: libc::c_int, isig: libc::c_int) -> boo
         c_ospeed: 0,
     };
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    if changed != 0 && tcgetattr(fd, &mut oterm) != 0 {
+        debug_return_bool!(false);
+    }
+    memcpy(
+        &mut term_t as *mut termios as *mut libc::c_void,
+        &mut oterm as *mut termios as *mut libc::c_void,
+        ::std::mem::size_of::<termios>() as libc::c_ulong,
+    );
+
+    /* Set terminal to raw mode */
+    term_t.c_cc[VMIN as usize] = 1;
+    term_t.c_cc[VTIME as usize] = 0;
+    CLR!(
+        term.c_iflag,
+        ICRNL!() | IGNCR!() | INLCR!() | IUCLC!() | IXON!()
+    );
+    CLR!(term.c_oflag, OPOST!());
+    CLR!(term.c_lflag, ECHO!() | ICANON!() | ISIG!() | IEXTEN!());
+    debug_return_bool!(false)
 }
 
 /*
