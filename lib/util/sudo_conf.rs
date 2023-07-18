@@ -172,6 +172,14 @@ macro_rules! _PATH_SUDO_SESH {
     };
 }
 
+// # define _PATH_SUDO_NOEXEC "/usr/libexec/utsudo/sudo_noexec.so"
+macro_rules! _PATH_SUDO_NOEXEC {
+    () => {
+        (b"/usr/libexec/utsudo/sudo_noexec.so\0" as *const u8 as *const libc::c_char
+            as *mut libc::c_char)
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_debug_file {
