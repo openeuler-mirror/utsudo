@@ -44,4 +44,8 @@ fn sudo_strlcpy(
             }
         }
     }
+
+    unsafe {
+        return (src.offset_from(osrc) as libc::c_long - 1 as libc::c_long) as size_t;
+    }
 }
