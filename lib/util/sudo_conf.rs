@@ -84,6 +84,10 @@ pub const SUDO_CONF_PATH_NOEXEC: libc::c_int = 2;
 pub const SUDO_CONF_PATH_PLUGIN_DIR: libc::c_int = 3;
 pub const SUDO_CONF_PATH_DEVSEARCH: libc::c_int = 4;
 
+pub const __LC_ALL: libc::c_int = 6;
+pub const LC_ALL: libc::c_int = __LC_ALL;
+// # define ROOT_UID	0
+pub const ROOT_UID: libc::c_int = 0 as libc::c_int;
 
 /* Values of sudo_conf_group_source() */
 // #define GROUP_SOURCE_ADAPTIVE	0
@@ -1236,3 +1240,4 @@ unsafe extern "C" fn run_static_initializers() {
 #[cfg_attr(target_os = "linux", link_section = ".init_array")]
 #[cfg_attr(target_os = "windows", link_section = ".CRT$XIB")]
 #[cfg_attr(target_os = "macos", link_section = "__DATA,__mod_init_func")]
+static INIT_ARRAY: [unsafe extern "C" fn(); 1] = [run_static_initializers];
