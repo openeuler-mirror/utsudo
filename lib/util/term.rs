@@ -820,6 +820,26 @@ unsafe extern "C" fn sudo_term_raw_v1(fd: libc::c_int, isig: libc::c_int) -> boo
 #[no_mangle]
 unsafe extern "C" fn sudo_term_cbreak_v1(fd: libc::c_int) -> bool {
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    if changed != 0 && tcgetattr(fd, &mut oterm) != 0 {
+        debug_return_bool!(false);
+    }
+
+    memcpy(
+        &mut term as *mut termios as *mut libc::c_void,
+        &mut oterm as *mut termios as *mut libc::c_void,
+        ::std::mem::size_of::<termios>() as libc::c_ulong,
+    );
+    /* Set terminal to half-cooked mode */
+    term.c_cc[VMIN as usize] = 1;
+    term.c_cc[VTIME as usize] = 0;
+
+    /* cppcheck-suppress redundantAssignment */
+    CLR!(term.c_lflag, ECHO!() | ECHONL!() | ICANON!() | IEXTEN!());
+    /* cppcheck-suppress redundantAssignment */
+    SET!(term.c_lflag, ISIG!());
+
+    debug_return_bool!(false)
 }
 
 /*
