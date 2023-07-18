@@ -1824,3 +1824,15 @@ pub unsafe extern "C" fn sudo_ev_loopcontinue_v1(mut base: *mut sudo_event_base)
         sudo_debug_subsys,
     );
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ev_got_exit_v1(mut base: *mut sudo_event_base) -> bool {
+    let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
+    sudo_debug_enter_v1(
+        (*::core::mem::transmute::<&[u8; 20], &[libc::c_char; 20]>(b"sudo_ev_got_exit_v1\0"))
+            .as_ptr(),
+        b"event.c\0" as *const u8 as *const libc::c_char,
+        779 as libc::c_int,
+        sudo_debug_subsys,
+    );
+}
