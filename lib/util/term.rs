@@ -747,6 +747,7 @@ unsafe extern "C" fn sudo_term_restore_v1(fd: libc::c_int, flush: bool) -> bool 
         }
         changed = 0;
     };
+    debug_return_bool!(true)
 }
 
 /*
@@ -764,7 +765,9 @@ unsafe extern "C" fn sudo_term_noecho_v1(fd: libc::c_int) -> bool {
     CLR!(term.c_lflag, ECHO!() | ECHONL!());
     if tcsetattr_nobg(fd, TCSASOFT | TCSADRAIN, &mut term) == 0 {
         changed = 1;
+        debug_return_bool!(true);
     }
+    debug_return_bool!(false)
 }
 
 /*
