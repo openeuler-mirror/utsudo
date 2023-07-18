@@ -709,13 +709,14 @@ unsafe extern "C" fn tcsetattr_nobg(
     );
     sigemptyset(&mut sa.sa_mask as *mut sigset_t);
     sa.__sigaction_handler.sa_handler = Some(sigttou as unsafe extern "C" fn(libc::c_int) -> ());
+    got_sigttou = 0;
     sigaction(
         SIGTTOU,
         &mut sa as *const sigaction,
         &mut osa as *mut sigaction,
     );
 
-    while rc != 0 && (*__errno_location()) == EINTR {
+    while rc != 0 && (*__errno_location()) == EINTR && got_sigttou != 0 {
         rc = tcsetattr(fd, flags, tp);
     }
 
