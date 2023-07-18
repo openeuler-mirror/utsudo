@@ -970,6 +970,30 @@ pub unsafe extern "C" fn sudo_conf_probe_interfaces_v1() -> bool {
     return sudo_conf_data.probe_interfaces;
 }
 
+/*
+ * Reads in /etc/sudo.conf and populates sudo_conf_data.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conf_read_v1(
+    mut conf_file: *const libc::c_char,
+    mut conf_types: libc::c_int,
+) -> libc::c_int {
+    let mut prev_locale: *mut libc::c_char = 0 as *mut libc::c_char;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    prev_locale = setlocale(LC_ALL, 0 as *const libc::c_char);
+
+    prev_locale = strdup(prev_locale);
+    if prev_locale.is_null() {
+        debug_return_int!(-(1 as libc::c_int));
+    }
+
+    /* Parse sudo.conf in the "C" locale. */
+    if *prev_locale.offset(0 as isize) as libc::c_int != 'C' as i32
+    {
+        setlocale(LC_ALL, b"C\0" as *const u8 as *mut libc::c_char);
+    }
+}
 
 /*
  * Used by the sudo_conf regress test to clear compile-time path settings.
