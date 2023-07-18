@@ -9,4 +9,24 @@ fn sudo_strlcpy(
 ) -> size_t{
     let mut osrc: *const libc::c_char = src;
     let mut nleft: size_t = dsize;
+
+    if nleft != 0 as libc::c_int as libc::c_ulong {
+        unsafe {
+            loop {
+                nleft = nleft.wrapping_sub(1);
+                if !(nleft != 0 as libc::c_int as libc::c_ulong) {
+                    break;
+                }
+                let fresh0 = src;
+                src = src.offset(1);
+                let fresh1 = dst;
+                dst = dst.offset(1);
+                *fresh1 = *fresh0;
+
+                if *fresh1 as libc::c_int == '\u{0}' as i32 {
+                    break;
+                }
+            }
+        }
+    }
 }
