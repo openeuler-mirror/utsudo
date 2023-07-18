@@ -262,6 +262,19 @@ pub struct sudo_conf_debug {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub struct C2RustUnnamed_2 {
+    pub tqe_next: *mut sudo_conf_debug,
+    pub tqe_prev: *mut *mut sudo_conf_debug,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conf_debug_list {
+    pub tqh_first: *mut sudo_conf_debug,
+    pub tqh_last: *mut *mut sudo_conf_debug,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub struct sudo_conf_table {
     pub name: *const libc::c_char,
     pub namelen: libc::c_uint,
