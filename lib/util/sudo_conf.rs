@@ -184,6 +184,13 @@ macro_rules! _PATH_SUDO_NOEXEC {
     };
 }
 
+// # define _PATH_SUDO_PLUGIN_DIR "/usr/libexec/utsudo/"
+macro_rules! _PATH_SUDO_PLUGIN_DIR {
+    () => {
+        (b"/usr/libexec/utsudo/\0" as *const u8 as *const libc::c_char as *mut libc::c_char)
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_debug_file {
