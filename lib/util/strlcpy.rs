@@ -29,4 +29,19 @@ fn sudo_strlcpy(
             }
         }
     }
+
+    if nleft == 0 as libc::c_int as libc::c_ulong {
+        unsafe {
+            if dsize != 0 as libc::c_int as libc::c_ulong {
+                *dst = '\u{0}' as libc::c_char;
+            }
+            loop {
+                let fresh2 = src;
+                src = src.offset(1);
+                if !(*fresh2 != 0) {
+                    break;
+                }
+            }
+        }
+    }
 }
