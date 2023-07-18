@@ -198,6 +198,14 @@ macro_rules! _PATH_SUDO_DEVSEARCH {
     };
 }
 
+// # define _PATH_SUDO_CONF	"/etc/sudo.conf"
+macro_rules! _PATH_SUDO_CONF {
+    () => {
+        (b"/etc/sudo.conf\0" as *const u8 as *const libc::c_char)
+    };
+}
+
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_debug_file {
