@@ -1032,13 +1032,23 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
             ) {
                 SUDO_PATH_SECURE => {
                     break 'done;
+            }
+            SUDO_PATH_MISSING => {
+                /* Root should always be able to read sudo.conf. */
+                if *__errno_location() != ENOENT && geteuid() == ROOT_UID as libc::c_uint {
+                    sudo_warn!(
+                        b"unable to stat %s\0" as *const u8 as *const libc::c_char,
+                        conf_file
+                    );
                 }
-             
-                _ => {
-                    /* NOTREACHED */
+
                     break 'done;
-                }
-            } //match sudo_secure_file_v1
+            }
+            _ => {
+                /* NOTREACHED */
+                break 'done;
+            }
+          } //match sudo_secure_file_v1
         } // cong_file.is_null
 
         fp = fopen(conf_file, b"r\0" as *const u8 as *const libc::c_char);
