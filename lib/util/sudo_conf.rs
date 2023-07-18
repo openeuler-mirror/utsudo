@@ -191,6 +191,13 @@ macro_rules! _PATH_SUDO_PLUGIN_DIR {
     };
 }
 
+macro_rules! _PATH_SUDO_DEVSEARCH {
+    () => {
+        (b"/dev/pts:/dev/vt:/dev/term:/dev/zcons:/dev/pty:/dev/\0" as *const u8
+            as *const libc::c_char as *mut libc::c_char)
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_debug_file {
