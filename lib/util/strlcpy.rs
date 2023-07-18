@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
+
 #![allow(non_camel_case_types, dead_code, unused_mut, unused_variables)]
 pub type size_t = libc::c_ulong;
 
