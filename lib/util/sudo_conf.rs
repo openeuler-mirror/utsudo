@@ -1068,6 +1068,13 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
                     );
                     break 'done;
             }
+            SUDO_PATH_WORLD_WRITABLE => {
+                    sudo_warnx!(
+                        b"%s is world writable\0" as *const u8 as *const libc::c_char,
+                        conf_file
+                    );
+                    break 'done;
+            }
             _ => {
                 /* NOTREACHED */
                 break 'done;
