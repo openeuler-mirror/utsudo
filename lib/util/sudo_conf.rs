@@ -89,6 +89,17 @@ pub const LC_ALL: libc::c_int = __LC_ALL;
 // # define ROOT_UID	0
 pub const ROOT_UID: libc::c_int = 0 as libc::c_int;
 
+/* secure_path.c */
+#define SUDO_PATH_SECURE		0
+#define SUDO_PATH_MISSING		-1
+#define SUDO_PATH_BAD_TYPE		-2
+#define SUDO_PATH_WRONG_OWNER		-3
+#define SUDO_PATH_WORLD_WRITABLE	-4
+#define SUDO_PATH_GROUP_WRITABLE	-5
+
+// #define	ENOENT		 2	/* No such file or directory */
+pub const ENOENT: libc::c_int = 2;
+
 /* Values of sudo_conf_group_source() */
 // #define GROUP_SOURCE_ADAPTIVE	0
 // #define GROUP_SOURCE_STATIC 	1
