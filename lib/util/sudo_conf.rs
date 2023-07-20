@@ -1068,7 +1068,46 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
             } // *__errno_location() != ENOENT
             break 'done;
         } // fp.is_null()
-    }
+
+        while sudo_parseln_v2(
+            &mut line,
+            &mut linesize,
+            &mut conf_lineno,
+            fp as *mut FILE,
+            0 as libc::c_int,
+        ) != -1
+        {
+            let mut cur: *mut sudo_conf_table = 0 as *mut sudo_conf_table;
+            let mut i: libc::c_int = 0 as libc::c_int;
+            let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+
+            cp = line;
+            cur = sudo_conf_table.as_mut_ptr();
+            while (*cur).name.is_null() {
+                if strncasecmp(cp, (*cur).name, (*cur).namelen as libc::c_ulong) == 0
+                {
+                    if ISSET!(conf_types, (1 << i)) != 0 {
+                        cp = cp.offset((*cur).namelen as isize);
+
+                        ret = ((*cur).parser).expect("non-null function pointer")(
+                            cp,
+                            conf_file,
+                            conf_lineno,
+                        );
+                        if ret == -1 {
+                            break 'done;
+                        }
+                    } // ISSET
+                    break;
+                } // if strncasecmp
+              } // while (*cur).name.is_null()
+
+            }
+        } // while sudo_parseln_v2
+        ret = true as libc::c_int;
+        
+        break 'done;
+    }//done loop
 }
 
 /*
