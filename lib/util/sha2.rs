@@ -404,6 +404,19 @@ pub unsafe extern "C" fn sudo_SHA256Transform(mut state: *mut uint32_t, mut data
     let ref mut state7 = *state.offset(0 as isize);
     *state7 = (*state7 as libc::c_uint).wrapping_add(h!(0) as libc::c_uint) as uint32_t as uint32_t;
 
+    /* Cleanup */
+    sudo_memset_s(
+        T.as_mut_ptr() as *mut libc::c_void,
+        std::mem::size_of::<[uint32_t; 8]>() as libc::c_ulong,
+        0,
+        std::mem::size_of::<[uint32_t; 8]>() as libc::c_ulong,
+    );
+    sudo_memset_s(
+        W.as_mut_ptr() as *mut libc::c_void,
+        std::mem::size_of::<[uint32_t; 16]>() as libc::c_ulong,
+        0,
+        std::mem::size_of::<[uint32_t; 16]>() as libc::c_ulong,
+    );
 }
 
 pub unsafe extern "C" fn sudo_SHA256Update
