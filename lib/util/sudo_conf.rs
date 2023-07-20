@@ -115,11 +115,14 @@ pub struct _IO_marker {
 }
 
 extern "C" {
+    fn fclose(__stream: *mut FILE) -> libc::c_int;
+    fn fopen(_: *const libc::c_char, _: *const libc::c_char) -> *mut FILE;
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
     fn reallocarray(__ptr: *mut libc::c_void, __nmemb: size_t, __size: size_t)
         -> *mut libc::c_void;
     fn free(__ptr: *mut libc::c_void);
+    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong) -> libc::c_int;
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     fn strndup(_: *const libc::c_char, _: libc::c_ulong) -> *mut libc::c_char;
@@ -128,6 +131,7 @@ extern "C" {
     fn strcasecmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     fn strncasecmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong)
         -> libc::c_int;
+    fn geteuid() -> __uid_t;
     fn sudo_strsplit_v1(
         str: *const libc::c_char,
         endstr: *const libc::c_char,
