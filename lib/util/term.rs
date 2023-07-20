@@ -811,6 +811,13 @@ unsafe extern "C" fn sudo_term_raw_v1(fd: libc::c_int, isig: libc::c_int) -> boo
     );
     CLR!(term.c_oflag, OPOST!());
     CLR!(term.c_lflag, ECHO!() | ICANON!() | ISIG!() | IEXTEN!());
+    if isig != 0 {
+        SET!(term_t.c_lflag, ISIG!());
+    }
+    if tcsetattr_nobg(fd, TCSASOFT | TCSADRAIN, &mut term) == 0 {
+        changed = 1;
+        debug_return_bool!(true);
+    }
     debug_return_bool!(false)
 }
 
