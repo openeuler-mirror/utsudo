@@ -1102,6 +1102,7 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
 
     /* Parse sudo.conf in the "C" locale. */
     if *prev_locale.offset(0 as isize) as libc::c_int != 'C' as i32
+        || *prev_locale.offset(1 as isize) as libc::c_int != '\u{0}' as i32
     {
         setlocale(LC_ALL, b"C\0" as *const u8 as *mut libc::c_char);
     }
@@ -1193,6 +1194,7 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
             cur = sudo_conf_table.as_mut_ptr();
             while (*cur).name.is_null() {
                 if strncasecmp(cp, (*cur).name, (*cur).namelen as libc::c_ulong) == 0
+                    && isblank!(*cp.offset((*cur).namelen as isize) as isize) != 0
                 {
                     if ISSET!(conf_types, (1 << i)) != 0 {
                         cp = cp.offset((*cur).namelen as isize);
