@@ -1050,6 +1050,11 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
 
     prev_locale = strdup(prev_locale);
     if prev_locale.is_null() {
+        sudo_warnx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
         debug_return_int!(-(1 as libc::c_int));
     }
 
