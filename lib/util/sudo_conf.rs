@@ -1017,6 +1017,10 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
     prev_locale = setlocale(LC_ALL, 0 as *const libc::c_char);
+    if prev_locale.is_null() {
+        sudo_warn!(b"setlocale(LC_ALL, NULL)\0" as *const u8 as *const libc::c_char,);
+        debug_return_int!(-(1 as libc::c_int));
+    }
 
     prev_locale = strdup(prev_locale);
     if prev_locale.is_null() {
