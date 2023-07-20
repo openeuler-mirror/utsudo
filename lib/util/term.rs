@@ -840,6 +840,13 @@ unsafe extern "C" fn sudo_term_cbreak_v1(fd: libc::c_int) -> bool {
     /* cppcheck-suppress redundantAssignment */
     SET!(term.c_lflag, ISIG!());
 
+    if tcsetattr_nobg(fd, TCSASOFT | TCSADRAIN, &mut term) == 0 {
+        sudo_term_eof = term.c_cc[VEOF as usize] as libc::c_int;
+        sudo_term_erase = term.c_cc[VERASE as usize] as libc::c_int;
+        sudo_term_kill = term.c_cc[VKILL as usize] as libc::c_int;
+        changed = 1;
+        debug_return_bool!(true);
+    }
     debug_return_bool!(false)
 }
 
