@@ -108,6 +108,11 @@ pub const GROUP_SOURCE_ADAPTIVE: libc::c_int = 0;
 pub const GROUP_SOURCE_STATIC: libc::c_int = 1;
 pub const GROUP_SOURCE_DYNAMIC: libc::c_int = 2;
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _IO_marker {
+    _unused: [u8; 0],
+}
 
 extern "C" {
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
