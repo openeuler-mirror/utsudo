@@ -1058,6 +1058,16 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
                     );
                     break 'done;
             }
+            SUDO_PATH_WRONG_OWNER => {
+                    sudo_warnx!(
+                        b"%s is owned by uid %u, should be %u\0" as *const u8
+                            as *const libc::c_char,
+                        conf_file,
+                        (sb.st_uid) as libc::c_uint,
+                        ROOT_UID
+                    );
+                    break 'done;
+            }
             _ => {
                 /* NOTREACHED */
                 break 'done;
