@@ -1044,6 +1044,13 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
 
                     break 'done;
             }
+            SUDO_PATH_BAD_TYPE => {
+                    sudo_warnx!(
+                        b"%s is not a regular file\0" as *const u8 as *const libc::c_char,
+                        conf_file
+                    );
+                    break 'done;
+            }
             _ => {
                 /* NOTREACHED */
                 break 'done;
