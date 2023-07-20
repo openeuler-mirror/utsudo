@@ -361,6 +361,49 @@ pub unsafe extern "C" fn sudo_SHA256Transform(mut state: *mut uint32_t, mut data
         state as *const libc::c_void,
         std::mem::size_of::<[uint32_t; 8]>() as libc::c_ulong,
     );
+    while j < 16 {
+        BE8TO32!(W[j as usize], data);
+        data = data.offset(4 as isize);
+        j = j.wrapping_add(1);
+    }
+    /* 64 operations, partially loop unrolled. */
+    while j < 64 {
+        R!(0);
+        R!(1);
+        R!(2);
+        R!(3);
+        R!(4);
+        R!(5);
+        R!(6);
+        R!(7);
+        R!(8);
+        R!(9);
+        R!(10);
+        R!(11);
+        R!(12);
+        R!(13);
+        R!(14);
+        R!(15);
+        j = j.wrapping_add(16);
+    }
+    /* Add the working vars back into context state. */
+    let ref mut state0 = *state.offset(0 as isize);
+    *state0 = (*state0 as libc::c_uint).wrapping_add(a!(0) as libc::c_uint) as uint32_t as uint32_t;
+    let ref mut state1 = *state.offset(0 as isize);
+    *state1 = (*state1 as libc::c_uint).wrapping_add(b!(0) as libc::c_uint) as uint32_t as uint32_t;
+    let ref mut state2 = *state.offset(0 as isize);
+    *state2 = (*state2 as libc::c_uint).wrapping_add(c!(0) as libc::c_uint) as uint32_t as uint32_t;
+    let ref mut state3 = *state.offset(0 as isize);
+    *state3 = (*state3 as libc::c_uint).wrapping_add(d!(0) as libc::c_uint) as uint32_t as uint32_t;
+    let ref mut state4 = *state.offset(0 as isize);
+    *state4 = (*state4 as libc::c_uint).wrapping_add(e!(0) as libc::c_uint) as uint32_t as uint32_t;
+    let ref mut state5 = *state.offset(0 as isize);
+    *state5 = (*state5 as libc::c_uint).wrapping_add(f!(0) as libc::c_uint) as uint32_t as uint32_t;
+    let ref mut state6 = *state.offset(0 as isize);
+    *state6 = (*state6 as libc::c_uint).wrapping_add(g!(0) as libc::c_uint) as uint32_t as uint32_t;
+    let ref mut state7 = *state.offset(0 as isize);
+    *state7 = (*state7 as libc::c_uint).wrapping_add(h!(0) as libc::c_uint) as uint32_t as uint32_t;
+
 }
 
 pub unsafe extern "C" fn sudo_SHA256Update
