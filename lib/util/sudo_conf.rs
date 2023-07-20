@@ -1006,7 +1006,14 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
     mut conf_file: *const libc::c_char,
     mut conf_types: libc::c_int,
 ) -> libc::c_int {
+    let mut fp: *mut FILE = 0 as *mut FILE;
+    let mut ret: libc::c_int = false as libc::c_int;
+    
     let mut prev_locale: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut line: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut conf_lineno: libc::c_uint = 0 as libc::c_uint;
+    let mut linesize: size_t = 0 as size_t;
+
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
     prev_locale = setlocale(LC_ALL, 0 as *const libc::c_char);
