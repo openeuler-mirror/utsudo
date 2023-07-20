@@ -313,6 +313,24 @@ macro_rules! s0 {
         (rotrFixed!($x, 7)) ^ (rotrFixed!($x, 18)) ^ $x >> 3
     };
 }
+macro_rules! R {
+    ($x:expr) => {
+        h!($x) = (h!($x)).wrapping_add(
+            (S1!(e!($x)))
+                .wrapping_add(Ch!(e!($x), f!($x), g!($x)))
+                .wrapping_add(SHA256_K[($x as libc::c_uint).wrapping_add(j) as usize])
+                .wrapping_add((if j != 0 { blk2!($x) } else { blk0!($x) })),
+        ) as uint32_t as uint32_t;
+
+        d!($x) = (d!($x)).wrapping_add(h!($x)) as uint32_t as uint32_t;
+
+        h!($x) = (h!($x) as libc::c_uint).wrapping_add((S0!(a!($x))).wrapping_add(Maj!(
+            a!($x),
+            b!($x),
+            c!($x)
+        )) as u32) as uint32_t as uint32_t;
+    };
+}
 
 pub unsafe extern "C" fn sudo_SHA256Init
 
