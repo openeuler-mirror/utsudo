@@ -349,7 +349,19 @@ pub unsafe extern "C" fn sudo_SHA256Init(mut ctx: *mut SHA2_CTX) {
     (*ctx).state.st32[7] = 0x5be0cd19 as libc::c_ulong as uint32_t;
 }
 
-pub unsafe extern "C" fn sudo_SHA256Transform
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA256Transform(mut state: *mut uint32_t, mut data: *const uint8_t) {
+    static mut W: [uint32_t; 16] = [0; 16];
+    static mut T: [uint32_t; 8] = [0; 8];
+    static mut j: libc::c_uint = 0;
+
+    /* Copy context state to working vars. */
+    memcpy(
+        T.as_mut_ptr() as *mut libc::c_void,
+        state as *const libc::c_void,
+        std::mem::size_of::<[uint32_t; 8]>() as libc::c_ulong,
+    );
+}
 
 pub unsafe extern "C" fn sudo_SHA256Update
 
