@@ -438,7 +438,20 @@ pub unsafe extern "C" fn sudo_SHA256Update(
     );
 }
 
-pub unsafe extern "C" fn sudo_SHA256Pad
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA256Pad(mut ctx: *mut SHA2_CTX) {
+    let mut finalcount: [uint8_t; 8] = [0; 8];
+
+    /* Store unpadded message length in bits in big endian format. */
+    BE64TO81!(finalcount, (*ctx).count[0 as usize]);
+
+    /* Append a '1' bit (0x80) to the message. */
+    sudo_SHA256Update(
+        ctx,
+        b"\x80\0" as *const u8 as *const libc::c_char as *mut uint8_t,
+        1 as size_t,
+    );
+}
 
 pub unsafe extern "C" fn sudo_SHA256Final
 
