@@ -220,6 +220,14 @@ extern "C" {
         _: libc::c_longlong,
         _: *mut *const libc::c_char,
     ) -> libc::c_longlong;
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        lineno: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
     fn sudo_warnx_nodebug_v1(fmt: *const libc::c_char, _: ...);
 }
 // #define isblank(c)	__isctype((c), _ISblank)
