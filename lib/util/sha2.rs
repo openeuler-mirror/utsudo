@@ -451,6 +451,22 @@ pub unsafe extern "C" fn sudo_SHA256Pad(mut ctx: *mut SHA2_CTX) {
         b"\x80\0" as *const u8 as *const libc::c_char as *mut uint8_t,
         1 as size_t,
     );
+
+    /* Pad message such that the resulting length modulo 512 is 448. */
+    while (*ctx).count[0] & 504 != 448 {
+        sudo_SHA256Update(
+            ctx,
+            b"\0\0" as *const u8 as *const libc::c_char as *mut uint8_t,
+            1 as size_t,
+        );
+    }
+
+    /* Append length of message in bits and do final SHA256Transform(). */
+    sudo_SHA256Update(
+        ctx,
+        finalcount.as_mut_ptr(),
+        std::mem::size_of::<[uint8_t; 8]>() as libc::c_ulong,
+    );
 }
 
 pub unsafe extern "C" fn sudo_SHA256Final
