@@ -924,4 +924,10 @@ unsafe extern "C" fn sudo_term_copy_v1(src: libc::c_int, dst: libc::c_int) -> bo
     cfsetospeed(&mut tt_dst, speed);
     speed = cfgetispeed(&mut tt_src);
     cfsetispeed(&mut tt_dst, speed);
+
+    if tcsetattr_nobg(dst, TCSASOFT | TCSAFLUSH, &mut tt_dst) == -1 {
+        debug_return_bool!(false);
+    }
+
+    debug_return_bool!(true)
 }
