@@ -1289,8 +1289,12 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
     }//done loop
     free(line as *mut libc::c_void);
 
+    if !fp.is_null() {
+        fclose(fp);
+    }
     /* Restore locale if needed. */
     if prev_locale.offset(0 as isize) as libc::c_int != 'C' as i32
+        || prev_locale.offset(1 as isize) as libc::c_int != '\u{0}' as i32
     {
         setlocale(LC_ALL, prev_locale);
     }
