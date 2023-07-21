@@ -885,4 +885,17 @@ unsafe extern "C" fn sudo_term_copy_v1(src: libc::c_int, dst: libc::c_int) -> bo
         c_ispeed: 0,
         c_ospeed: 0,
     };
+
+    let mut wsize: winsize = winsize {
+        ws_row: 0,
+        ws_col: 0,
+        ws_xpixel: 0,
+        ws_ypixel: 0,
+    };
+    let mut speed: speed_t = 0 as speed_t;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    if tcgetattr(src, &mut tt_src) != 0 || tcgetattr(dst, &mut tt_dst) != 0 {
+        debug_return_bool!(false);
+    }
 }
