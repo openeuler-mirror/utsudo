@@ -180,6 +180,14 @@ extern "C" {
     fn strncasecmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong)
         -> libc::c_int;
     fn geteuid() -> __uid_t;
+    fn __ctype_b_loc() -> *mut *const libc::c_ushort;
+    fn __errno_location() -> *mut libc::c_int;
+    fn setlocale(__category: libc::c_int, __locale: *const libc::c_char) -> *mut libc::c_char;
+    fn sudo_warn_gettext_v1(
+        domainname: *const libc::c_char,
+        msgid: *const libc::c_char,
+    ) -> *mut libc::c_char;
+    fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
     fn sudo_strsplit_v1(
         str: *const libc::c_char,
         endstr: *const libc::c_char,
