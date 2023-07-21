@@ -125,12 +125,18 @@ pub const LC_ALL: libc::c_int = __LC_ALL;
 pub const ROOT_UID: libc::c_int = 0 as libc::c_int;
 
 /* secure_path.c */
-#define SUDO_PATH_SECURE		0
-#define SUDO_PATH_MISSING		-1
-#define SUDO_PATH_BAD_TYPE		-2
-#define SUDO_PATH_WRONG_OWNER		-3
-#define SUDO_PATH_WORLD_WRITABLE	-4
-#define SUDO_PATH_GROUP_WRITABLE	-5
+// #define SUDO_PATH_SECURE		0
+// #define SUDO_PATH_MISSING		-1
+// #define SUDO_PATH_BAD_TYPE		-2
+// #define SUDO_PATH_WRONG_OWNER		-3
+// #define SUDO_PATH_WORLD_WRITABLE	-4
+// #define SUDO_PATH_GROUP_WRITABLE	-5
+pub const SUDO_PATH_SECURE: libc::c_int = 0;
+pub const SUDO_PATH_MISSING: libc::c_int = -1;
+pub const SUDO_PATH_BAD_TYPE: libc::c_int = -2;
+pub const SUDO_PATH_WRONG_OWNER: libc::c_int = -3;
+pub const SUDO_PATH_WORLD_WRITABLE: libc::c_int = -4;
+pub const SUDO_PATH_GROUP_WRITABLE: libc::c_int = -5;
 
 // #define	ENOENT		 2	/* No such file or directory */
 pub const ENOENT: libc::c_int = 2;
