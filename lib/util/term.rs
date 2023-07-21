@@ -910,4 +910,18 @@ unsafe extern "C" fn sudo_term_copy_v1(src: libc::c_int, dst: libc::c_int) -> bo
     SET!(tt_dst.c_oflag, (tt_src.c_oflag & OUTPUT_FLAGS!()));
     SET!(tt_dst.c_cflag, (tt_src.c_cflag & CONTROL_FLAGS!()));
     SET!(tt_dst.c_lflag, (tt_src.c_lflag & LOCAL_FLAGS!()));
+
+    /* Copy special chars from src verbatim. */
+    for i in 0..NCCS {
+        tt_dst.c_cc[i as usize] = tt_src.c_cc[i as usize];
+    }
+
+    /* Copy speed from src (zero output speed closes the connection). */
+    speed = cfgetospeed(&mut tt_src);
+    if speed == B0!() {
+        speed = B38400!();
+    }
+    cfsetospeed(&mut tt_dst, speed);
+    speed = cfgetispeed(&mut tt_src);
+    cfsetispeed(&mut tt_dst, speed);
 }
