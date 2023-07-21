@@ -194,6 +194,19 @@ extern "C" {
         msgid: *const libc::c_char,
     ) -> *mut libc::c_char;
     fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
+        fn sudo_secure_file_v1(
+        path: *const libc::c_char,
+        uid: uid_t,
+        gid: gid_t,
+        sbp: *mut stat,
+    ) -> libc::c_int;
+    fn sudo_parseln_v2(
+        buf: *mut *mut libc::c_char,
+        bufsize: *mut size_t,
+        lineno: *mut libc::c_uint,
+        fp: *mut FILE,
+        flags: libc::c_int,
+    ) -> ssize_t;
     fn sudo_strsplit_v1(
         str: *const libc::c_char,
         endstr: *const libc::c_char,
