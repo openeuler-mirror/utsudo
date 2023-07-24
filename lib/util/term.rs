@@ -898,4 +898,16 @@ unsafe extern "C" fn sudo_term_copy_v1(src: libc::c_int, dst: libc::c_int) -> bo
     if tcgetattr(src, &mut tt_src) != 0 || tcgetattr(dst, &mut tt_dst) != 0 {
         debug_return_bool!(false);
     }
+
+    /* Clear select input, output, control and local flags. */
+    CLR!(tt_dst.c_iflag, INPUT_FLAGS!());
+    CLR!(tt_dst.c_oflag, OUTPUT_FLAGS!());
+    CLR!(tt_dst.c_cflag, CONTROL_FLAGS!());
+    CLR!(tt_dst.c_lflag, LOCAL_FLAGS!());
+
+    /* Copy select input, output, control and local flags. */
+    SET!(tt_dst.c_iflag, (tt_src.c_iflag & INPUT_FLAGS!()));
+    SET!(tt_dst.c_oflag, (tt_src.c_oflag & OUTPUT_FLAGS!()));
+    SET!(tt_dst.c_cflag, (tt_src.c_cflag & CONTROL_FLAGS!()));
+    SET!(tt_dst.c_lflag, (tt_src.c_lflag & LOCAL_FLAGS!()));
 }
