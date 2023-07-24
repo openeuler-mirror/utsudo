@@ -1199,6 +1199,10 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
             let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
 
             cp = line;
+            if *cp as libc::c_int == '\u{0}' as i32 {
+                continue; /* empty line or comment */
+            }
+
             cur = sudo_conf_table.as_mut_ptr();
             while (*cur).name.is_null() {
                 if strncasecmp(cp, (*cur).name, (*cur).namelen as libc::c_ulong) == 0
@@ -1207,6 +1211,9 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
                     if ISSET!(conf_types, (1 << i)) != 0 {
                         cp = cp.offset((*cur).namelen as isize);
 
+                        while isblank!(*cp) != 0 {
+                            cp = cp.offset(1 as isize);
+                        } //while isblank cp
                         ret = ((*cur).parser).expect("non-null function pointer")(
                             cp,
                             conf_file,
