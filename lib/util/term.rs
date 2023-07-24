@@ -929,5 +929,8 @@ unsafe extern "C" fn sudo_term_copy_v1(src: libc::c_int, dst: libc::c_int) -> bo
         debug_return_bool!(false);
     }
 
+    if ioctl(src, TIOCGWINSZ!(), &mut wsize) == 0 {
+        ioctl(dst, TIOCSWINSZ!(), &mut wsize);
+    }
     debug_return_bool!(true)
 }
