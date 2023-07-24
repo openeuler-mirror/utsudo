@@ -1211,7 +1211,16 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
                     break;
                 } // if strncasecmp
               } // while (*cur).name.is_null()
-
+            
+            if (*cur).name.is_null() {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN,
+                    b"%s: %s:%u: unsupported entry: %s\0" as *const u8 as *const libc::c_char,
+                    stdext::function_name!().as_ptr(),
+                    conf_file,
+                    conf_lineno,
+                    line
+                );
             }
         } // while sudo_parseln_v2
         ret = true as libc::c_int;
