@@ -1082,6 +1082,32 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
     mut conf_file: *const libc::c_char,
     mut conf_types: libc::c_int,
 ) -> libc::c_int {
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        st_nlink: 0,
+        st_mode: 0,
+        st_uid: 0,
+        st_gid: 0,
+        __pad0: 0,
+        st_rdev: 0,
+        st_size: 0,
+        st_blksize: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        __glibc_reserved: [0; 3],
+    };
     let mut fp: *mut FILE = 0 as *mut FILE;
     let mut ret: libc::c_int = false as libc::c_int;
     
