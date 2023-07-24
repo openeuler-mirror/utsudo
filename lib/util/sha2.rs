@@ -431,6 +431,19 @@ pub unsafe extern "C" fn sudo_SHA256Update(
     let ref mut ctx0 = (*ctx).count[0 as usize];
     *ctx0 = (*ctx0 as libc::c_ulong).wrapping_add(len << 3) as uint64_t as uint64_t;
 
+    if j.wrapping_add(len) > (SHA256_BLOCK_LENGTH - 1) as libc::c_ulong {
+        i = (SHA256_BLOCK_LENGTH as libc::c_ulong).wrapping_sub(j);
+        memcpy(
+            &mut *((*ctx).buffer).as_mut_ptr().offset(j as isize) as *mut uint8_t
+                as *mut libc::c_void,
+            data as *const libc::c_void,
+            i,
+        );
+        sudo_SHA256Transform(
+            ((*ctx).state.st32).as_mut_ptr(),
+            ((*ctx).buffer).as_mut_ptr() as *const uint8_t,
+        );
+    }
     memcpy(
         &mut *((*ctx).buffer).as_mut_ptr().offset(j as isize) as *mut uint8_t as *mut libc::c_void,
         &*data.offset(i as isize) as *const uint8_t as *const libc::c_void,
