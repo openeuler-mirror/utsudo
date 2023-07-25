@@ -552,7 +552,25 @@ pub unsafe extern "C" fn sudo_SHA384Pad(mut ctx: *mut SHA2_CTX) {
     sudo_SHA512Pad(ctx);
 }
 
-pub unsafe extern "C" fn sudo_SHA384Final
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA384Final(mut digest: *mut uint8_t, mut ctx: *mut SHA2_CTX) {
+    sudo_SHA384Pad(ctx);
+    if !digest.is_null() {
+        let mut i: libc::c_uint = 0;
+        while i < 6 {
+            BE64TO8!(
+                digest.offset(i.wrapping_mul(8 as libc::c_uint) as isize),
+                (*ctx).state.st64[i as usize]
+            );
+            i.wrapping_add(1 as libc::c_uint);
+        }
+        memset(
+            ctx as *mut libc::c_void,
+            0,
+            std::mem::size_of::<SHA2_CTX>() as libc::c_ulong,
+        );
+    }
+}
 
 pub unsafe extern "C" fn sudo_SHA512Init
 
