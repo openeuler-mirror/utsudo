@@ -547,7 +547,10 @@ pub unsafe extern "C" fn sudo_SHA384Update(
     sudo_SHA512Update(ctx, data, len);
 }
 
-pub unsafe extern "C" fn sudo_SHA384Pad
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA384Pad(mut ctx: *mut SHA2_CTX) {
+    sudo_SHA512Pad(ctx);
+}
 
 pub unsafe extern "C" fn sudo_SHA384Final
 
