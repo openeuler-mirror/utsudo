@@ -694,6 +694,26 @@ macro_rules! rotrFixed {
         }
     };
 }
+macro_rules! S0 {
+    ($x:expr) => {
+        (rotrFixed!($x, 28)) ^ (rotrFixed!($x, 34)) ^ (rotrFixed!($x, 39))
+    };
+}
+macro_rules! S1 {
+    ($x:expr) => {
+        (rotrFixed!($x, 14)) ^ (rotrFixed!($x, 18)) ^ (rotrFixed!($x, 41))
+    };
+}
+macro_rules! s0 {
+    ($x:expr) => {
+        (rotrFixed!($x, 1)) ^ (rotrFixed!($x, 8)) ^ $x >> 7
+    };
+}
+macro_rules! s1 {
+    ($x:expr) => {
+        (rotrFixed!($x, 19)) ^ (rotrFixed!($x, 61)) ^ $x >> 6
+    };
+}
 #[no_mangle]
 pub unsafe extern "C" fn sudo_SHA512Transform(mut state: *mut uint64_t, mut data: *const uint8_t) {
     static mut W: [uint64_t; 16] = [0; 16];
