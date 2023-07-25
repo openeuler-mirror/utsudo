@@ -913,12 +913,12 @@ unsafe extern "C" fn set_var_disable_coredump(
             lineno
         );
 
-        debug_return_bool!(false) as libc::c_int;
+        debug_return_int!(false  as libc::c_int);
     }
 
     sudo_conf_data.disable_coredump = val as libc::c_int != 0;
 
-    debug_return_bool!(true) as libc::c_int
+    debug_return_int!(true  as libc::c_int);
 }
 
 #[no_mangle]
@@ -942,9 +942,9 @@ unsafe extern "C" fn set_var_group_source(
             conf_file,
             lineno
         );
-        debug_return_bool!(false) as libc::c_int;
+        debug_return_int!(false  as libc::c_int);
     }
-    debug_return_bool!(true) as libc::c_int
+    debug_return_int!(true  as libc::c_int);
 }
 #[no_mangle]
 unsafe extern "C" fn set_var_max_groups(
@@ -963,10 +963,10 @@ unsafe extern "C" fn set_var_max_groups(
             conf_file,
             lineno
         );
-        debug_return_bool!(false) as libc::c_int;
+        debug_return_int!(false  as libc::c_int);
     }
     sudo_conf_data.max_groups = max_groups;
-    debug_return_bool!(true) as libc::c_int
+    debug_return_int!(true  as libc::c_int);
 }
 
 #[no_mangle]
@@ -986,11 +986,11 @@ unsafe extern "C" fn set_var_probe_interfaces(
             conf_file,
             lineno,
         );
-        debug_return_bool!(false) as libc::c_int;
+        debug_return_int!(false  as libc::c_int);
     }
 
     sudo_conf_data.probe_interfaces = val as libc::c_int != 0;
-    debug_return_bool!(true) as libc::c_int
+    debug_return_int!(true  as libc::c_int);
 }
 
 #[no_mangle]
