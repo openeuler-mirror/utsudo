@@ -443,6 +443,19 @@ pub unsafe extern "C" fn sudo_SHA256Update(
             ((*ctx).state.st32).as_mut_ptr(),
             ((*ctx).buffer).as_mut_ptr() as *const uint8_t,
         );
+        while i
+            .wrapping_add(SHA256_BLOCK_LENGTH as libc::c_ulong)
+            .wrapping_sub(1 as libc::c_ulong)
+            < len
+        {
+            sudo_SHA256Transform(
+                ((*ctx).state.st32).as_mut_ptr(),
+                &*data.offset(i as isize) as *const uint8_t as *mut uint8_t as *const uint8_t,
+            );
+            i = (i as libc::c_ulong).wrapping_add(SHA256_BLOCK_LENGTH as libc::c_ulong) as size_t
+                as size_t;
+        }
+        j = 0;
     }
     memcpy(
         &mut *((*ctx).buffer).as_mut_ptr().offset(j as isize) as *mut uint8_t as *mut libc::c_void,
