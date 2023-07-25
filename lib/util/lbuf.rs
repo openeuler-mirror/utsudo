@@ -259,7 +259,7 @@ pub unsafe extern "C" fn sudo_lbuf_print_v1(mut lbuf: *mut sudo_lbuf) {
                     len = ((*lbuf).len as libc::c_long
                         - cp.offset_from((*lbuf).buf) as libc::c_long)
                         as libc::c_int;
-                    ep = memrchr(cp as *const libc::c_void, '\n' as i32, len as libc::c_ulong)
+                    ep = memchr(cp as *const libc::c_void, '\n' as i32, len as libc::c_ulong)
                         as *mut libc::c_char;
                     if !ep.is_null() {
                         len = ep.offset_from(cp) as libc::c_long as libc::c_int;
