@@ -672,7 +672,21 @@ pub unsafe extern "C" fn sudo_SHA512Init(mut ctx: *mut SHA2_CTX) {
     (*ctx).state.st64[7] = 0x5be0cd19137e2179 as libc::c_ulonglong as uint64_t;
 }
 
-pub unsafe extern "C" fn sudo_SHA512Transform
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA512Transform(mut state: *mut uint64_t, mut data: *const uint8_t) {
+    static mut W: [uint64_t; 16] = [0; 16];
+    static mut T: [uint64_t; 8] = [0; 8];
+    static mut j: libc::c_uint = 0;
+    memcpy(
+        T.as_mut_ptr() as *mut libc::c_void,
+        state as *const libc::c_void,
+        std::mem::size_of::<[uint64_t; 8]>() as libc::c_ulong,
+    );
+    while j < 16 {
+        BE8TO64!(W[j as usize], data);
+        data = data.offset(8 as isize);
+        j = j.wrapping_add(1);
+    }
 
 pub unsafe extern "C" fn sudo_SHA512Update
 
