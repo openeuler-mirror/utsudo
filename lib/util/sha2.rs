@@ -572,7 +572,22 @@ pub unsafe extern "C" fn sudo_SHA384Final(mut digest: *mut uint8_t, mut ctx: *mu
     }
 }
 
-pub unsafe extern "C" fn sudo_SHA512Init
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA512Init(mut ctx: *mut SHA2_CTX) {
+    memset(
+        ctx as *mut libc::c_void,
+        0,
+        std::mem::size_of::<SHA2_CTX>() as libc::c_ulong,
+    );
+    (*ctx).state.st64[0] = 0x6a09e667f3bcc908 as libc::c_ulonglong as uint64_t;
+    (*ctx).state.st64[1] = 0xbb67ae8584caa73b as libc::c_ulonglong as uint64_t;
+    (*ctx).state.st64[2] = 0x3c6ef372fe94f82b as libc::c_ulonglong as uint64_t;
+    (*ctx).state.st64[3] = 0xa54ff53a5f1d36f1 as libc::c_ulonglong as uint64_t;
+    (*ctx).state.st64[4] = 0x510e527fade682d1 as libc::c_ulonglong as uint64_t;
+    (*ctx).state.st64[5] = 0x9b05688c2b3e6c1f as libc::c_ulonglong as uint64_t;
+    (*ctx).state.st64[6] = 0x1f83d9abfb41bd6b as libc::c_ulonglong as uint64_t;
+    (*ctx).state.st64[7] = 0x5be0cd19137e2179 as libc::c_ulonglong as uint64_t;
+}
 
 pub unsafe extern "C" fn sudo_SHA512Transform
 
