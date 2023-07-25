@@ -137,6 +137,7 @@ unsafe fn sudo_fatal_callback_register_v1(mut func: sudo_fatal_callback_t) -> li
         if func == (*cb).func {
             return -1;
         }
+        cb = (*cb).entries.sle_next;
     }
 
     cb = malloc(std::mem::size_of::<sudo_fatal_callback>() as libc::c_ulong)
@@ -146,31 +147,31 @@ unsafe fn sudo_fatal_callback_register_v1(mut func: sudo_fatal_callback_t) -> li
     }
     (*cb).func = func;
     (*cb).entries.sle_next = cb;
+    callbacks.slh_first = cb;
     return 0;
 }
 
 #[no_mangle]
-fn sudo_fatal_callback_deregister_v1(mut func: sudo_fatal_callback_t) -> libc::c_int {
+pub unsafe extern "C" fn sudo_fatal_callback_deregister_v1(mut func: sudo_fatal_callback_t) -> libc::c_int {
     let mut cb: *mut sudo_fatal_callback = 0 as *mut sudo_fatal_callback;
     let mut prev: *mut *mut sudo_fatal_callback = 0 as *mut *mut sudo_fatal_callback;
+    prev = &mut callbacks.slh_first;
     loop {
         cb = unsafe { *prev };
         if cb.is_null() {
             break;
         }
-        unsafe {
-            if (*cb).func == func {
-                if cb == callbacks.slh_first {
-                    callbacks.slh_first = (*callbacks.slh_first).entries.sle_next;
-                } else {
-                    let ref mut fresh8 = (**prev).entries.sle_next;
-                    *fresh8 = (*(**prev).entries.sle_next).entries.sle_next;
-                }
-                free(cb as *mut libc::c_void);
-                return 0;
+        if (*cb).func == func {
+            if cb == callbacks.slh_first {
+                callbacks.slh_first = (*callbacks.slh_first).entries.sle_next;
+            } else {
+                let ref mut fresh8 = (**prev).entries.sle_next;
+                *fresh8 = (*(**prev).entries.sle_next).entries.sle_next;
             }
-            prev = &mut (*cb).entries.sle_next;
+            free(cb as *mut libc::c_void);
+            return 0;
         }
+        prev = &mut (*cb).entries.sle_next;
     }
     return -1;
 }
