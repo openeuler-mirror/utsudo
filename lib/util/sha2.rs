@@ -538,7 +538,14 @@ pub unsafe extern "C" fn sudo_SHA384Transform(mut state: *mut uint64_t, mut data
     sudo_SHA512Transform(state, data);
 }
 
-pub unsafe extern "C" fn sudo_SHA384Update
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA384Update(
+    mut ctx: *mut SHA2_CTX,
+    mut data: *const uint8_t,
+    mut len: size_t,
+) {
+    sudo_SHA512Update(ctx, data, len);
+}
 
 pub unsafe extern "C" fn sudo_SHA384Pad
 
