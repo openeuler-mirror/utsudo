@@ -672,6 +672,28 @@ pub unsafe extern "C" fn sudo_SHA512Init(mut ctx: *mut SHA2_CTX) {
     (*ctx).state.st64[7] = 0x5be0cd19137e2179 as libc::c_ulonglong as uint64_t;
 }
 
+/* Round macros for SHA512 */
+macro_rules! blk2 {
+    ($x:expr) => {
+        (W[($x & 15) as usize]).wrapping_add(
+            (s1!(W[($x - 2 & 15) as usize]))
+                .wrapping_add(W[($x - 7 & 15) as usize])
+                .wrapping_add(s0!(W[($x - 15 & 15) as usize])),
+        ) as uint64_t as uint64_t
+    };
+}
+macro_rules! rotrFixed {
+    ($x:expr,$y:expr) => {
+        if $y != 0 {
+            $x >> $y
+                | $x << (std::mem::size_of::<uint64_t>() as libc::c_ulong)
+                    .wrapping_mul(8 as libc::c_ulong)
+                    .wrapping_sub($y as libc::c_ulong)
+        } else {
+            $x
+        }
+    };
+}
 #[no_mangle]
 pub unsafe extern "C" fn sudo_SHA512Transform(mut state: *mut uint64_t, mut data: *const uint8_t) {
     static mut W: [uint64_t; 16] = [0; 16];
