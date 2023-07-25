@@ -747,7 +747,26 @@ pub unsafe extern "C" fn sudo_SHA512Transform(mut state: *mut uint64_t, mut data
         j = j.wrapping_add(1);
     }
 
-pub unsafe extern "C" fn sudo_SHA512Update
+    /* 80 operations, partially loop unrolled. */
+    while j < 80 {
+        R!(0);
+        R!(1);
+        R!(2);
+        R!(3);
+        R!(4);
+        R!(5);
+        R!(6);
+        R!(7);
+        R!(8);
+        R!(9);
+        R!(10);
+        R!(11);
+        R!(12);
+        R!(13);
+        R!(14);
+        R!(15);
+        j = j.wrapping_add(16 as libc::c_uint);
+    }
 
 pub unsafe extern "C" fn sudo_SHA512Pad
 
