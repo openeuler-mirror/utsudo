@@ -533,7 +533,10 @@ pub unsafe extern "C" fn sudo_SHA384Init(mut ctx: *mut SHA2_CTX) {
     (*ctx).state.st64[7] = 0x47b5481dbefa4fa4 as libc::c_ulonglong as uint64_t;
 }
 
-pub unsafe extern "C" fn sudo_SHA384Transform
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA384Transform(mut state: *mut uint64_t, mut data: *const uint8_t) {
+    sudo_SHA512Transform(state, data);
+}
 
 pub unsafe extern "C" fn sudo_SHA384Update
 
