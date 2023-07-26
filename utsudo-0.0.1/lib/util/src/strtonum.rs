@@ -13,6 +13,9 @@ extern "C" {
 }
 
 pub const _ISspace: libc::c_uint = 8192;
+pub const _ISdigit: libc::c_uint = 2048;
+pub const EINVAL: libc::c_int = 22;
+pub const ERANGE: libc::c_int = 34;
 
 #[derive(Eq, PartialEq)]
 enum strtonum_err {
