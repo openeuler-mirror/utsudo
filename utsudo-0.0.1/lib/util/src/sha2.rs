@@ -801,7 +801,29 @@ pub unsafe extern "C" fn sudo_SHA512Transform(mut state: *mut uint64_t, mut data
     );
 }
 
-pub unsafe extern "C" fn sudo_SHA512Update
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA512Update(
+    mut ctx: *mut SHA2_CTX,
+    mut data: *const uint8_t,
+    mut len: size_t,
+) {
+    let mut i: size_t = 0 as size_t;
+    let mut j: size_t = 0;
+    j = (*ctx).count[0 as usize] >> 3 & (SHA512_BLOCK_LENGTH - 1) as libc::c_ulong;
+
+    let ref mut ctx1 = (*ctx).count[0 as usize];
+    *ctx1 = (*ctx1 as libc::c_ulong).wrapping_add(len << 3) as uint64_t as uint64_t;
+
+    if (*ctx).count[0 as usize] < len << 3 {
+        let ref mut ctx2 = (*ctx).count[1 as usize];
+        *ctx2 = (*ctx2).wrapping_add(1);
+    }
+    memcpy(
+        &mut *((*ctx).buffer).as_mut_ptr().offset(j as isize) as *mut uint8_t as *mut libc::c_void,
+        &*data.offset(i as isize) as *const uint8_t as *const libc::c_void,
+        len.wrapping_sub(i),
+    );
+}
 
 pub unsafe extern "C" fn sudo_SHA512Pad
 
