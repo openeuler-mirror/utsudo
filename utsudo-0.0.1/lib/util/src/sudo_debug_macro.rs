@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
+
 #![allow(
     dead_code,
     mutable_transmutes,
@@ -11,7 +17,6 @@
     unused_variables
 )]
 
-use crate::macro_struct::*;
 // use stdext::function_name;
 use crate::sudo_debug::*;
 
@@ -75,7 +80,28 @@ macro_rules! SUDO_DEBUG_ALL {
     };
 }
 
-#[macro_export]
+// /* Error return for sudo_debug_register().  */
+pub const SUDO_DEBUG_INSTANCE_ERROR: libc::c_int = -2;
+
+// /* Initializer for instance index to indicate that debugging is not setup. */
+// #define 	-1
+pub const SUDO_DEBUG_INSTANCE_INITIALIZER: libc::c_int = -1;
+
+// /* Extract priority number and convert to an index. */
+macro_rules! SUDO_DEBUG_PRI {
+    ($n:expr) => {
+        ((($n) & 0x0f) - 1)
+    };
+}
+
+// /* Extract subsystem number and convert to an index. */
+macro_rules! SUDO_DEBUG_SUBSYS {
+    ($n:expr) => {
+        ((($n) >> 6) - 1)
+    };
+}
+
+// 啥也没调用
 macro_rules! debug_decl_func {
     ($funcname:expr) => {};
 }
@@ -83,7 +109,7 @@ macro_rules! debug_decl_func {
 #[macro_export]
 macro_rules! debug_decl_vars {
     ($funcname:expr, $subsys:expr) => {
-        sudo_debug_subsys = $subsys
+        crate::sudo_debug_macro::sudo_debug_subsys = $subsys
     };
 }
 
@@ -95,7 +121,7 @@ macro_rules! debug_decl {
             $funcname as *const libc::c_char,
             file!().as_ptr() as *const libc::c_char,
             line!() as libc::c_int,
-            sudo_debug_subsys as libc::c_int,
+            crate::sudo_debug_macro::sudo_debug_subsys as libc::c_int,
         );
     };
 }
@@ -107,7 +133,7 @@ macro_rules! debug_return_int {
             stdext::function_name!().as_ptr() as *const libc::c_char,
             file!().as_ptr() as *const libc::c_char,
             line!() as libc::c_int,
-            sudo_debug_subsys as libc::c_int,
+            crate::sudo_debug_macro::sudo_debug_subsys as libc::c_int,
             $ret,
         );
         return $ret;
@@ -121,7 +147,7 @@ macro_rules! debug_return_id_t {
             stdext::function_name!().as_ptr() as *const libc::c_char,
             file!().as_ptr() as *const libc::c_char,
             line!() as libc::c_int,
-            sudo_debug_subsys as libc::c_int,
+            crate::sudo_debug_macro::sudo_debug_subsys as libc::c_int,
             $ret,
         );
         return $ret;
@@ -131,8 +157,15 @@ macro_rules! debug_return_id_t {
 #[macro_export]
 macro_rules! debug_return_size_t {
     ($ret:expr) => {
-        sudo_debug_exit_size_t(function_name!(), file!(), line!(), sudo_debug_subsys, $ret);
-        return $ret;
+        let mut sudo_debug_ret: size_t = ($ret);
+        sudo_debug_exit_size_t(
+            function_name!(),
+            file!(),
+            line!(),
+            sudo_debug_subsys,
+            sudo_debug_ret,
+        );
+        sudo_debug_ret
     };
 }
 
@@ -143,7 +176,7 @@ macro_rules! debug_return_ssize_t {
             stdext::function_name!().as_ptr() as *const libc::c_char,
             file!().as_ptr() as *const libc::c_char,
             line!() as libc::c_int,
-            sudo_debug_subsys as libc::c_int,
+            crate::sudo_debug_macro::sudo_debug_subsys as libc::c_int,
             $ret,
         );
         return $ret;
@@ -153,16 +186,30 @@ macro_rules! debug_return_ssize_t {
 #[macro_export]
 macro_rules! debug_return_time_t {
     ($ret:expr) => {
-        sudo_debug_exit_time_t(function_name!(), file!(), line!(), sudo_debug_subsys, $ret);
-        return $ret;
+        let mut sudo_debug_ret: time_t = ($ret);
+        sudo_debug_exit_time_t(
+            function_name!(),
+            file!(),
+            line!(),
+            sudo_debug_subsys,
+            sudo_debug_ret,
+        );
+        sudo_debug_ret
     };
 }
 
 #[macro_export]
 macro_rules! debug_return_long {
     ($ret:expr) => {
-        sudo_debug_exit_long(function_name!(), file!(), line!(), sudo_debug_subsys, $ret);
-        return $ret;
+        let mut sudo_debug_ret: long = ($ret);
+        sudo_debug_exit_long(
+            function_name!(),
+            file!(),
+            line!(),
+            sudo_debug_subsys,
+            sudo_debug_ret,
+        );
+        sudo_debug_ret
     };
 }
 
@@ -173,8 +220,8 @@ macro_rules! debug_return_bool {
             stdext::function_name!().as_ptr() as *const libc::c_char,
             file!().as_ptr() as *const libc::c_char,
             line!() as libc::c_int,
-            sudo_debug_subsys as libc::c_int,
-            $ret,
+            crate::sudo_debug_macro::sudo_debug_subsys as libc::c_int,
+            return $ret,
         );
         return $ret;
     }};
@@ -187,7 +234,7 @@ macro_rules! debug_return_str {
             stdext::function_name!().as_ptr() as *const libc::c_char,
             file!().as_ptr() as *const libc::c_char,
             line!() as libc::c_int,
-            sudo_debug_subsys as libc::c_int,
+            crate::sudo_debug_macro::sudo_debug_subsys as libc::c_int,
             $ret,
         );
         return $ret;
@@ -197,19 +244,26 @@ macro_rules! debug_return_str {
 #[macro_export]
 macro_rules! debug_return_const_str {
     ($ret:expr) => {
-        sudo_debug_exit_str(function_name!(), file!(), line!(), sudo_debug_subsys, $ret);
-        return $ret;
+        let mut sudo_debug_ret: *mut libc::c_char = ($ret);
+        sudo_debug_exit_str(
+            function_name!(),
+            file!(),
+            line!(),
+            sudo_debug_subsys,
+            sudo_debug_ret,
+        );
+        sudo_debug_ret
     };
 }
 
 #[macro_export]
 macro_rules! debug_return_str_masked {
     ($ret:expr) => {{
-        sudo_debug_exit_str_masked_v1(
+        sudo_debug_exit_str_masked(
             stdext::function_name!().as_ptr() as *const libc::c_char,
             file!().as_ptr() as *const libc::c_char,
             line!() as libc::c_int,
-            sudo_debug_subsys as libc::c_int,
+            crate::sudo_debug_macro::sudo_debug_subsys as libc::c_int,
             $ret,
         );
         return $ret;
@@ -223,7 +277,7 @@ macro_rules! debug_return_ptr {
             stdext::function_name!().as_ptr() as *const libc::c_char,
             file!().as_ptr() as *const libc::c_char,
             line!() as libc::c_int,
-            sudo_debug_subsys as libc::c_int,
+            crate::sudo_debug_macro::sudo_debug_subsys as libc::c_int,
             $ret as *const libc::c_void,
         );
         return $ret;
@@ -236,7 +290,7 @@ macro_rules! debug_return_const_ptr {
             stdext::function_name!().as_ptr() as *const libc::c_char,
             file!().as_ptr() as *const libc::c_char,
             line!() as libc::c_int,
-            sudo_debug_subsys as libc::c_int,
+            crate::sudo_debug_macro::sudo_debug_subsys as libc::c_int,
             $ret as *const libc::c_void,
         );
         return $ret;
@@ -245,14 +299,7 @@ macro_rules! debug_return_const_ptr {
 
 #[macro_export]
 macro_rules! sudo_debug_execve {
-    ($pri:expr, $path:expr, $argv:expr, $envp:expr) => {{
-        sudo_debug_execve2_v1(
-            $pri | sudo_debug_subsys as libc::c_int,
-            $path as *const libc::c_char,
-            $argv as *const *mut libc::c_char,
-            $envp as *const *mut libc::c_char,
-        );
-    }};
+    ($ret:expr) => {};
 }
 
 macro_rules! sudo_debug_write {
@@ -284,7 +331,7 @@ macro_rules! sudo_debug_printf {
         stdext::function_name!().as_ptr() as *const libc::c_char,
         file!().as_ptr() as *const libc::c_char,
         line!() as libc::c_int,
-        ($pri | sudo_debug_subsys) as libc::c_int,
+        ($pri | crate::sudo_debug_macro::sudo_debug_subsys) as libc::c_int,
         $($arg)*,
         );
     }};
@@ -297,96 +344,20 @@ macro_rules! debug_return {
             stdext::function_name!().as_ptr() as *const libc::c_char,
             file!().as_ptr() as *const libc::c_char,
             line!() as libc::c_int,
-            sudo_debug_subsys as libc::c_int,
+            crate::sudo_debug_macro::sudo_debug_subsys as libc::c_int,
         );
         return;
     }};
 }
 
-// #  define sudo_warn(fmt...) do {					       \
-//     sudo_debug_printf2(__func__, __FILE__, __LINE__,			       \
-// 	SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|SUDO_DEBUG_ERRNO|sudo_debug_subsys, \
-// 	fmt);								       \
-//     sudo_warn_nodebug_v1(fmt);
-// } while (0)
-#[macro_export]
 macro_rules! sudo_warn {
     ($fmt:expr, $($arg:tt)*) => {{
-        sudo_debug_printf2_v1(
-            stdext::function_name!().as_ptr() as *const libc::c_char,
-            file!().as_ptr() as *const libc::c_char,
-            line!() as libc::c_int,
-            SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|SUDO_DEBUG_ERRNO|sudo_debug_subsys,
-            $fmt,
-            $($arg)*
-            );
         sudo_warn_nodebug_v1($fmt,  $($arg)*);
     }};
 }
 
-// sudo_warnx(fmt...) do {					       \
-//     sudo_debug_printf2(__func__, __FILE__, __LINE__,			       \
-// 	SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|sudo_debug_subsys, fmt);	       \
-//     sudo_warnx_nodebug_v1(fmt);
-// } while (0)
-#[macro_export]
 macro_rules! sudo_warnx {
     ($fmt:expr, $($arg:tt)*) => {{
-        sudo_debug_printf2_v1(
-            stdext::function_name!().as_ptr() as *const libc::c_char,
-            file!().as_ptr() as *const libc::c_char,
-            line!() as libc::c_int,
-            SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|sudo_debug_subsys,
-            $fmt,
-            $($arg)*
-            );
-        sudo_warnx_nodebug_v1(
-            $fmt,
-            $($arg)*
-        );
-    }};
-}
-
-// #  define sudo_fatalx(fmt...) do {					       \
-//     sudo_debug_printf2(__func__, __FILE__, __LINE__,			       \
-// 	SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|sudo_debug_subsys, fmt);	       \
-//     sudo_fatalx_nodebug_v1(fmt);					       \
-// } while (0)
-#[macro_export]
-macro_rules! sudo_fatalx {
-    ($fmt:expr, $($arg:tt)*) => {{
-        sudo_debug_printf2_v1(
-            stdext::function_name!().as_ptr() as *const libc::c_char,
-            file!().as_ptr() as *const libc::c_char,
-            line!() as libc::c_int,
-            SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|sudo_debug_subsys,
-            $fmt,
-            $($arg)*
-            );
-        sudo_fatalx_nodebug_v1(
-            $fmt,
-            $($arg)*
-        );
-    }};
-}
-
-// #  define sudo_fatal(fmt...) do {					       \
-//     sudo_debug_printf2(__func__, __FILE__, __LINE__,			       \
-// 	SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|SUDO_DEBUG_ERRNO|sudo_debug_subsys, \
-// 	fmt);								       \
-//     sudo_fatal_nodebug_v1(fmt);
-// } while (0)
-#[macro_export]
-macro_rules! sudo_fatal {
-    ($fmt:expr, $($arg:tt)*) => {{
-        sudo_debug_printf2_v1(
-            stdext::function_name!().as_ptr() as *const libc::c_char,
-            file!().as_ptr() as *const libc::c_char,
-            line!() as libc::c_int,
-            SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO|SUDO_DEBUG_ERRNO|sudo_debug_subsys,
-            $fmt,
-            $($arg)*
-            );
-        sudo_fatal_nodebug_v1($fmt,  $($arg)*);
+        sudo_warnx_nodebug_v1($fmt,  $($arg)*);
     }};
 }
