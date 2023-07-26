@@ -333,9 +333,9 @@ still allow people to get their work done."
 	$bindir/sudoreplay  	0755
 	$sbindir/visudo     	0755
 	$includedir/sudo_plugin.h 0644
-	$libexecdir/sudo/	0755
-	$libexecdir/sudo/sesh	0755 optional,ignore-others
-	$libexecdir/sudo/*	$shlib_mode optional
+	$libexecdir/utsudo/	0755
+	$libexecdir/utsudo/sesh	0755 optional,ignore-others
+	$libexecdir/utsudo/*	$shlib_mode optional
 	$sudoersdir/sudoers.d/	0750 $sudoers_uid:$sudoers_gid
 	$rundir/		0711 root:
 	$vardir/		0711 root: ignore-others

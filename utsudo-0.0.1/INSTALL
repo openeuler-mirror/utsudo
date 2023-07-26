@@ -102,7 +102,7 @@ Directory and file names:
 	Install `visudo' in DIR. [EPREFIX/sbin]
 
   --libexecdir=DIR
-	Install plugins and helper programs in DIR/sudo [PREFIX/libexec/sudo]
+	Install plugins and helper programs in DIR/sudo [PREFIX/libexec/utsudo]
 
   --sysconfdir=DIR
 	Look for `sudo.conf' and `sudoers' files in DIR. [/etc]
@@ -339,7 +339,7 @@ Optional features:
 	another program (think shell escapes).  Please see the
 	"PREVENTING SHELL ESCAPES" section in the sudoers man page
 	for details.  If specified, PATH should be a fully qualified
-	path name, e.g. /usr/local/libexec/sudo/sudo_noexec.so.  If PATH
+	path name, e.g. /usr/local/libexec/utsudo/sudo_noexec.so.  If PATH
 	is "no", noexec support will not be compiled in.  The default
 	is to compile noexec support if libtool supports building
 	shared objects on your OS.

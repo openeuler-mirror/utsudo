@@ -50,7 +50,9 @@ sudoers_mode = @SUDOERS_MODE@
 shlib_mode = @SHLIB_MODE@
 
 SUBDIRS = lib/util @ZLIB_SRC@ plugins/group_file plugins/sudoers \
-	  plugins/system_group src include doc examples
+	  plugins/system_group src include
+
+# SUBDIRS = lib/util @ZLIB_SRC@ src include
 
 SAMPLES = plugins/sample
 
@@ -71,7 +73,7 @@ ECHO_C = @ECHO_C@
 
 # Message catalog support
 NLS = @SUDO_NLS@
-POTFILES = po/sudo.pot plugins/sudoers/po/sudoers.pot
+POTFILES = po/utsudo.pot plugins/sudoers/po/utsudoers.pot
 LOCALEDIR_SUFFIX = @LOCALEDIR_SUFFIX@
 MSGFMT = msgfmt
 MSGMERGE = msgmerge
