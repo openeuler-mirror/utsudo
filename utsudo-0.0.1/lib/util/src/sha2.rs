@@ -883,5 +883,15 @@ pub unsafe extern "C" fn sudo_SHA512Pad(mut ctx: *mut SHA2_CTX) {
     );
 }
 
-
-pub unsafe extern "C" fn sudo_SHA512Final
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA512Final(mut digest: *mut uint8_t, mut ctx: *mut SHA2_CTX) {
+    sudo_SHA512Pad(ctx);
+    if !digest.is_null() {
+        let mut i: libc::c_uint = 0;
+    }
+    memset(
+        ctx as *mut libc::c_void,
+        0,
+        std::mem::size_of::<SHA2_CTX>() as libc::c_ulong,
+    );
+}
