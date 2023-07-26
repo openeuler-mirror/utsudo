@@ -888,6 +888,13 @@ pub unsafe extern "C" fn sudo_SHA512Final(mut digest: *mut uint8_t, mut ctx: *mu
     sudo_SHA512Pad(ctx);
     if !digest.is_null() {
         let mut i: libc::c_uint = 0;
+        while i < 8 {
+            BE64TO8!(
+                digest.offset(i.wrapping_mul(8 as libc::c_uint) as isize),
+                (*ctx).state.st64[i as usize]
+            );
+            i = i.wrapping_add(1);
+        }
     }
     memset(
         ctx as *mut libc::c_void,
