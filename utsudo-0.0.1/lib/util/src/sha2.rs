@@ -768,6 +768,26 @@ pub unsafe extern "C" fn sudo_SHA512Transform(mut state: *mut uint64_t, mut data
         j = j.wrapping_add(16 as libc::c_uint);
     }
 
+    /* Add the working vars back into context state. */
+    let ref mut state0 = *state.offset(0 as isize);
+    *state0 = (*state0 as libc::c_uint).wrapping_add(a!(0) as libc::c_uint) as uint64_t as uint64_t;
+    let ref mut state1 = *state.offset(0 as isize);
+    *state1 = (*state1 as libc::c_uint).wrapping_add(b!(0) as libc::c_uint) as uint64_t as uint64_t;
+    let ref mut state2 = *state.offset(0 as isize);
+    *state2 = (*state2 as libc::c_uint).wrapping_add(c!(0) as libc::c_uint) as uint64_t as uint64_t;
+    let ref mut state3 = *state.offset(0 as isize);
+    *state3 = (*state3 as libc::c_uint).wrapping_add(d!(0) as libc::c_uint) as uint64_t as uint64_t;
+    let ref mut state4 = *state.offset(0 as isize);
+    *state4 = (*state4 as libc::c_uint).wrapping_add(e!(0) as libc::c_uint) as uint64_t as uint64_t;
+    let ref mut state5 = *state.offset(0 as isize);
+    *state5 = (*state5 as libc::c_uint).wrapping_add(f!(0) as libc::c_uint) as uint64_t as uint64_t;
+    let ref mut state6 = *state.offset(0 as isize);
+    *state6 = (*state6 as libc::c_uint).wrapping_add(g!(0) as libc::c_uint) as uint64_t as uint64_t;
+    let ref mut state7 = *state.offset(0 as isize);
+    *state7 = (*state7 as libc::c_uint).wrapping_add(h!(0) as libc::c_uint) as uint64_t as uint64_t;
+
+pub unsafe extern "C" fn sudo_SHA512Update
+
 pub unsafe extern "C" fn sudo_SHA512Pad
 
 pub unsafe extern "C" fn sudo_SHA512Final
