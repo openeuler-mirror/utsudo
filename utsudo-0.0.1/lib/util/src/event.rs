@@ -39,6 +39,52 @@ extern "C" {
         line: libc::c_int,
         subsys: libc::c_int,
     );
+    fn sudo_debug_exit_bool_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        line: libc::c_int,
+        subsys: libc::c_int,
+        ret: bool,
+    );
+    fn sudo_debug_exit_int_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        line: libc::c_int,
+        subsys: libc::c_int,
+        ret: libc::c_int,
+    );
+    fn sudo_debug_exit_ptr_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        line: libc::c_int,
+        subsys: libc::c_int,
+        ret: *const libc::c_void,
+    );
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        line: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
+    fn sigfillset(__set: *mut sigset_t) -> libc::c_int;
+    fn sigprocmask(
+        __how: libc::c_int,
+        __set: *const sigset_t,
+        __oset: *mut sigset_t,
+    ) -> libc::c_int;
+    fn sigaction(
+        __sig: libc::c_int,
+        __act: *const sigaction,
+        __oact: *mut sigaction,
+    ) -> libc::c_int;
+    fn sudo_ev_base_free_impl(base: *mut sudo_event_base);
+    fn sudo_ev_base_alloc_impl(base: *mut sudo_event_base) -> libc::c_int;
+    fn sudo_ev_del_impl(base: *mut sudo_event_base, ev: *mut sudo_event) -> libc::c_int;
+    fn sudo_ev_add_impl(base: *mut sudo_event_base, ev: *mut sudo_event) -> libc::c_int;
+    fn sudo_ev_scan_impl(base: *mut sudo_event_base, flags: libc::c_int) -> libc::c_int;
+    fn sudo_gettime_mono_v1(ts: *mut timespec) -> libc::c_int;
 }
 
 pub type __uint32_t = libc::c_uint;
@@ -685,90 +731,6 @@ unsafe extern "C" fn sudo_ev_init(
         sudo_debug_subsys,
     );
 }
-
-#[no_mangle]
-pub unsafe extern "C" fn sudo_ev_alloc_v1(
-    mut fd: libc::c_int,
-    mut events: libc::c_short,
-    mut callback: sudo_ev_callback_t,
-    mut closure: *mut libc::c_void,
-) -> *mut sudo_event {
-    let mut ev: *mut sudo_event = 0 as *mut sudo_event;
-    let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
-    sudo_debug_enter_v1(
-        (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0")).as_ptr(),
-        b"event.c\0" as *const u8 as *const libc::c_char,
-        289 as libc::c_int,
-        sudo_debug_subsys,
-    );
-    ev = malloc(::core::mem::size_of::<sudo_event>() as libc::c_ulong) as *mut sudo_event;
-    if ev.is_null() {
-        sudo_debug_printf2_v1(
-            (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
-                .as_ptr(),
-            b"event.c\0" as *const u8 as *const libc::c_char,
-            294 as libc::c_int,
-            2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys,
-            b"%s: unable to allocate event\0" as *const u8 as *const libc::c_char,
-            (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
-                .as_ptr(),
-        );
-        let mut sudo_debug_ret: *mut libc::c_void = 0 as *mut libc::c_void;
-        sudo_debug_exit_ptr_v1(
-            (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
-                .as_ptr(),
-            b"event.c\0" as *const u8 as *const libc::c_char,
-            295 as libc::c_int,
-            sudo_debug_subsys,
-            sudo_debug_ret,
-        );
-        return sudo_debug_ret as *mut sudo_event;
-    }
-    if events as libc::c_int & 0x20 as libc::c_int != 0 {
-        let mut container: *mut sudo_ev_siginfo_container = malloc(
-            (::core::mem::size_of::<sudo_ev_siginfo_container>() as libc::c_ulong)
-                .wrapping_add(::core::mem::size_of::<siginfo_t>() as libc::c_ulong)
-                .wrapping_sub(1 as libc::c_int as libc::c_ulong),
-        )
-            as *mut sudo_ev_siginfo_container;
-        if container.is_null() {
-            sudo_debug_printf2_v1(
-                (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
-                    .as_ptr(),
-                b"event.c\0" as *const u8 as *const libc::c_char,
-                303 as libc::c_int,
-                2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys,
-                b"%s: unable to allocate siginfo container\0" as *const u8 as *const libc::c_char,
-                (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
-                    .as_ptr(),
-            );
-            free(ev as *mut libc::c_void);
-            let mut sudo_debug_ret_0: *mut libc::c_void = 0 as *mut libc::c_void;
-            sudo_debug_exit_ptr_v1(
-                (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0"))
-                    .as_ptr(),
-                b"event.c\0" as *const u8 as *const libc::c_char,
-                305 as libc::c_int,
-                sudo_debug_subsys,
-                sudo_debug_ret_0,
-            );
-            return sudo_debug_ret_0 as *mut sudo_event;
-        }
-        (*container).closure = closure;
-        closure = container as *mut libc::c_void;
-    }
-    sudo_ev_init(ev, fd, events, callback, closure);
-    let mut sudo_debug_ret_1: *mut libc::c_void = ev as *mut libc::c_void;
-    sudo_debug_exit_ptr_v1(
-        (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"sudo_ev_alloc_v1\0")).as_ptr(),
-        b"event.c\0" as *const u8 as *const libc::c_char,
-        312 as libc::c_int,
-        sudo_debug_subsys,
-        sudo_debug_ret_1,
-    );
-    return sudo_debug_ret_1 as *mut sudo_event;
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn sudo_ev_alloc_v1(
     mut fd: libc::c_int,
@@ -919,6 +881,7 @@ unsafe extern "C" fn sudo_ev_add_signal(
     mut tohead: bool,
 ) -> libc::c_int {
     let signo: libc::c_int = (*ev).fd;
+    let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
     sudo_debug_enter_v1(
         (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(b"sudo_ev_add_signal\0"))
             .as_ptr(),
