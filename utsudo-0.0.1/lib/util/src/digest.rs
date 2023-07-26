@@ -4,6 +4,15 @@
  * SPDX-License-Identifier: MulanPSL-2.0
  */
 
+#![allow(
+    dead_code,
+    unused_mut,
+    non_camel_case_types,
+    non_upper_case_globals,
+    unused_variables,
+    unused_assignments
+)]
+
 //call other file's func
 use crate::sha2::sudo_SHA224Final;
 use crate::sha2::sudo_SHA224Init;
@@ -33,6 +42,7 @@ pub type uint8_t = libc::c_uchar;
 pub const EINVAL: libc::c_int = 22;
 pub const SHA224_DIGEST_LENGTH: libc::c_uint = 28;
 pub const SHA256_DIGEST_LENGTH: libc::c_uint = 32;
+pub const SHA384_DIGEST_LENGTH: libc::c_uint = 48;
 pub const SHA512_DIGEST_LENGTH: libc::c_uint = 64;
 
 extern "C" {
@@ -73,6 +83,20 @@ static mut digest_functions: [digest_function; 5] = {
                 ),
                 final_0: Some(
                     sudo_SHA256Final as unsafe extern "C" fn(*mut uint8_t, *mut SHA2_CTX),
+                ),
+            };
+            init
+        },
+        {
+            let mut init = digest_function {
+                digest_len: SHA384_DIGEST_LENGTH as libc::c_uint,
+                init: Some(sudo_SHA384Init as unsafe extern "C" fn(*mut SHA2_CTX)),
+                update: Some(
+                    sudo_SHA384Update
+                        as unsafe extern "C" fn(*mut SHA2_CTX, *const uint8_t, size_t),
+                ),
+                final_0: Some(
+                    sudo_SHA384Final as unsafe extern "C" fn(*mut uint8_t, *mut SHA2_CTX),
                 ),
             };
             init
