@@ -716,8 +716,13 @@ unsafe extern "C" fn tcsetattr_nobg(
         &mut osa as *mut sigaction,
     );
 
-    while rc != 0 && (*__errno_location()) == EINTR && got_sigttou != 0 {
+    loop {
         rc = tcsetattr(fd, flags, tp);
+        if !(rc != 0 as libc::c_int && *__errno_location() == 4 as libc::c_int
+            && got_sigttou == 0)
+        {
+            break;
+        }
     }
 
     sigaction(SIGTTOU, &mut osa as *const sigaction, 0 as *mut sigaction);
@@ -759,7 +764,7 @@ unsafe extern "C" fn sudo_term_restore_v1(fd: libc::c_int, flush: bool) -> bool 
 unsafe extern "C" fn sudo_term_noecho_v1(fd: libc::c_int) -> bool {
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
 
-    if changed != 0 && tcgetattr(fd, &mut oterm) != 0 {
+    if changed == 0 && tcgetattr(fd, &mut oterm) != 0 {
         debug_return_bool!(false);
     }
     memcpy(
