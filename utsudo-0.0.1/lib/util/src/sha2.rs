@@ -838,6 +838,37 @@ pub unsafe extern "C" fn sudo_SHA512Update(
     );
 }
 
-pub unsafe extern "C" fn sudo_SHA512Pad
+#[no_mangle]
+pub unsafe extern "C" fn sudo_SHA512Pad(mut ctx: *mut SHA2_CTX) {
+    let mut finalcount: [uint8_t; 16] = [0; 16];
+
+    BE64TO81!(finalcount, (*ctx).count[1 as usize]);
+    BE64TO8!(
+        finalcount.as_mut_ptr().offset(8 as isize),
+        (*ctx).count[1 as usize]
+    );
+
+    /* Append a '1' bit (0x80) to the message. */
+    sudo_SHA512Update(
+        ctx,
+        b"\x80\0" as *const u8 as *const libc::c_char as *mut uint8_t,
+        1 as size_t,
+    );
+
+    /* Pad message such that the resulting length modulo 1024 is 896. */
+    while (*ctx).count[0 as usize] & 1008 != 896 {
+        sudo_SHA512Update(
+            ctx,
+            b"\0\0" as *const u8 as *const libc::c_char as *mut uint8_t,
+            1 as size_t,
+        );
+    }
+    sudo_SHA512Update(
+        ctx,
+        finalcount.as_mut_ptr(),
+        std::mem::size_of::<[uint8_t; 16]>() as libc::c_ulong,
+    );
+}
+
 
 pub unsafe extern "C" fn sudo_SHA512Final
