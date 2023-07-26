@@ -818,6 +818,19 @@ pub unsafe extern "C" fn sudo_SHA512Update(
         let ref mut ctx2 = (*ctx).count[1 as usize];
         *ctx2 = (*ctx2).wrapping_add(1);
     }
+    if j.wrapping_add(len) > (SHA512_BLOCK_LENGTH - 1) as libc::c_ulong {
+        i = (SHA512_BLOCK_LENGTH as libc::c_ulong).wrapping_sub(j);
+        memcpy(
+            &mut *((*ctx).buffer).as_mut_ptr().offset(j as isize) as *mut uint8_t
+                as *mut libc::c_void,
+            data as *const libc::c_void,
+            i,
+        );
+        sudo_SHA512Transform(
+            ((*ctx).state.st64).as_mut_ptr(),
+            ((*ctx).buffer).as_mut_ptr() as *const uint8_t,
+        );
+    }
     memcpy(
         &mut *((*ctx).buffer).as_mut_ptr().offset(j as isize) as *mut uint8_t as *mut libc::c_void,
         &*data.offset(i as isize) as *const uint8_t as *const libc::c_void,
