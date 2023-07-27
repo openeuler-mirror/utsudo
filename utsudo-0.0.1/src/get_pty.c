@@ -53,7 +53,7 @@
 # include <pty.h>
 #endif
 
-#include "sudo.h"
+#include "utsudo.h"
 
 #if defined(HAVE_OPENPTY)
 bool

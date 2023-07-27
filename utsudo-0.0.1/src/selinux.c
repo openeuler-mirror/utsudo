@@ -55,7 +55,7 @@
 # include <libaudit.h>
 #endif
 
-#include "sudo.h"
+#include "utsudo.h"
 #include "sudo_exec.h"
 
 static struct selinux_state {

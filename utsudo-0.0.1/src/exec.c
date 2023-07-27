@@ -50,7 +50,7 @@
 # include <sys/task.h>
 #endif
 
-#include "sudo.h"
+#include "utsudo.h"
 #include "sudo_exec.h"
 #include "sudo_event.h"
 #include "sudo_plugin.h"
