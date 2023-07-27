@@ -78,7 +78,7 @@ include/sudo_util.h
 indent.pro
 init.d/aix.sh.in
 init.d/hpux.sh.in
-init.d/sudo.conf.in
+init.d/utsudo.conf.in
 install-sh
 lib/util/Makefile.in
 lib/util/aix.c
@@ -772,6 +772,7 @@ po/zh_TW.mo
 po/zh_TW.po
 pp
 src/Makefile.in
+src/debug_fatal_lbuf.c
 src/conversation.c
 src/env_hooks.c
 src/exec.c
@@ -794,8 +795,8 @@ src/selinux.c
 src/sesh.c
 src/signal.c
 src/solaris.c
-src/sudo.c
-src/sudo.h
+src/utsudo.c
+src/utsudo.h
 src/sudo_edit.c
 src/sudo_exec.h
 src/sudo_noexec.c
