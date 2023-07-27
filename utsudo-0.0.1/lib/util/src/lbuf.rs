@@ -232,10 +232,9 @@ pub unsafe extern "C" fn sudo_lbuf_print_v1(mut lbuf: *mut sudo_lbuf) {
         } else {
             0 as libc::c_ulong
         }) as libc::c_int;
-    }
 
-    if (*lbuf).cols as libc::c_int <= (*lbuf).indent + len + 20 as libc::c_int {
-        if (*lbuf).len > 0 as libc::c_int {
+        if (*lbuf).cols as libc::c_int <= (*lbuf).indent + len + 20 as libc::c_int {
+            if (*lbuf).len > 0 as libc::c_int {
                 *((*lbuf).buf).offset((*lbuf).len as isize) = '\u{0}' as i32 as libc::c_char;
                 ((*lbuf).output).expect("non-null function pointer")((*lbuf).buf);
                 if *((*lbuf).buf).offset(((*lbuf).len - 1 as libc::c_int) as isize) as libc::c_int
@@ -246,7 +245,7 @@ pub unsafe extern "C" fn sudo_lbuf_print_v1(mut lbuf: *mut sudo_lbuf) {
                     );
                 }
             }
-        }else {
+        } else {
             //for
             cp = (*lbuf).buf;
             while !cp.is_null() && *cp as libc::c_int != '\u{0}' as i32 {

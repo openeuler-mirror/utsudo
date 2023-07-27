@@ -1,10 +1,15 @@
+/*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
 
 #![allow(
     non_camel_case_types,
     non_snake_case,
     non_upper_case_globals,
     unused_assignments,
-    unused_mut    
+    unused_mut
 )]
 
 extern "C" {
@@ -30,11 +35,11 @@ use crate::macro_struct::*;
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_strtonumx(
-mut str: *const libc::c_char,
-mut minval: libc::c_longlong,
-mut maxval: libc::c_longlong,
-mut endp: *mut *mut libc::c_char,
-mut errstrp: *mut *const libc::c_char,        
+    mut str: *const libc::c_char,
+    mut minval: libc::c_longlong,
+    mut maxval: libc::c_longlong,
+    mut endp: *mut *mut libc::c_char,
+    mut errstrp: *mut *const libc::c_char,
 ) -> libc::c_longlong {
     let mut errval = strtonum_err::STN_INITIAL;
     let mut lastval: libc::c_longlong = 0;
@@ -193,16 +198,16 @@ mut errstrp: *mut *const libc::c_char,
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_strtonum(
-mut str: *const libc::c_char,
-mut minval: libc::c_longlong,
-mut maxval: libc::c_longlong,
-mut errstrp: *mut *const libc::c_char, 
-)  -> libc::c_longlong {
+    mut str: *const libc::c_char,
+    mut minval: libc::c_longlong,
+    mut maxval: libc::c_longlong,
+    mut errstrp: *mut *const libc::c_char,
+) -> libc::c_longlong {
     let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
     let mut ep: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut ret: libc::c_longlong = 0;
     ret = sudo_strtonumx(str, minval, maxval, &mut ep, &mut errstr);
-    
+
     if str == ep || *ep as libc::c_int != '\u{0}' as i32 {
         *__errno_location() = EINVAL;
         errstr = b"invalid value\0" as *const u8 as *const libc::c_char;

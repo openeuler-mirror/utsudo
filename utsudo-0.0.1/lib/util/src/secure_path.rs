@@ -41,7 +41,6 @@ use crate::sudo_debug::sudo_debug_enter_v1;
 use crate::sudo_debug::sudo_debug_exit_int_v1;
 use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
-
 // #define	__S_IFREG	0100000	/* Regular file.  */
 #[macro_export]
 macro_rules! _S_IFREG {
@@ -178,8 +177,6 @@ pub struct stat {
     pub st_ctim: timespec, /* Time of last status change.  */
     pub __glibc_reserved: [__syscall_slong_t; 3],
 }
-
-
 
 #[inline]
 unsafe extern "C" fn stat(

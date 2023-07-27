@@ -17,11 +17,7 @@
 
 extern "C" {
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
 }
 
@@ -46,6 +42,7 @@ pub unsafe extern "C" fn sudo_pw_dup(mut pw: *const passwd) -> *mut passwd {
     let mut nsize: size_t = 0 as libc::c_int as size_t;
     let mut psize: size_t = 0 as libc::c_int as size_t;
     let mut gsize: size_t = 0 as libc::c_int as size_t;
+    let mut dsize: size_t = 0 as libc::c_int as size_t;
     let mut ssize: size_t = 0 as libc::c_int as size_t;
     let mut total: size_t = 0;
     let mut newpw: *mut passwd = 0 as *mut passwd;
@@ -56,8 +53,7 @@ pub unsafe extern "C" fn sudo_pw_dup(mut pw: *const passwd) -> *mut passwd {
         total = (total as libc::c_ulong).wrapping_add(nsize) as size_t as size_t;
     }
     if !((*pw).pw_passwd).is_null() {
-        psize = (strlen((*pw).pw_passwd))
-            .wrapping_add(1 as libc::c_int as libc::c_ulong);
+        psize = (strlen((*pw).pw_passwd)).wrapping_add(1 as libc::c_int as libc::c_ulong);
         total = (total as libc::c_ulong).wrapping_add(psize) as size_t as size_t;
     }
     if !((*pw).pw_gecos).is_null() {
@@ -84,27 +80,47 @@ pub unsafe extern "C" fn sudo_pw_dup(mut pw: *const passwd) -> *mut passwd {
     );
     cp = cp.offset(::core::mem::size_of::<passwd>() as libc::c_ulong as isize);
     if !((*pw).pw_name).is_null() {
-        memcpy(cp as *mut libc::c_void, (*pw).pw_name as *const libc::c_void, nsize);
+        memcpy(
+            cp as *mut libc::c_void,
+            (*pw).pw_name as *const libc::c_void,
+            nsize,
+        );
         (*newpw).pw_name = cp;
         cp = cp.offset(nsize as isize);
     }
     if !((*pw).pw_passwd).is_null() {
-        memcpy(cp as *mut libc::c_void, (*pw).pw_passwd as *const libc::c_void, psize);
+        memcpy(
+            cp as *mut libc::c_void,
+            (*pw).pw_passwd as *const libc::c_void,
+            psize,
+        );
         (*newpw).pw_passwd = cp;
         cp = cp.offset(psize as isize);
     }
     if !((*pw).pw_gecos).is_null() {
-        memcpy(cp as *mut libc::c_void, (*pw).pw_gecos as *const libc::c_void, gsize);
+        memcpy(
+            cp as *mut libc::c_void,
+            (*pw).pw_gecos as *const libc::c_void,
+            gsize,
+        );
         (*newpw).pw_gecos = cp;
         cp = cp.offset(gsize as isize);
     }
     if !((*pw).pw_dir).is_null() {
-        memcpy(cp as *mut libc::c_void, (*pw).pw_dir as *const libc::c_void, dsize);
+        memcpy(
+            cp as *mut libc::c_void,
+            (*pw).pw_dir as *const libc::c_void,
+            dsize,
+        );
         (*newpw).pw_dir = cp;
         cp = cp.offset(dsize as isize);
     }
     if !((*pw).pw_shell).is_null() {
-        memcpy(cp as *mut libc::c_void, (*pw).pw_shell as *const libc::c_void, ssize);
+        memcpy(
+            cp as *mut libc::c_void,
+            (*pw).pw_shell as *const libc::c_void,
+            ssize,
+        );
         (*newpw).pw_shell = cp;
         cp = cp.offset(ssize as isize);
     }

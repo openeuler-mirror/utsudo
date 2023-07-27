@@ -152,7 +152,7 @@ unsafe extern "C" fn sudo_digest_alloc_v1(mut digest_type: libc::c_int) -> *mut 
             i += 1;
         }
     }
-    
+
     //line110-113
     if func.is_null() {
         *__errno_location() = EINVAL;
@@ -237,4 +237,3 @@ unsafe fn sudo_digest_final_v1(mut dig: *mut sudo_digest, mut md: *mut libc::c_u
 
     debug_return!()
 }
-

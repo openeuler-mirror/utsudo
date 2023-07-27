@@ -26,4 +26,3 @@ pub fn sudo_arc4random_uniform(upper_bound: uint32_t) -> uint32_t {
     }
     return r.wrapping_rem(upper_bound);
 }
-

@@ -70,4 +70,3 @@ pub unsafe extern "C" fn sudo_strtomode_v1(
     }
     debug_return_int!(lval as libc::c_int)
 }
-
