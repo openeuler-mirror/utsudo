@@ -14,12 +14,10 @@
     unused_mut
 )]
 
-use crate::INT_MAX;
-use crate::TIOCGWINSZ;
-
-use crate::macro_struct::*;
-use crate::sudo_debug::*;
-use crate::sudo_debug_macro::*;
+use crate::sudo_debug::sudo_debug_enter_v1;
+use crate::sudo_debug::sudo_debug_exit_int_v1;
+use crate::sudo_debug::sudo_debug_exit_v1;
+use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
 /* Standard file descriptors.  */
 // #define	STDERR_FILENO	2	/* Standard error output.  */
@@ -102,6 +100,7 @@ pub unsafe extern "C" fn sudo_get_ttysize_v1(
 
     if get_ttysize_ioctl(rowp, colp) == -(1 as libc::c_int) {
         let mut p: *mut libc::c_char = 0 as *mut libc::c_char;
+
         /* Fall back on $LINES and $COLUMNS. */
         p = getenv(b"LINES\0" as *const u8 as *const libc::c_char);
         if p.is_null() || {

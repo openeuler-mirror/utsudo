@@ -21,11 +21,18 @@
 use crate::sudo_debug::*;
 
 pub static mut sudo_debug_subsys: libc::c_int = 0 as libc::c_int;
-// /* Error return for sudo_debug_register().  */
-pub const SUDO_DEBUG_INSTANCE_ERROR: libc::c_int = -2;
-// /* Initializer for instance index to indicate that debugging is not setup. */
-// #define 	-1
-pub const SUDO_DEBUG_INSTANCE_INITIALIZER: libc::c_int = -1;
+
+
+// extern "C" {
+//     fn sudo_debug_printf2_v1(
+//         func: *const libc::c_char,
+//         file: *const libc::c_char,
+//         lineno: libc::c_int,
+//         level: libc::c_int,
+//         fmt: *const libc::c_char,
+//         _: ...
+//     );
+// }
 
 /*
  * The priority and subsystem are encoded in a single 32-bit value.
@@ -34,6 +41,7 @@ pub const SUDO_DEBUG_INSTANCE_INITIALIZER: libc::c_int = -1;
  * Bit 5 is used as a flag to specify whether to log the errno value.
  * Bit 6 specifies whether to log the function, file and line number data.
  */
+
 /*
  * Sudo debug priorities, ordered least to most verbose,
  * in other words, highest to lowest priority.  Max pri is 15.
@@ -126,7 +134,7 @@ macro_rules! debug_decl {
     };
 }
 
-#[macro_export]
+
 macro_rules! debug_return_int {
     ($ret:expr) => {{
         sudo_debug_exit_int_v1(
@@ -227,7 +235,7 @@ macro_rules! debug_return_bool {
     }};
 }
 
-#[macro_export]
+
 macro_rules! debug_return_str {
     ($ret:expr) => {{
         sudo_debug_exit_str_v1(
@@ -241,7 +249,7 @@ macro_rules! debug_return_str {
     }};
 }
 
-#[macro_export]
+
 macro_rules! debug_return_const_str {
     ($ret:expr) => {
         let mut sudo_debug_ret: *mut libc::c_char = ($ret);
@@ -256,7 +264,6 @@ macro_rules! debug_return_const_str {
     };
 }
 
-#[macro_export]
 macro_rules! debug_return_str_masked {
     ($ret:expr) => {{
         sudo_debug_exit_str_masked(
@@ -270,7 +277,6 @@ macro_rules! debug_return_str_masked {
     }};
 }
 
-#[macro_export]
 macro_rules! debug_return_ptr {
     ($ret:expr) => {{
         sudo_debug_exit_ptr_v1(
@@ -297,7 +303,6 @@ macro_rules! debug_return_const_ptr {
     }};
 }
 
-#[macro_export]
 macro_rules! sudo_debug_execve {
     ($ret:expr) => {};
 }
@@ -305,6 +310,9 @@ macro_rules! sudo_debug_execve {
 macro_rules! sudo_debug_write {
     ($ret:expr) => {};
 }
+
+// #define sudo_debug_write(fd, str, len, errnum) \
+//     sudo_debug_write2(fd, NULL, NULL, 0, (str), (len), (errnum))
 
 macro_rules! sudo_debug_write {
     ($fd:expr, $str:expr, $len:expr, $errnum:expr) => {{
@@ -324,7 +332,7 @@ macro_rules! sudo_debug_write {
 //     sudo_debug_printf2(__func__, __FILE__, __LINE__, (pri)|sudo_debug_subsys, \
 //     __VA_ARGS__)
 // #endif
-#[macro_export]
+
 macro_rules! sudo_debug_printf {
     ($pri:expr, $($arg:tt)*) => {{
         sudo_debug_printf2_v1(
@@ -337,7 +345,6 @@ macro_rules! sudo_debug_printf {
     }};
 }
 
-#[macro_export]
 macro_rules! debug_return {
     () => {{
         sudo_debug_exit_v1(

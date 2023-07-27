@@ -31,8 +31,6 @@ enum strtonum_err {
     STN_TOOBIG = 4,
 }
 
-use crate::macro_struct::*;
-
 #[no_mangle]
 pub unsafe extern "C" fn sudo_strtonumx(
     mut str: *const libc::c_char,
