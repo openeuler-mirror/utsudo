@@ -732,7 +732,9 @@ unsafe extern "C" fn parse_debug(
 
 }
 
-
+/*
+ * "Plugin symbol /path/to/log args..."
+ */
 #[no_mangle]
 unsafe extern "C" fn parse_plugin(
     mut entry: *const libc::c_char,
@@ -1178,15 +1180,15 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
             ) {
                 SUDO_PATH_SECURE => {
                     break 'done;
-            }
-            SUDO_PATH_MISSING => {
-                /* Root should always be able to read sudo.conf. */
-                if *__errno_location() != ENOENT && geteuid() == ROOT_UID as libc::c_uint {
-                    sudo_warn!(
-                        b"unable to stat %s\0" as *const u8 as *const libc::c_char,
-                        conf_file
-                    );
                 }
+                SUDO_PATH_MISSING => {
+                    /* Root should always be able to read sudo.conf. */
+                    if *__errno_location() != ENOENT && geteuid() == ROOT_UID as libc::c_uint {
+                        sudo_warn!(
+                            b"unable to stat %s\0" as *const u8 as *const libc::c_char,
+                            conf_file
+                        );
+                    }
 
                     break 'done;
             }
@@ -1220,12 +1222,12 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
                         conf_file
                     );
                     break 'done;
-            }
-            _ => {
-                /* NOTREACHED */
-                break 'done;
-            }
-          } //match sudo_secure_file_v1
+                }
+                _ => {
+                    /* NOTREACHED */
+                    break 'done;
+                }
+            } //match sudo_secure_file_v1
         } // cong_file.is_null
 
         fp = fopen(conf_file, b"r\0" as *const u8 as *const libc::c_char);
@@ -1294,12 +1296,13 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
         ret = true as libc::c_int;
         
         break 'done;
-    }//done loop
-    free(line as *mut libc::c_void);
+    } // done loop
 
     if !fp.is_null() {
         fclose(fp);
     }
+    free(line as *mut libc::c_void);
+
     /* Restore locale if needed. */
     if prev_locale.offset(0 as isize) as libc::c_int != 'C' as i32
         || prev_locale.offset(1 as isize) as libc::c_int != '\u{0}' as i32
@@ -1409,7 +1412,8 @@ unsafe extern "C" fn run_static_initializers() {
             };
             init
         },
-    ]
+    ];
+
     sudo_conf_var_table = [
         {
             let mut init = sudo_conf_table {
@@ -1487,7 +1491,8 @@ unsafe extern "C" fn run_static_initializers() {
             };
             init
         },
-    ]
+    ];
+
     sudo_conf_data = {
         let mut init = sudo_conf_data {
             disable_coredump: true,
@@ -1518,16 +1523,6 @@ unsafe extern "C" fn run_static_initializers() {
                         pval: _PATH_SUDO_ASKPASS!(),
                     };
                     askpass
-                },
-                {
-                    let mut sesh = sudo_conf_path_table {
-                        pname: b"sesh\0" as *const u8 as *const libc::c_char,
-                        pnamelen: (::std::mem::size_of::<[libc::c_char; 5]>() as libc::c_ulong)
-                            .wrapping_sub(1) as libc::c_uint,
-                        dynamic: false,
-                        pval: _PATH_SUDO_SESH!(),
-                    };
-                    sesh
                 },
                 {
                     let mut sesh = sudo_conf_path_table {
@@ -1578,7 +1573,7 @@ unsafe extern "C" fn run_static_initializers() {
                     };
                     null
                 },
-            ]
+            ],
         };
         init
     };

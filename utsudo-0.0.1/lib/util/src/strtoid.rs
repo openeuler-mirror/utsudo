@@ -116,7 +116,7 @@ pub unsafe extern "C" fn sudo_strtoidx_v1(
             || !valid_separator(p, ep, sep)
         {
             errstr = b"invalid value\0" as *const u8 as *const libc::c_char;
-            *__errno_location() = EINVAL;
+            *__errno_location() = EINVAL!() as libc::c_int;
             ret = 0;
         }
     }
