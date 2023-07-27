@@ -28026,8 +28026,6 @@ do
     "init.d/$INIT_SCRIPT") CONFIG_FILES="$CONFIG_FILES init.d/$INIT_SCRIPT" ;;
     "init.d/utsudo.conf") CONFIG_FILES="$CONFIG_FILES init.d/utsudo.conf" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
-    "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
-    "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
     "include/Makefile") CONFIG_FILES="$CONFIG_FILES include/Makefile" ;;
     "lib/util/Makefile") CONFIG_FILES="$CONFIG_FILES lib/util/Makefile" ;;
     "lib/util/util.exp") CONFIG_FILES="$CONFIG_FILES lib/util/util.exp" ;;
