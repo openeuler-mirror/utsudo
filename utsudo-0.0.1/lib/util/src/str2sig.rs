@@ -35,7 +35,7 @@ extern "C" {
     fn strcasecmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     static sys_sigabbrev: [*const libc::c_char; 65];
     fn __errno_location() -> *mut libc::c_int;
-}        
+}
 
 pub struct sigalias {
     pub name: *const libc::c_char,

@@ -14,8 +14,8 @@
     unused_mut,
     unreachable_code
 )]
-use crate::ISSET;
 use crate::INT_MAX;
+use crate::ISSET;
 
 // use crate::fatal::sudo_warnx_nodebug_v1;
 use crate::sudo_debug::sudo_debug_enter_v1;
@@ -167,7 +167,6 @@ pub struct _IO_wide_data {
     _unused: [u8; 0],
 }
 
-
 extern "C" {
     fn fclose(__stream: *mut FILE) -> libc::c_int;
     fn fopen(_: *const libc::c_char, _: *const libc::c_char) -> *mut FILE;
@@ -194,7 +193,7 @@ extern "C" {
         msgid: *const libc::c_char,
     ) -> *mut libc::c_char;
     fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
-        fn sudo_secure_file_v1(
+    fn sudo_secure_file_v1(
         path: *const libc::c_char,
         uid: uid_t,
         gid: gid_t,
@@ -307,7 +306,6 @@ macro_rules! _PATH_SUDO_CONF {
         (b"/etc/sudo.conf\0" as *const u8 as *const libc::c_char)
     };
 }
-
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -505,7 +503,7 @@ unsafe extern "C" fn parse_path(
     mut conf_file: *const libc::c_char,
     mut lineno: libc::c_uint,
 ) -> libc::c_int {
-let mut entry_end: *const libc::c_char = entry.offset(strlen(entry) as isize);
+    let mut entry_end: *const libc::c_char = entry.offset(strlen(entry) as isize);
     let mut ep: *const libc::c_char = 0 as *const libc::c_char;
     let mut name: *const libc::c_char = 0 as *const libc::c_char;
     let mut path: *const libc::c_char = 0 as *const libc::c_char;
@@ -544,12 +542,12 @@ let mut entry_end: *const libc::c_char = entry.offset(strlen(entry) as isize);
                 if !path.is_null() {
                     pval = strdup(path);
                     if !pval.is_null() {
-                    sudo_warnx!(
-                        b"%s: %s\0" as *const u8 as *const libc::c_char,
-                        stdext::function_name!().as_ptr(),
-                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
-                    );
-                    debug_return_int!(-1);
+                        sudo_warnx!(
+                            b"%s: %s\0" as *const u8 as *const libc::c_char,
+                            stdext::function_name!().as_ptr(),
+                            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                        );
+                        debug_return_int!(-1);
                     } // if !pval.is_null()
                 } //  if !path.is_null()
 
@@ -651,7 +649,7 @@ unsafe extern "C" fn parse_debug(
         b" \t\0" as *const u8 as *const libc::c_char,
         &mut ep,
     );
-    
+
     if !flags.is_null() {
         debug_return_int!(false as libc::c_int); /* not enough fields */
     }
@@ -729,7 +727,6 @@ unsafe extern "C" fn parse_debug(
         free(debug_file as *mut libc::c_void);
     }
     debug_return_int!(-(1 as libc::c_int));
-
 }
 
 /*
@@ -865,7 +862,7 @@ unsafe extern "C" fn parse_plugin(
         (*info).entries.tqe_prev = sudo_conf_data.plugins.tqh_last;
         *sudo_conf_data.plugins.tqh_last = info;
         sudo_conf_data.plugins.tqh_last = &mut (*info).entries.tqe_next;
-        
+
         debug_return_int!(true as libc::c_int);
 
         break 'oom;
@@ -915,12 +912,12 @@ unsafe extern "C" fn set_var_disable_coredump(
             lineno
         );
 
-        debug_return_int!(false  as libc::c_int);
+        debug_return_int!(false as libc::c_int);
     }
 
     sudo_conf_data.disable_coredump = val as libc::c_int != 0;
 
-    debug_return_int!(true  as libc::c_int);
+    debug_return_int!(true as libc::c_int);
 }
 
 #[no_mangle]
@@ -944,9 +941,9 @@ unsafe extern "C" fn set_var_group_source(
             conf_file,
             lineno
         );
-        debug_return_int!(false  as libc::c_int);
+        debug_return_int!(false as libc::c_int);
     }
-    debug_return_int!(true  as libc::c_int);
+    debug_return_int!(true as libc::c_int);
 }
 #[no_mangle]
 unsafe extern "C" fn set_var_max_groups(
@@ -965,10 +962,10 @@ unsafe extern "C" fn set_var_max_groups(
             conf_file,
             lineno
         );
-        debug_return_int!(false  as libc::c_int);
+        debug_return_int!(false as libc::c_int);
     }
     sudo_conf_data.max_groups = max_groups;
-    debug_return_int!(true  as libc::c_int);
+    debug_return_int!(true as libc::c_int);
 }
 
 #[no_mangle]
@@ -988,11 +985,11 @@ unsafe extern "C" fn set_var_probe_interfaces(
             conf_file,
             lineno,
         );
-        debug_return_int!(false  as libc::c_int);
+        debug_return_int!(false as libc::c_int);
     }
 
     sudo_conf_data.probe_interfaces = val as libc::c_int != 0;
-    debug_return_int!(true  as libc::c_int);
+    debug_return_int!(true as libc::c_int);
 }
 
 #[no_mangle]
@@ -1063,10 +1060,10 @@ pub unsafe extern "C" fn sudo_conf_debug_files_v1(
 
     /* Convert sudoedit -> sudo. */
     if progbaselen > 4
-    && strcmp(
-        progbase.offset(4 as isize),
-        b"edit\0" as *const u8 as *const libc::c_char,
-    ) == 0
+        && strcmp(
+            progbase.offset(4 as isize),
+            b"edit\0" as *const u8 as *const libc::c_char,
+        ) == 0
     {
         progbaselen = progbaselen - 4;
     }
@@ -1083,7 +1080,7 @@ pub unsafe extern "C" fn sudo_conf_debug_files_v1(
         }
 
         if strncasecmp((*debug_spec).progname, prog, len) == 0
-          && ((*debug_spec).progname).offset(len as isize) as libc::c_int == '\u{0}' as i32
+            && ((*debug_spec).progname).offset(len as isize) as libc::c_int == '\u{0}' as i32
         {
             debug_return_ptr!(&mut ((*debug_spec).debug_files) as *mut sudo_conf_debug_file_list);
         }
@@ -1139,7 +1136,7 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
     };
     let mut fp: *mut FILE = 0 as *mut FILE;
     let mut ret: libc::c_int = false as libc::c_int;
-    
+
     let mut prev_locale: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut line: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut conf_lineno: libc::c_uint = 0 as libc::c_uint;
@@ -1191,15 +1188,15 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
                     }
 
                     break 'done;
-            }
-            SUDO_PATH_BAD_TYPE => {
+                }
+                SUDO_PATH_BAD_TYPE => {
                     sudo_warnx!(
                         b"%s is not a regular file\0" as *const u8 as *const libc::c_char,
                         conf_file
                     );
                     break 'done;
-            }
-            SUDO_PATH_WRONG_OWNER => {
+                }
+                SUDO_PATH_WRONG_OWNER => {
                     sudo_warnx!(
                         b"%s is owned by uid %u, should be %u\0" as *const u8
                             as *const libc::c_char,
@@ -1208,15 +1205,15 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
                         ROOT_UID
                     );
                     break 'done;
-            }
-            SUDO_PATH_WORLD_WRITABLE => {
+                }
+                SUDO_PATH_WORLD_WRITABLE => {
                     sudo_warnx!(
                         b"%s is world writable\0" as *const u8 as *const libc::c_char,
                         conf_file
                     );
                     break 'done;
-            }
-            SUDO_PATH_GROUP_WRITABLE => {
+                }
+                SUDO_PATH_GROUP_WRITABLE => {
                     sudo_warnx!(
                         b"%s is group writable\0" as *const u8 as *const libc::c_char,
                         conf_file
@@ -1280,8 +1277,8 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
                     } // ISSET
                     break;
                 } // if strncasecmp
-              } // while (*cur).name.is_null()
-            
+            } // while (*cur).name.is_null()
+
             if (*cur).name.is_null() {
                 sudo_debug_printf!(
                     SUDO_DEBUG_WARN,
@@ -1294,7 +1291,7 @@ pub unsafe extern "C" fn sudo_conf_read_v1(
             }
         } // while sudo_parseln_v2
         ret = true as libc::c_int;
-        
+
         break 'done;
     } // done loop
 
@@ -1332,7 +1329,6 @@ pub unsafe extern "C" fn sudo_conf_clear_paths_v1() {
         cur = cur.offset(1);
     }
 }
-
 
 unsafe extern "C" fn run_static_initializers() {
     sudo_conf_table = [

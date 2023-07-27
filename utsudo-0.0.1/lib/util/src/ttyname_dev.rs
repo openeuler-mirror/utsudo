@@ -13,7 +13,7 @@
     unused_assignments,
     unused_mut,
     clashing_extern_declarations,
-    unused_variables  
+    unused_variables
 )]
 
 use crate::sudo_debug::sudo_debug_enter_v1;
@@ -262,12 +262,12 @@ pub unsafe extern "C" fn sudo_ttyname_dev_v1(
 }
 
 use crate::macro_struct::*;
+use crate::sudo_debug::*;
+use crate::sudo_debug_macro::*;
 use crate::S_IWGRP;
 use crate::S_IWOTH;
 use crate::S_IWUSR;
 use crate::_S_IFMT;
-use crate::sudo_debug::*;
-use crate::sudo_debug_macro::*;
 
 pub type DIR = __dirstream;
 
@@ -767,6 +767,5 @@ pub unsafe extern "C" fn sudo_ttyname_dev_v1(
         } // while !cp.is_null()
     } // ret.is_null()
 
-   debug_return_str!(ret as *mut libc::c_char)
+    debug_return_str!(ret as *mut libc::c_char)
 }
-

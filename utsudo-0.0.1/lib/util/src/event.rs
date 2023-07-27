@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
+
 #![allow(
     dead_code,
     mutable_transmutes,
@@ -330,7 +336,7 @@ unsafe extern "C" fn sudo_ev_deactivate_all(mut base: *mut sudo_event_base) {
         sudo_debug_subsys,
     );
 
-        loop {
+    loop {
         ev = (*base).active.tqh_first;
         if ev.is_null() {
             break;
@@ -362,7 +368,7 @@ unsafe extern "C" fn sudo_ev_activate_sigevents(mut base: *mut sudo_event_base) 
         sudo_debug_subsys,
     );
 
-        sigfillset(&mut set);
+    sigfillset(&mut set);
     sigprocmask(0 as libc::c_int, &mut set, &mut oset);
     (*base).signal_caught = 0 as libc::c_int;
     i = 0 as libc::c_int;
@@ -414,7 +420,7 @@ unsafe extern "C" fn signal_pipe_cb(
     mut fd: libc::c_int,
     mut _what: libc::c_int,
     mut v: *mut libc::c_void,
-){
+) {
     let mut base: *mut sudo_event_base = v as *mut sudo_event_base;
     let mut ch: libc::c_uchar = 0;
     let mut nread: ssize_t = 0;
@@ -426,7 +432,7 @@ unsafe extern "C" fn signal_pipe_cb(
         sudo_debug_subsys,
     );
 
-        loop {
+    loop {
         nread = read(
             fd,
             &mut ch as *mut libc::c_uchar as *mut libc::c_void,
@@ -448,7 +454,7 @@ unsafe extern "C" fn signal_pipe_cb(
         );
     }
 
-        if nread == -(1 as libc::c_int) as libc::c_long && *__errno_location() != 11 as libc::c_int {
+    if nread == -(1 as libc::c_int) as libc::c_long && *__errno_location() != 11 as libc::c_int {
         sudo_debug_printf2_v1(
             (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"signal_pipe_cb\0"))
                 .as_ptr(),
@@ -471,10 +477,9 @@ unsafe extern "C" fn signal_pipe_cb(
         170 as libc::c_int,
         sudo_debug_subsys,
     );
-
 }
 
-unsafe extern "C" fn sudo_ev_base_init(mut base: *mut sudo_event_base) -> libc::c_int{
+unsafe extern "C" fn sudo_ev_base_init(mut base: *mut sudo_event_base) -> libc::c_int {
     let mut i: libc::c_int = 0;
     let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
     sudo_debug_enter_v1(
@@ -495,7 +500,7 @@ unsafe extern "C" fn sudo_ev_base_init(mut base: *mut sudo_event_base) -> libc::
             &mut (*((*base).signals).as_mut_ptr().offset(i as isize)).tqh_first;
         i += 1;
     }
-        if sudo_ev_base_alloc_impl(base) != 0 as libc::c_int {
+    if sudo_ev_base_alloc_impl(base) != 0 as libc::c_int {
         sudo_debug_printf2_v1(
             (*::core::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"sudo_ev_base_init\0"))
                 .as_ptr(),
@@ -543,7 +548,7 @@ unsafe extern "C" fn sudo_ev_base_init(mut base: *mut sudo_event_base) -> libc::
         );
         return sudo_debug_ret;
     }
-        sudo_ev_base_free_impl(base);
+    sudo_ev_base_free_impl(base);
     let mut sudo_debug_ret_0: libc::c_int = -(1 as libc::c_int);
     sudo_debug_exit_int_v1(
         (*::core::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"sudo_ev_base_init\0"))
@@ -567,7 +572,7 @@ pub unsafe extern "C" fn sudo_ev_base_alloc_v1() -> *mut sudo_event_base {
         207 as libc::c_int,
         sudo_debug_subsys,
     );
-        base = calloc(
+    base = calloc(
         1 as libc::c_int as libc::c_ulong,
         ::core::mem::size_of::<sudo_event_base>() as libc::c_ulong,
     ) as *mut sudo_event_base;
@@ -607,7 +612,7 @@ pub unsafe extern "C" fn sudo_ev_base_alloc_v1() -> *mut sudo_event_base {
         );
         return sudo_debug_ret_0 as *mut sudo_event_base;
     }
-        let mut sudo_debug_ret_1: *mut libc::c_void = base as *mut libc::c_void;
+    let mut sudo_debug_ret_1: *mut libc::c_void = base as *mut libc::c_void;
     sudo_debug_exit_ptr_v1(
         (*::core::mem::transmute::<&[u8; 22], &[libc::c_char; 22]>(b"sudo_ev_base_alloc_v1\0"))
             .as_ptr(),
@@ -681,7 +686,7 @@ pub unsafe extern "C" fn sudo_ev_base_free_v1(mut base: *mut sudo_event_base) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn sudo_ev_base_setdef_v1(mut base: *mut sudo_event_base){
+pub unsafe extern "C" fn sudo_ev_base_setdef_v1(mut base: *mut sudo_event_base) {
     let sudo_debug_subsys: libc::c_int = (4 as libc::c_int) << 6 as libc::c_int;
     sudo_debug_enter_v1(
         (*::core::mem::transmute::<&[u8; 23], &[libc::c_char; 23]>(b"sudo_ev_base_setdef_v1\0"))
@@ -1740,7 +1745,7 @@ pub unsafe extern "C" fn sudo_ev_loopbreak_v1(mut base: *mut sudo_event_base) {
         }
     }
     (*base).flags &=
-    !(0x8 as libc::c_int | 0x2 as libc::c_int | 0x1 as libc::c_int) as libc::c_uint;
+        !(0x8 as libc::c_int | 0x2 as libc::c_int | 0x1 as libc::c_int) as libc::c_uint;
     (*base).flags |= 0x4 as libc::c_int as libc::c_uint;
     sudo_debug_exit_v1(
         (*::core::mem::transmute::<&[u8; 21], &[libc::c_char; 21]>(b"sudo_ev_loopbreak_v1\0"))

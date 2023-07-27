@@ -48,4 +48,3 @@ pub unsafe extern "C" fn sudo_new_key_val_v1(
     }
     debug_return_str!(str)
 }
-

@@ -52,7 +52,6 @@ pub struct sigset_t {
     pub __val: [libc::c_ulong; 16],
 }
 
-
 extern "C" {
     fn reallocarray(__ptr: *mut libc::c_void, __nmemb: size_t, __size: size_t)
         -> *mut libc::c_void;
@@ -182,7 +181,7 @@ unsafe fn sudo_ev_base_alloc_impl(mut base: *mut sudo_event_base) -> libc::c_int
         (*base).pfd_max as libc::c_ulong,
         std::mem::size_of::<pollfd>() as size_t,
     ) as *mut pollfd;
-    
+
     if (*base).pfds.is_null() {
         sudo_debug_printf!(
             SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
@@ -249,7 +248,7 @@ unsafe fn sudo_ev_add_impl(mut base: *mut sudo_event_base, mut ev: *mut sudo_eve
     (*ev).pfd_idx = (*base).pfd_free as libc::c_short;
     pfd = &mut *((*base).pfds).offset((*ev).pfd_idx as isize);
     (*pfd).fd = (*ev).fd;
-        (*pfd).events = 0;
+    (*pfd).events = 0;
     if (*ev).events & SUDO_EV_READ != 0 {
         (*pfd).events = (*pfd).events | POLLIN;
     }
@@ -272,7 +271,6 @@ unsafe fn sudo_ev_add_impl(mut base: *mut sudo_event_base, mut ev: *mut sudo_eve
     }
     debug_return_int!(0)
 }
-
 
 #[no_mangle]
 unsafe fn sudo_ev_del_impl(mut base: *mut sudo_event_base, mut ev: *mut sudo_event) -> libc::c_int {
@@ -328,7 +326,7 @@ unsafe fn sudo_ev_scan_impl(mut base: *mut sudo_event_base, mut flags: libc::c_i
             ts.tv_sec = 0;
         }
         timeout = &mut ts;
-    }else {
+    } else {
         if (flags & 0x02) != 0 {
             ts.tv_nsec = 0;
             ts.tv_sec = 0;

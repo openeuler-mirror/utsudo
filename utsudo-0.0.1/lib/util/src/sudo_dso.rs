@@ -229,4 +229,3 @@ pub unsafe extern "C" fn sudo_dso_findsym_v1(
 pub unsafe extern "C" fn sudo_dso_strerror_v1() -> *mut libc::c_char {
     return dlerror();
 }
-

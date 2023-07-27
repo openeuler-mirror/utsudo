@@ -718,8 +718,7 @@ unsafe extern "C" fn tcsetattr_nobg(
 
     loop {
         rc = tcsetattr(fd, flags, tp);
-        if !(rc != 0 as libc::c_int && *__errno_location() == 4 as libc::c_int
-            && got_sigttou == 0)
+        if !(rc != 0 as libc::c_int && *__errno_location() == 4 as libc::c_int && got_sigttou == 0)
         {
             break;
         }

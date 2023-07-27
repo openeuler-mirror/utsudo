@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MulanPSL-2.0
  */
 
- #![allow(
+#![allow(
     non_camel_case_types,
     unused_variables,
     unused_assignments,
@@ -152,7 +152,9 @@ unsafe fn sudo_fatal_callback_register_v1(mut func: sudo_fatal_callback_t) -> li
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn sudo_fatal_callback_deregister_v1(mut func: sudo_fatal_callback_t) -> libc::c_int {
+pub unsafe extern "C" fn sudo_fatal_callback_deregister_v1(
+    mut func: sudo_fatal_callback_t,
+) -> libc::c_int {
     let mut cb: *mut sudo_fatal_callback = 0 as *mut sudo_fatal_callback;
     let mut prev: *mut *mut sudo_fatal_callback = 0 as *mut *mut sudo_fatal_callback;
     prev = &mut callbacks.slh_first;

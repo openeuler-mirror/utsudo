@@ -240,7 +240,7 @@ pub unsafe fn _rs_allocate(mut rsp: *mut *mut _rs, mut rsxp: *mut *mut _rsx) -> 
         -(1 as libc::c_int),
         0,
     ) as *mut _rsx;
-   if *rsxp == MAP_FAILED as *mut _rsx {
+    if *rsxp == MAP_FAILED as *mut _rsx {
         munmap(
             *rsp as *mut libc::c_void,
             ::std::mem::size_of::<_rsx>() as size_t,
@@ -458,7 +458,7 @@ pub unsafe fn chacha_encrypt_bytes(
         x13 = j13;
         x14 = j14;
         x15 = j15;
-     i = 20;
+        i = 20;
         while i > 0 {
             QUARTERROUND!(x0, x4, x8, x12);
             QUARTERROUND!(x1, x5, x9, x13);
@@ -486,7 +486,7 @@ pub unsafe fn chacha_encrypt_bytes(
         x13 = PLUS!(x13, j13);
         x14 = PLUS!(x14, j14);
         x15 = PLUS!(x15, j15);
-   //line 185-187
+        //line 185-187
         j12 = PLUS!(j12, 1);
         if j12 == 0 {
             j13 = PLUS!(j13, 1);
@@ -508,7 +508,7 @@ pub unsafe fn chacha_encrypt_bytes(
         U32TO8_LITTLE!(c, x13, 52);
         U32TO8_LITTLE!(c, x14, 56);
         U32TO8_LITTLE!(c, x15, 60);
-      if bytes <= 64 {
+        if bytes <= 64 {
             if bytes < 64 {
                 i = 0;
                 while i < bytes {
@@ -636,5 +636,3 @@ pub fn sudo_arc4random() -> libc::c_uint {
     }
     return val;
 }
-
-

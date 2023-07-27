@@ -28,7 +28,6 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn sudo_strtobool_v1(mut str: *const libc::c_char) -> libc::c_int {
-    
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
     match *str as u8 as char {
         '0' | '1' => {
@@ -74,5 +73,3 @@ pub unsafe extern "C" fn sudo_strtobool_v1(mut str: *const libc::c_char) -> libc
     );
     debug_return_int!(-1);
 }
-
-

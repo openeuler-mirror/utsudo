@@ -294,7 +294,7 @@ extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn sudo_getprogname() -> *const libc::c_char;
     fn strerror(_: libc::c_int) -> *mut libc::c_char;
-     fn time(__timer: *mut time_t) -> time_t;
+    fn time(__timer: *mut time_t) -> time_t;
     fn ctime(__timer: *const time_t) -> *mut libc::c_char;
     fn writev(__fd: libc::c_int, __iovec: *const iovec, __count: libc::c_int) -> ssize_t;
     fn fchown(__fd: libc::c_int, __owner: __uid_t, __group: __gid_t) -> libc::c_int;
@@ -436,7 +436,7 @@ pub unsafe extern "C" fn sudo_debug_new_output(
         }
         (*output).fd = -1;
 
-           /* Init per-subsystems settings to -1 since 0 is a valid priority. */
+        /* Init per-subsystems settings to -1 since 0 is a valid priority. */
         for j in 0..(*instance).max_subsystem + 1 {
             *((*output).settings).offset(j as isize) = -(1 as libc::c_int);
         }
@@ -521,7 +521,7 @@ pub unsafe extern "C" fn sudo_debug_new_output(
 
             pri = pri.offset(1);
 
-             /* Look up priority and subsystem, fill in sudo_debug_settings[]. */
+            /* Look up priority and subsystem, fill in sudo_debug_settings[]. */
             while !(sudo_debug_priorities[i as usize]).is_null() {
                 let mut ret = strcasecmp(
                     pri,
@@ -614,7 +614,7 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
         return SUDO_DEBUG_INSTANCE_ERROR!();
     }
 
-     /* Search for existing instance. */
+    /* Search for existing instance. */
     for i in 0..sudo_debug_last_instance + 1 {
         if sudo_debug_instances[i as usize].is_null() {
             free_idx = i;
@@ -655,7 +655,7 @@ pub unsafe extern "C" fn sudo_debug_register_v1(
                 } // for j in NUM_DEF_SUBSYSTEMS!()
             } // !while !subsystems[i].is_null()
         } // !!ids.is_null()
-        
+
         if free_idx != -1 {
             idx = free_idx;
         }
@@ -760,7 +760,7 @@ pub unsafe extern "C" fn sudo_debug_deregister_v1(mut idx: libc::c_int) -> libc:
         return -1;
     }
 
-     /* Reset active instance as needed. */
+    /* Reset active instance as needed. */
     if sudo_debug_active_instance == idx {
         sudo_debug_active_instance = -1;
     }
@@ -1275,7 +1275,6 @@ pub unsafe extern "C" fn sudo_debug_execve2_v1(
                 .wrapping_sub(1)
                 .wrapping_add(plen as libc::c_int) as libc::c_int;
 
-
             if argv.offset(0 as isize).is_null() {
                 buflen += ::std::mem::size_of::<[libc::c_char; 4]>().wrapping_sub(1) as libc::c_int;
 
@@ -1371,9 +1370,9 @@ pub unsafe extern "C" fn sudo_debug_execve2_v1(
                 buf = static_buf.as_mut_ptr();
             }
             output = (*output).entries.sle_next;
-        }// ! while
+        } // ! while
         break 'out;
-    }// ! out loop
+    } // ! out loop
     *__errno_location() = saved_errno;
 }
 

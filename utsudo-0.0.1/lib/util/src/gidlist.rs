@@ -110,4 +110,3 @@ pub unsafe extern "C" fn sudo_parse_gids_v1(
     }
     debug_return_int!(ngids)
 }
-
