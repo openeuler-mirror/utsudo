@@ -22,7 +22,7 @@ extern "C" {
         _: libc::c_longlong,
         _: libc::c_longlong,
         _: *mut *const libc::c_char,
-    ) -> libc::c_longlong
+    ) -> libc::c_longlong;
     fn strncmp(
         __s1: *const libc::c_char,
         __s2: *const libc::c_char,
@@ -41,8 +41,7 @@ pub struct sigalias {
     pub name: *const libc::c_char,
     pub number: libc::c_int,
 }
-
-static mut sigaliases: [sigalias; 2] = [
+static mut sigaliases: [sigalias; 6] = [
     {
         let mut sigabrt = sigalias {
             name: b"ABRT\0" as *const u8 as *const libc::c_char,
@@ -85,7 +84,7 @@ static mut sigaliases: [sigalias; 2] = [
         };
         init
     },
-]
+];
 
 pub const SIGABRT: libc::c_int = 6;
 pub const SIGCLD: libc::c_int = 17;
@@ -97,7 +96,7 @@ pub const __SIGRTMIN: libc::c_uint = 64;
 pub const NSIG: libc::c_uint = __SIGRTMIN + 1;
 pub const _SC_RTSIG_MAX: libc::c_int = 31;
 
-;#[no_mangle]
+#[no_mangle]
 pub unsafe extern "C" fn sudo_str2sig(
     mut signame: *const libc::c_char,
     mut result: *mut libc::c_int,
@@ -117,8 +116,7 @@ pub unsafe extern "C" fn sudo_str2sig(
             (NSIG - 1) as libc::c_longlong,
             &mut errstr,
         ) as libc::c_int;
-        
-       if !errstr.is_null() {
+        if !errstr.is_null() {
             return -1;
         }
         *result = signo;
