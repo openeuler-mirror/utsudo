@@ -38,7 +38,7 @@
 #include <fcntl.h>
 #include <limits.h>
 
-#include "sudo.h"
+#include "utsudo.h"
 
 /*
  * Add an fd to preserve.

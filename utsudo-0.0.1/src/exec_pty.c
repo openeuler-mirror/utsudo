@@ -42,7 +42,7 @@
 #include <signal.h>
 #include <termios.h>		/* for struct winsize on HP-UX */
 
-#include "sudo.h"
+#include "utsudo.h"
 #include "sudo_event.h"
 #include "sudo_exec.h"
 #include "sudo_plugin.h"

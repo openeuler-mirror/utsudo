@@ -40,7 +40,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "sudo.h"
+#include "utsudo.h"
 #include "sudo_plugin.h"
 #include "sudo_plugin_int.h"
 

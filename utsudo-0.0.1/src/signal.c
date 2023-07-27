@@ -37,7 +37,7 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#include "sudo.h"
+#include "utsudo.h"
 #include "sudo_exec.h"
 
 static struct signal_state {

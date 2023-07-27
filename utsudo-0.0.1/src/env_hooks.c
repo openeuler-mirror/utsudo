@@ -35,7 +35,7 @@
 #endif /* HAVE_STRINGS_H */
 #include <errno.h>
 
-#include "sudo.h"
+#include "utsudo.h"
 #include "sudo_plugin.h"
 #include "sudo_dso.h"
 

@@ -49,7 +49,7 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#include "sudo.h"
+#include "utsudo.h"
 #include "sudo_exec.h"
 
 /*
@@ -218,6 +218,7 @@ utmp_login(const char *from_line, const char *to_line, int ttyfd,
 	memset(&utbuf, 0, sizeof(utbuf));
 	strncpy(utbuf.ut_line, from_line, sizeof(utbuf.ut_line));
 	ut_old = sudo_getutline(&utbuf);
+	sudo_setutent();
     }
     utmp_fill(to_line, user, ut_old, &utbuf);
     if (sudo_pututline(&utbuf) != NULL)

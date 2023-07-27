@@ -38,7 +38,7 @@
 # include <sys/prctl.h>
 #endif
 
-#include "sudo.h"
+#include "utsudo.h"
 
 static struct saved_limit {
     int resource;

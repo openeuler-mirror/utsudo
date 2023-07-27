@@ -31,7 +31,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "sudo.h"
+#include "utsudo.h"
 
 /*
  * Extend the given fd to the specified size in bytes.

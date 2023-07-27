@@ -41,7 +41,7 @@
 #include <errno.h>
 #include <pwd.h>
 
-#include "sudo.h"
+#include "utsudo.h"
 #include "sudo_dso.h"
 
 int

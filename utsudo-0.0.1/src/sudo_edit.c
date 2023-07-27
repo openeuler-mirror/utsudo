@@ -44,7 +44,7 @@
 #include <signal.h>
 #include <fcntl.h>
 
-#include "sudo.h"
+#include "utsudo.h"
 #include "sudo_exec.h"
 
 #if defined(HAVE_SETRESUID) || defined(HAVE_SETREUID) || defined(HAVE_SETEUID)
@@ -878,6 +878,7 @@ selinux_edit_create_tfiles(struct command_details *command_details,
         }
         close(tfd);
     }
+    ret = nfiles;
 
 done:
     /* Contents of tf will be freed by caller. */

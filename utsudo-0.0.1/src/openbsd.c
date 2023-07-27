@@ -34,7 +34,7 @@
 #endif /* HAVE_STRINGS_H */
 #include <unistd.h>
 
-#include "sudo.h"
+#include "utsudo.h"
 
 int
 os_init(int argc, char *argv[], char *envp[])

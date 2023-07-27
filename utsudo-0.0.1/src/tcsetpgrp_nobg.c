@@ -36,7 +36,7 @@
 #include <errno.h>
 #include <signal.h>
 
-#include "sudo.h"
+#include "utsudo.h"
 
 static volatile sig_atomic_t got_sigttou;
 

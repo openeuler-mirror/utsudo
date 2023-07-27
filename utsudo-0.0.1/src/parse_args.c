@@ -44,7 +44,7 @@
 #include <assert.h>
 
 #include <sudo_usage.h>
-#include "sudo.h"
+#include "utsudo.h"
 #include "sudo_lbuf.h"
 
 #ifdef HAVE_GETOPT_LONG
