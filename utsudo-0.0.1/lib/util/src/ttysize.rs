@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
+
 #![allow(
     dead_code,
     mutable_transmutes,
@@ -24,6 +30,23 @@ macro_rules! STDERR_FILENO {
     };
 }
 
+// #define TIOCGWINSZ	0x5413
+#[macro_export]
+macro_rules! TIOCGWINSZ {
+    () => {
+        0x5413
+    };
+}
+
+// #define __INT_MAX__ 2147483647
+// #define INT_MAX __INT_MAX__
+#[macro_export]
+macro_rules! INT_MAX {
+    () => {
+        2147483647
+    };
+}
+
 extern "C" {
     fn ioctl(fd: libc::c_int, __request: libc::c_ulong, ...) -> libc::c_int;
     fn getenv(__name: *const libc::c_char) -> *mut libc::c_char;
@@ -33,6 +56,16 @@ extern "C" {
         _: libc::c_longlong,
         _: *mut *const libc::c_char,
     ) -> libc::c_longlong;
+
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct winsize {
+    pub ws_row: libc::c_ushort,
+    pub ws_col: libc::c_ushort,
+    pub ws_xpixel: libc::c_ushort,
+    pub ws_ypixel: libc::c_ushort,
 }
 
 #[no_mangle]
