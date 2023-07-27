@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
+
 #![allow(
     dead_code,
     mutable_transmutes,
@@ -10,6 +16,47 @@
     unused_variables  
 )]
 
+use crate::sudo_debug::sudo_debug_enter_v1;
+use crate::sudo_debug::sudo_debug_exit_str_v1;
+// use crate::sudo_debug::sudo_debug_printf2_v1;
+use crate::sudo_debug_macro::SUDO_DEBUG_DEBUG;
+use crate::sudo_debug_macro::SUDO_DEBUG_ERRNO;
+use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
+use crate::sudo_debug_macro::SUDO_DEBUG_INFO;
+use crate::sudo_debug_macro::SUDO_DEBUG_LINENO;
+use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
+
+pub type __dev_t = libc::c_ulong;
+pub type __uid_t = libc::c_uint;
+pub type __gid_t = libc::c_uint;
+pub type __ino_t = libc::c_ulong;
+pub type __mode_t = libc::c_uint;
+pub type __nlink_t = libc::c_ulong;
+pub type __off_t = libc::c_long;
+pub type __time_t = libc::c_long;
+pub type __blksize_t = libc::c_long;
+pub type __blkcnt_t = libc::c_long;
+pub type __syscall_slong_t = libc::c_long;
+pub type dev_t = __dev_t;
+pub type size_t = libc::c_ulong;
+
+// #define PATH_MAX        4096	/* # chars in a path name including nul */
+pub const PATH_MAX: usize = 4096;
+
+// #define	ENOMEM		12	/* Out of memory */
+pub const ENOMEM: libc::c_int = 12;
+
+// #define	ERANGE		34	/* Math result not representable */
+pub const ERANGE: libc::c_int = 34;
+
+// #define	ENOENT		 2	/* No such file or directory */
+pub const ENOENT: libc::c_int = 2;
+
+pub const DT_CHR: libc::c_int = 2;
+pub const DT_LNK: libc::c_int = 10;
+pub const DT_UNKNOWN: libc::c_int = 0;
+
+// #define	_PATH_DEV	"/dev/"
 macro_rules! _PATH_DEV {
     () => {
         b"/dev/\0" as *const u8 as *const libc::c_char
@@ -29,13 +76,6 @@ macro_rules! _PATH_DEV_PTS {
         b"/dev/pts\0" as *const u8 as *const libc::c_char
     };
 }
-
-pub const PATH_MAX: usize = 4096;
-// #define	ENOMEM		12	/* Out of memory */
-pub const ENOMEM: libc::c_int = 12;
-pub const DT_CHR: libc::c_int = 2;
-pub const DT_LNK: libc::c_int = 10;
-pub const DT_UNKNOWN: libc::c_int = 0;
 
 //     _PATH_DEV "stdin",
 //     _PATH_DEV "stdout",
@@ -240,6 +280,15 @@ extern "C" {
         sep: *const libc::c_char,
         last: *mut *const libc::c_char,
     ) -> *const libc::c_char;
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
+    fn __errno_location() -> *mut libc::c_int;
+    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
+    fn snprintf(
+        _: *mut libc::c_char,
+        _: libc::c_ulong,
+        _: *const libc::c_char,
+        _: ...
+    ) -> libc::c_int;
     fn sudo_strlcpy(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
     fn sudo_strlcat(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
     fn __fxstat(__ver: libc::c_int, __fildes: libc::c_int, __stat_buf: *mut stat) -> libc::c_int;
@@ -262,6 +311,84 @@ extern "C" {
     );
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct timespec {
+    pub tv_sec: __time_t,
+    pub tv_nsec: __syscall_slong_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct stat {
+    pub st_dev: __dev_t,
+    pub st_ino: __ino_t,
+    pub st_nlink: __nlink_t,
+    pub st_mode: __mode_t,
+    pub st_uid: __uid_t,
+    pub st_gid: __gid_t,
+    pub __pad0: libc::c_int,
+    pub st_rdev: __dev_t,
+    pub st_size: __off_t,
+    pub st_blksize: __blksize_t,
+    pub st_blocks: __blkcnt_t,
+    pub st_atim: timespec,
+    pub st_mtim: timespec,
+    pub st_ctim: timespec,
+    pub __glibc_reserved: [__syscall_slong_t; 3],
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct dirent {
+    pub d_ino: __ino_t,
+    pub d_off: __off_t,
+    pub d_reclen: libc::c_ushort,
+    pub d_type: libc::c_uchar,
+    pub d_name: [libc::c_char; 256],
+}
+
+pub type DIR = __dirstream;
+
+/*
+ * Device nodes to ignore.
+ */
+static mut ignore_devs: [*const libc::c_char; 4] = [
+    _PATH_DEV_STDIN!(),
+    _PATH_DEV_STDOUT!(),
+    _PATH_DEV_STDERR!(),
+    0 as *const libc::c_char,
+];
+
+#[inline]
+unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
+    return __fxstat(1 as libc::c_int, __fd, __statbuf);
+}
+#[inline]
+unsafe extern "C" fn stat(
+    mut __path: *const libc::c_char,
+    mut __statbuf: *mut stat,
+) -> libc::c_int {
+    return __xstat(1 as libc::c_int, __path, __statbuf);
+}
+
+#[inline]
+unsafe extern "C" fn gnu_dev_minor(mut __dev: __dev_t) -> libc::c_uint {
+    let mut __minor: libc::c_uint = 0;
+    __minor = ((__dev & 0xff as libc::c_uint as __dev_t) >> 0 as libc::c_int) as libc::c_uint;
+    __minor = (__minor as libc::c_ulong
+        | (__dev & 0xffffff00000 as libc::c_ulong) >> 12 as libc::c_int)
+        as libc::c_uint;
+    return __minor;
+}
+
+/*
+ * Do a scan of a directory looking for the specified device.
+ * Does not descend into subdirectories.
+ * Returns name on success and NULL on failure, setting errno.
+ */
+// static char *
+// sudo_ttyname_scan(const char *dir, dev_t rdev, char *name, size_t namelen)
 #[no_mangle]
 unsafe extern "C" fn sudo_ttyname_scan(
     mut dir: *const libc::c_char,
