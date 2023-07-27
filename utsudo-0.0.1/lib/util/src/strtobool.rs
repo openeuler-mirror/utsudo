@@ -11,8 +11,12 @@
     unused_mut
 )]
 
-use crate::sudo_debug::*;
-use crate::sudo_debug_macro::*;
+use crate::sudo_debug::sudo_debug_enter_v1;
+use crate::sudo_debug::sudo_debug_exit_int_v1;
+// use crate::sudo_debug::sudo_debug_printf2_v1;
+use crate::sudo_debug_macro::SUDO_DEBUG_ERROR;
+use crate::sudo_debug_macro::SUDO_DEBUG_LINENO;
+use crate::sudo_debug_macro::SUDO_DEBUG_UTIL;
 
 extern "C" {
     fn strcasecmp(__s1: *const libc::c_char, __s2: *const libc::c_char) -> libc::c_int;
