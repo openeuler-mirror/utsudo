@@ -32,8 +32,6 @@ includedir = @includedir@
 datarootdir = @datarootdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
-exampledir = @exampledir@
-docdir = @docdir@
 mandir = @mandir@
 rundir = @rundir@
 vardir = @vardir@
@@ -156,12 +154,6 @@ pvs-studio: config.status
 	plog-converter $(PVS_LOG_OPTS) $$files
 
 install-dirs install-binaries install-includes install-plugin: config.status pre-install
-	for d in $(SUBDIRS); do \
-	    (cd $$d && exec $(MAKE) "INSTALL_OWNER=$(INSTALL_OWNER)" $@) && continue; \
-	    exit $$?; \
-	done
-
-install-doc: config.status ChangeLog
 	for d in $(SUBDIRS); do \
 	    (cd $$d && exec $(MAKE) "INSTALL_OWNER=$(INSTALL_OWNER)" $@) && continue; \
 	    exit $$?; \
@@ -361,8 +353,6 @@ package: $(srcdir)/sudo.pp
 	    rundir=$(rundir) \
 	    mandir=$(mandir) \
 	    localedir=$(localedir) \
-	    docdir=$(docdir) \
-	    exampledir=$(exampledir) \
 	    sysconfdir=$(sysconfdir) \
 	    sudoersdir=$(sudoersdir) \
 	    sudoers_uid=$(sudoers_uid) \
@@ -384,7 +374,7 @@ distclean: config.status
 	    (cd $$d && exec $(MAKE) $@); \
 	done
 	-rm -rf autom4te.cache config.cache config.h config.log config.status \
-	    init.d/*.sh init.d/sudo.conf libtool Makefile pathnames.h stamp-*
+	    init.d/*.sh init.d/utsudo.conf libtool Makefile pathnames.h stamp-*
 
 cleandir: distclean
 

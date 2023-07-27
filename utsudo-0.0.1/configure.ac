@@ -194,13 +194,13 @@ path_info=on
 ldap_conf=/etc/ldap.conf
 ldap_secret=/etc/ldap.secret
 netsvc_conf=/etc/netsvc.conf
-noexec_file="$libexecdir/sudo/sudo_noexec.so"
-sesh_file="$libexecdir/sudo/sesh"
+noexec_file="$libexecdir/utsudo/sudo_noexec.so"
+sesh_file="$libexecdir/utsudo/sesh"
 nsswitch_conf=/etc/nsswitch.conf
 secure_path="not set"
 pam_session=on
 pam_login_service=sudo
-plugindir="$libexecdir/sudo"
+plugindir="$libexecdir/utsudo"
 DIGEST=digest.lo
 devsearch="/dev/pts:/dev/vt:/dev/term:/dev/zcons:/dev/pty:/dev"
 #
@@ -215,7 +215,7 @@ INSTALL_NOEXEC=
 CHECK_NOEXEC=
 exampledir='$(docdir)/examples'
 devdir='$(srcdir)'
-PROGS="sudo"
+PROGS="utsudo"
 : ${MANDIRTYPE='man'}
 : ${mansrcdir='.'}
 : ${SHLIB_MODE='0644'}
@@ -266,7 +266,7 @@ RTLD_PRELOAD_DELIM=":"
 RTLD_PRELOAD_DEFAULT=
 
 dnl
-dnl libc replacement functions live in libsudo_util.a
+dnl libc replacement functions live in libutsudo_util.a
 dnl
 AC_CONFIG_LIBOBJ_DIR(lib/util)
 
@@ -277,13 +277,13 @@ AC_USE_SYSTEM_EXTENSIONS
 
 #
 # Prior to sudo 1.8.7, sudo stored libexec files in $libexecdir.
-# Starting with sudo 1.8.7, $libexecdir/sudo is used so strip
+# Starting with sudo 1.8.7, $libexecdir/utsudo is used so strip
 # off an extraneous "/sudo" from libexecdir.
 #
 case "$libexecdir" in
-    */sudo)
+    */utsudo)
 	AC_MSG_WARN([libexecdir should not include the "sudo" subdirectory])
-	libexecdir=`expr "$libexecdir" : '\\(.*\\)/sudo$'`
+	libexecdir=`expr "$libexecdir" : '\\(.*\\)/utsudo$'`
 	;;
 esac
 
@@ -4471,7 +4471,6 @@ test "$sbindir" = '${exec_prefix}/sbin' && sbindir='$(exec_prefix)/sbin'
 test "$libexecdir" = '${exec_prefix}/libexec' && libexecdir='$(exec_prefix)/libexec'
 test "$includedir" = '${prefix}/include' && includedir='$(prefix)/include'
 test "$datarootdir" = '${prefix}/share' && datarootdir='$(prefix)/share'
-test "$docdir" = '${datarootdir}/doc/${PACKAGE_TARNAME}' && docdir='$(datarootdir)/doc/$(PACKAGE_TARNAME)'
 test "$localedir" = '${datarootdir}/locale' && localedir='$(datarootdir)/locale'
 test "$localstatedir" = '${prefix}/var' && localstatedir='$(prefix)/var'
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir='/etc'
