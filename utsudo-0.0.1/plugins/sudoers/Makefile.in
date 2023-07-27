@@ -52,7 +52,7 @@ INSTALL_OWNER = -o $(install_uid) -g $(install_gid)
 INSTALL_BACKUP = @INSTALL_BACKUP@
 
 # Libraries
-LT_LIBS = $(top_builddir)/lib/util/libsudo_util.la
+LT_LIBS = $(top_builddir)/lib/util/libutsudo_util.la $(top_builddir)/lib/util/debug_fatal_lbuf.o
 LIBS = $(LT_LIBS)
 NET_LIBS = @NET_LIBS@
 SUDOERS_LIBS = @SUDOERS_LIBS@ @AFS_LIBS@ @GETGROUPS_LIB@ $(LIBS) $(NET_LIBS) @ZLIB@
