@@ -1,0 +1,387 @@
+From 2c066e021947d7a876cf4fd22cfdc8aa783401ec Mon Sep 17 00:00:00 2001
+From: wanglujun <wanglujun@uniontech.com>
+Date: Mon, 7 Aug 2023 08:57:02 +0800
+Subject: [PATCH] fix compile error: undefined reference to sys_sigabbrev
+
+---
+ lib/util/src/sig2str.rs | 163 ++++++++++++++++++++++++++++++++++++----
+ lib/util/src/str2sig.rs | 147 +++++++++++++++++++++++++++++++++++-
+ 2 files changed, 291 insertions(+), 19 deletions(-)
+
+diff --git a/lib/util/src/sig2str.rs b/lib/util/src/sig2str.rs
+index 05838c8..be45208 100644
+--- a/lib/util/src/sig2str.rs
++++ b/lib/util/src/sig2str.rs
+@@ -49,19 +49,10 @@ macro_rules! NSIG {
+     };
+ }
+ 
+-/* sys_sigabbrev is not declared by glibc */
+-//   #  define sudo_sys_signame	sys_sigabbrev
+-#[macro_export]
+-macro_rules! sudo_sys_signame {
+-    () => {
+-        sys_sigabbrev
+-    };
+-}
+-
+ pub type size_t = libc::c_ulong;
+-pub const _SC_RTSIG_MAX: libc::c_int = 31;
++pub const _SC_RTSIG_MAX: libc::c_uint = 31;
+ pub type __int32_t = libc::c_int;
+-pub const _ISlower: libc::c_int = 512;
++pub const _ISlower: libc::c_uint = 512;
+ 
+ extern "C" {
+     fn __errno_location() -> *mut libc::c_int;
+@@ -75,7 +66,6 @@ extern "C" {
+         _: ...
+     ) -> libc::c_int;
+     fn sudo_strlcpy(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
+-    static sys_sigabbrev: [*const libc::c_char; 65];
+     fn __ctype_toupper_loc() -> *mut *const __int32_t;
+     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
+ }
+@@ -97,9 +87,150 @@ pub unsafe extern "C" fn sudo_sig2str(
+     signo: libc::c_int,
+     signame: *mut libc::c_char,
+ ) -> libc::c_int {
++    static mut sudo_sys_signame: [*mut libc::c_char; 65] =
++        [0 as *const libc::c_char as *mut libc::c_char; 65];
++    let mut i: libc::c_int = 0;
++    sudo_sys_signame[0 as libc::c_int as usize] =
++        b"Signal 0\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    if (sudo_sys_signame[1 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[1 as libc::c_int as usize] =
++            b"HUP\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[2 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[2 as libc::c_int as usize] =
++            b"INT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[3 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[3 as libc::c_int as usize] =
++            b"QUIT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[4 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[4 as libc::c_int as usize] =
++            b"ILL\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[5 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[5 as libc::c_int as usize] =
++            b"TRAP\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[6 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[6 as libc::c_int as usize] =
++            b"ABRT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[6 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[6 as libc::c_int as usize] =
++            b"IOT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[8 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[8 as libc::c_int as usize] =
++            b"FPE\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[9 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[9 as libc::c_int as usize] =
++            b"KILL\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[7 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[7 as libc::c_int as usize] =
++            b"BUS\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[11 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[11 as libc::c_int as usize] =
++            b"SEGV\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[31 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[31 as libc::c_int as usize] =
++            b"SYS\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[13 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[13 as libc::c_int as usize] =
++            b"PIPE\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[14 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[14 as libc::c_int as usize] =
++            b"ALRM\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[15 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[15 as libc::c_int as usize] =
++            b"TERM\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[16 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[16 as libc::c_int as usize] =
++            b"STKFLT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[29 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[29 as libc::c_int as usize] =
++            b"IO\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[24 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[24 as libc::c_int as usize] =
++            b"XCPU\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[25 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[25 as libc::c_int as usize] =
++            b"XFSZ\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[26 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[26 as libc::c_int as usize] =
++            b"VTALRM\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[27 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[27 as libc::c_int as usize] =
++            b"PROF\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[28 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[28 as libc::c_int as usize] =
++            b"WINCH\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[10 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[10 as libc::c_int as usize] =
++            b"USR1\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[12 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[12 as libc::c_int as usize] =
++            b"USR2\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[30 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[30 as libc::c_int as usize] =
++            b"PWR\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[29 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[29 as libc::c_int as usize] =
++            b"POLL\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[19 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[19 as libc::c_int as usize] =
++            b"STOP\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[20 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[20 as libc::c_int as usize] =
++            b"TSTP\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[18 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[18 as libc::c_int as usize] =
++            b"CONT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[17 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[17 as libc::c_int as usize] =
++            b"CHLD\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[17 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[17 as libc::c_int as usize] =
++            b"CLD\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[21 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[21 as libc::c_int as usize] =
++            b"TTIN\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[22 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[22 as libc::c_int as usize] =
++            b"TTOU\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[23 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[23 as libc::c_int as usize] =
++            b"URG\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
+     /* Realtime signal support. */
+     if signo >= SIGRTMIN!() && signo <= SIGRTMAX!() {
+-        let mut rtmax: libc::c_long = sysconf(_SC_RTSIG_MAX);
++        let rtmax: libc::c_long = sysconf(_SC_RTSIG_MAX as libc::c_int);
+         if rtmax > 0 {
+             if signo == SIGRTMIN!() {
+                 sudo_strlcpy(
+@@ -134,12 +265,12 @@ pub unsafe extern "C" fn sudo_sig2str(
+         return 0;
+     }
+ 
+-    if signo > 0 && signo < NSIG!() && !sudo_sys_signame!()[signo as usize].is_null() {
+-        sudo_strlcpy(signame, sudo_sys_signame!()[signo as usize], SIG2STR_MAX!());
++    if signo > 0 && signo < NSIG!() && !(sudo_sys_signame[signo as usize]).is_null() {
++        sudo_strlcpy(signame, sudo_sys_signame[signo as usize], SIG2STR_MAX!());
+ 
+         /* Make sure we always return an upper case signame. */
+         if *(*__ctype_b_loc()).offset(*signame.offset(0 as isize) as isize) as libc::c_int
+-            & _ISlower
++            & _ISlower as libc::c_int as libc::c_ushort as libc::c_int
+             != 0
+         {
+             let mut i: libc::c_int = 0;
+diff --git a/lib/util/src/str2sig.rs b/lib/util/src/str2sig.rs
+index d47bda3..00989e8 100644
+--- a/lib/util/src/str2sig.rs
++++ b/lib/util/src/str2sig.rs
+@@ -33,7 +33,6 @@ extern "C" {
+     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
+     fn sysconf(__name: libc::c_int) -> libc::c_long;
+     fn strcasecmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
+-    static sys_sigabbrev: [*const libc::c_char; 65];
+     fn __errno_location() -> *mut libc::c_int;
+ }
+ 
+@@ -105,6 +104,148 @@ pub unsafe extern "C" fn sudo_str2sig(
+     let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+     let mut signo: libc::c_int = 0;
+ 
++    static mut sudo_sys_signame: [*mut libc::c_char; 65] =
++        [0 as *const libc::c_char as *mut libc::c_char; 65];
++    let mut i: libc::c_int = 0;
++    sudo_sys_signame[0 as libc::c_int as usize] =
++        b"Signal 0\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    if (sudo_sys_signame[1 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[1 as libc::c_int as usize] =
++            b"HUP\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[2 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[2 as libc::c_int as usize] =
++            b"INT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[3 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[3 as libc::c_int as usize] =
++            b"QUIT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[4 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[4 as libc::c_int as usize] =
++            b"ILL\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[5 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[5 as libc::c_int as usize] =
++            b"TRAP\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[6 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[6 as libc::c_int as usize] =
++            b"ABRT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[6 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[6 as libc::c_int as usize] =
++            b"IOT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[8 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[8 as libc::c_int as usize] =
++            b"FPE\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[9 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[9 as libc::c_int as usize] =
++            b"KILL\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[7 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[7 as libc::c_int as usize] =
++            b"BUS\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[11 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[11 as libc::c_int as usize] =
++            b"SEGV\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[31 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[31 as libc::c_int as usize] =
++            b"SYS\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[13 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[13 as libc::c_int as usize] =
++            b"PIPE\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[14 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[14 as libc::c_int as usize] =
++            b"ALRM\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[15 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[15 as libc::c_int as usize] =
++            b"TERM\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[16 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[16 as libc::c_int as usize] =
++            b"STKFLT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[29 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[29 as libc::c_int as usize] =
++            b"IO\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[24 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[24 as libc::c_int as usize] =
++            b"XCPU\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[25 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[25 as libc::c_int as usize] =
++            b"XFSZ\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[26 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[26 as libc::c_int as usize] =
++            b"VTALRM\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[27 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[27 as libc::c_int as usize] =
++            b"PROF\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[28 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[28 as libc::c_int as usize] =
++            b"WINCH\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[10 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[10 as libc::c_int as usize] =
++            b"USR1\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[12 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[12 as libc::c_int as usize] =
++            b"USR2\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[30 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[30 as libc::c_int as usize] =
++            b"PWR\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[29 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[29 as libc::c_int as usize] =
++            b"POLL\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[19 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[19 as libc::c_int as usize] =
++            b"STOP\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[20 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[20 as libc::c_int as usize] =
++            b"TSTP\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[18 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[18 as libc::c_int as usize] =
++            b"CONT\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[17 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[17 as libc::c_int as usize] =
++            b"CHLD\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[17 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[17 as libc::c_int as usize] =
++            b"CLD\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[21 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[21 as libc::c_int as usize] =
++            b"TTIN\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[22 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[22 as libc::c_int as usize] =
++            b"TTOU\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++    if (sudo_sys_signame[23 as libc::c_int as usize]).is_null() {
++        sudo_sys_signame[23 as libc::c_int as usize] =
++            b"URG\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
++    }
++
+     if (*(*__ctype_b_loc()).offset(*signame.offset(0 as isize) as libc::c_uchar as isize)
+         as libc::c_int
+         & _ISdigit as libc::c_ushort as libc::c_int)
+@@ -187,8 +328,8 @@ pub unsafe extern "C" fn sudo_str2sig(
+ 
+     signo = 1;
+     while signo < NSIG as libc::c_int {
+-        if !(sys_sigabbrev[signo as usize]).is_null() {
+-            if strcasecmp(signame, sys_sigabbrev[signo as usize]) == 0 {
++        if !(sudo_sys_signame[signo as usize]).is_null() {
++            if strcasecmp(signame, sudo_sys_signame[signo as usize]) == 0 {
+                 *result = signo;
+                 return 0;
+             }
+-- 
+2.31.1
+

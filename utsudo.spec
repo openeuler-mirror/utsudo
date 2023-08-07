@@ -3,7 +3,7 @@ ExcludeArch: i686
 Summary: The tudo respect sudo
 Name: utsudo
 Version: 0.0.1
-Release: 0%{?dist}
+Release: 0%{?dist}.01
 License: ISC
 Group: Applications/System
 URL: https://www.sudo.ws/
@@ -36,6 +36,8 @@ BuildRequires: cargo
 BuildRequires: rust
 BuildRequires: patchelf
 
+Patch0001: 0001-fix-compile-error-undefined-reference-to-sys_sigabbr.patch
+
 %description
 Sudo (superuser do) allows a system administrator to give certain
 users (or groups of users) the ability to run some (or all) commands
@@ -49,6 +51,8 @@ on many different machines.
 
 %prep
 %setup -q
+
+%patch0001 -p1
 
 %build
 # Remove bundled copy of zlib
@@ -192,5 +196,8 @@ rm -rf $RPM_BUILD_ROOT
 /bin/chmod 0440 /etc/utsudoers || :
 
 %changelog
-* Wed May 10 2022 Lujun <wanglujun@uniontech.com> - 0.0.1
+* Mon Aug 07 2023 Lujun <wanglujun@uniontech.com> - 0.0.1.01
+- Add Patch: 0001-fix-compile-error-undefined-reference-to-sys_sigabbr.patch
+
+* Tue May 10 2022 Lujun <wanglujun@uniontech.com> - 0.0.1
 - init.
