@@ -1,4 +1,75 @@
+/*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
 
+#![allow(
+    dead_code,
+    mutable_transmutes,
+    non_camel_case_types,
+    non_snake_case,
+    non_upper_case_globals,
+    unused_assignments,
+    unused_mut,
+    unreachable_code,
+    non_snake_case
+)]
+
+use crate::struct_macro::*;
+
+use crate::ISSET;
+use crate::SET;
+use crate::_PATH_TTY;
+
+extern "C" {
+    static mut tgetpass_flags: libc::c_int;
+    static mut sudo_debug_instance: libc::c_int;
+    static mut stdout: *mut FILE;
+    static mut stderr: *mut FILE;
+    fn sudo_debug_get_active_instance_v1() -> libc::c_int;
+    fn open(__file: *const libc::c_char, __oflag: libc::c_int, _: ...) -> libc::c_int;
+    fn write(__fd: libc::c_int, __buf: *const libc::c_void, __n: size_t) -> ssize_t;
+    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn close(__fd: libc::c_int) -> libc::c_int;
+    fn fputs(__s: *const libc::c_char, __stream: *mut FILE) -> libc::c_int;
+    fn tgetpass(
+        prompt: *const libc::c_char,
+        timeout: libc::c_int,
+        flags: libc::c_int,
+        callback: *mut sudo_conv_callback,
+    ) -> *mut libc::c_char;
+    fn sudo_memset_s(v: *mut libc::c_void, smax: size_t, c: libc::c_int, n: size_t) -> libc::c_int;
+    fn free(__ptr: *mut libc::c_void);
+    fn fclose(__stream: *mut FILE) -> libc::c_int;
+    fn __errno_location() -> *mut libc::c_int;
+    fn sudo_debug_set_active_instance_v1(inst: libc::c_int) -> libc::c_int;
+    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
+
+    fn sudo_fatalx_nodebug_v1(fmt: *const libc::c_char, _: ...) -> !;
+    fn sudo_warn_gettext_v1(
+        domainname: *const libc::c_char,
+        msgid: *const libc::c_char,
+    ) -> *mut libc::c_char;
+
+}
+
+pub const EOF: libc::c_int = -1;
+
+// #define SUDO_CONV_PROMPT_ECHO_OFF   0x0001  /* do not echo user input */
+// #define SUDO_CONV_PROMPT_ECHO_ON    0x0002  /* echo user input */
+// #define SUDO_CONV_ERROR_MSG	    0x0003  /* error message */
+// #define SUDO_CONV_INFO_MSG	    0x0004  /* informational message */
+// #define SUDO_CONV_PROMPT_MASK	    0x0005  /* mask user input */
+// #define SUDO_CONV_PROMPT_ECHO_OK    0x1000  /* flag: allow echo if no tty */
+// #define SUDO_CONV_PREFER_TTY	    0x2000  /* flag: use tty if possible */
+pub const SUDO_CONV_PROMPT_ECHO_OFF: libc::c_int = 0x0001;
+pub const SUDO_CONV_PROMPT_ECHO_ON: libc::c_int = 0x0002;
+pub const SUDO_CONV_ERROR_MSG: libc::c_int = 0x0003;
+pub const SUDO_CONV_INFO_MSG: libc::c_int = 0x0004;
+pub const SUDO_CONV_PROMPT_MASK: libc::c_int = 0x0005;
+pub const SUDO_CONV_PROMPT_ECHO_OK: libc::c_int = 0x1000;
+pub const SUDO_CONV_PREFER_TTY: libc::c_int = 0x2000;
 
 /*
  * Sudo conversation function.
@@ -138,3 +209,15 @@ pub unsafe extern "C" fn sudo_conversation(
     sudo_debug_set_active_instance_v1(conv_debug_instance);
     return -(1 as libc::c_int);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_conversation_1_7(
+    mut num_msgs: libc::c_int,
+    mut msgs: *const sudo_conv_message,
+    mut replies: *mut sudo_conv_reply,
+) -> libc::c_int {
+    return sudo_conversation(num_msgs, msgs, replies, 0 as *mut sudo_conv_callback);
+}
+
+// sudo_conversation_printf 函数涉及可变参数，暂不重构，
+// 函数实现放到了 lib/util/utsudo_variadic.c 文件中
