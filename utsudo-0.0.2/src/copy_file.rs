@@ -23,6 +23,50 @@ use utsudo_util::sudo_debug_printf;
 use utsudo_util::sudo_warn;
 use utsudo_util::sudo_warnx;
 
+use utsudo_util::sudo_debug::sudo_debug_enter_v1;
+use utsudo_util::sudo_debug::sudo_debug_exit_bool_v1;
+use utsudo_util::sudo_debug::sudo_debug_exit_int_v1;
+
+extern "C" {
+    fn lseek(__fd: libc::c_int, __offset: off_t, __whence: libc::c_int) -> off_t;
+    fn write(__fd: libc::c_int, __buf: *const libc::c_void, __n: size_t) -> ssize_t;
+    fn ftruncate(fd: libc::c_int, old_size: off_t) -> libc::c_int;
+    fn read(__fd: libc::c_int, __buf: *mut libc::c_void, __nbytes: size_t) -> ssize_t;
+    fn __fxstat(__ver: libc::c_int, __fildes: libc::c_int, __stat_buf: *mut stat) -> libc::c_int;
+    fn __errno_location() -> *mut libc::c_int;
+    fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        lineno: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
+    fn sudo_warnx_nodebug_v1(fmt: *const libc::c_char, _: ...);
+}
+
+pub const BUFSIZ: libc::c_int = 8192;
+
+//#define SEEK_SET	0	/* Seek from beginning of file.  */
+//#define SEEK_END	2	/* Seek from end of file.  */
+pub const SEEK_SET: libc::c_int = 0;
+pub const SEEK_END: libc::c_int = 2;
+
+pub const S_ISGID: libc::c_int = 0o2000;
+pub const S_ISVTX: libc::c_int = 0o1000;
+
+pub const __S_IREAD: libc::c_int = 0o400;
+pub const __S_IWRITE: libc::c_int = 0o200;
+pub const __S_IEXEC: libc::c_int = 0o100;
+pub const S_IRWXU: libc::c_int = __S_IREAD | __S_IWRITE | __S_IEXEC;
+
+pub const S_IRWXG: libc::c_int = S_IRWXU >> 3;
+pub const S_IRWXO: libc::c_int = S_IRWXG >> 3;
+pub const S_IREAD: libc::c_int = 0o400;
+pub const S_IWRITE: libc::c_int = 0o200;
+
+
 
 /*
  * Extend the given fd to the specified size in bytes.
@@ -169,4 +213,12 @@ pub unsafe extern "C" fn sudo_copy_file(
         dst
     );
     debug_return_int!(-(1 as libc::c_int));
+}
+
+#[inline]
+unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
+        #[cfg(target_arch = "x86_64")]
+        return __fxstat(1 as libc::c_int, __fd, __statbuf);
+        #[cfg(not(target_arch = "x86_64"))]
+        return __fxstat(0 as libc::c_int, __fd, __statbuf);
 }
