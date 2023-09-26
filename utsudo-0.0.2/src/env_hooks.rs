@@ -46,3 +46,125 @@ extern "C" {
 }
 
 static mut priv_environ: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+
+#[no_mangle]
+unsafe extern "C" fn rpl_putenv(mut string: *mut libc::c_char) -> libc::c_int {
+    let mut ep: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut len: size_t = 0 as size_t;
+    let mut found: bool = false;
+    len = (strchr(string, '=' as i32).offset_from(string) + 1) as size_t;
+    ep = environ;
+    while !(*ep).is_null() {
+        if strncmp(string, *ep, len) == 0 {
+            *ep = string;
+            found = true;
+        }
+        ep = ep.offset(1);
+    }
+    if found {
+        while !(*ep).is_null() {
+            if strncmp(string, *ep, len) == 0 {
+                let mut cur: *mut *mut libc::c_char = ep;
+                loop {
+                    *cur = *cur.offset(1);
+                    if !(*cur).is_null() {
+                        break;
+                    }
+                    cur = cur.offset(1);
+                }
+            } else {
+                ep = ep.offset(1);
+            }
+        }
+    }
+    if !found {
+        let mut env_len: size_t = ep.offset_from(environ) as size_t;
+        let mut envp: *mut *mut libc::c_char = reallocarray(
+            priv_environ as *mut libc::c_void,
+            env_len + 2 as libc::c_ulong,
+            ::std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+        ) as *mut *mut libc::c_char;
+        if envp.is_null() {
+            return -1;
+        }
+        if environ != priv_environ {
+            memcpy(
+                envp as *mut libc::c_void,
+                environ as *mut libc::c_void,
+                env_len * (::std::mem::size_of::<*mut libc::c_char>() as size_t),
+            );
+        };
+        let mut tmp = env_len + 1;
+        *envp.offset(tmp as isize) = string;
+        *envp.offset(env_len as isize) = 0 as *mut libc::c_char;
+        environ = envp;
+        priv_environ = environ;
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn getenv(mut name: *const libc::c_char) -> *mut libc::c_char {
+    let mut val: *mut libc::c_char = 0 as *mut libc::c_char;
+    match process_hooks_getenv(name, &mut val) {
+        SUDO_HOOK_RET_STOP => return val,
+        SUDO_HOOK_RET_ERROR => return 0 as *mut libc::c_char,
+        _ => return getenv_unhooked(name),
+    };
+}
+
+#[no_mangle]
+unsafe extern "C" fn rpl_setenv(
+    mut var: *const libc::c_char,
+    mut val: *const libc::c_char,
+    mut overwrite: libc::c_int,
+) -> libc::c_int {
+    let mut envstr: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut dst: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut src: *const libc::c_char = 0 as *const libc::c_char;
+    let mut esize: size_t = 0 as size_t;
+    if var.is_null() || *var == '\u{0}' as libc::c_char {
+        *__errno_location() = EINVAL as libc::c_int;
+        return -1;
+    }
+    src = var;
+    while *src != '\u{0}' as libc::c_char && *src != '=' as libc::c_char {
+        src = src.offset(1);
+    }
+    esize = (src.offset_from(var) as libc::c_long as size_t).wrapping_add(2);
+    if !val.is_null() {
+        esize = esize.wrapping_add(strlen(val));
+    }
+    envstr = malloc(esize) as *mut libc::c_char;
+    if envstr.is_null() {
+        return -1;
+    }
+    src = var;
+    dst = envstr;
+    while *src != '\u{0}' as libc::c_char && *src != '=' as libc::c_char {
+        src = src.offset(1);
+        dst = dst.offset(1);
+        *dst = *src;
+    }
+    dst = dst.offset(1);
+    *dst = '=' as libc::c_char;
+    if !val.is_null() {
+        src = val;
+        while *src as libc::c_int != '\u{0}' as i32 {
+            src = src.offset(1);
+            dst = dst.offset(1);
+            *dst = *src;
+        }
+    }
+    *dst = '\u{0}' as libc::c_char;
+    if overwrite == 0 && !getenv(var).is_null() {
+        free(envstr as *mut libc::c_void);
+        return 0;
+    }
+    if rpl_putenv(envstr) == -1 {
+        free(envstr as *mut libc::c_void);
+        return -1;
+    }
+    return 0;
+}
+
