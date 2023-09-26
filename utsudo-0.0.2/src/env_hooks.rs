@@ -190,3 +190,69 @@ pub unsafe extern "C" fn getenv_unhooked(mut name: *const libc::c_char) -> *mut 
     }
     return val;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn setenv(
+    mut var: *const libc::c_char,
+    mut val: *const libc::c_char,
+    mut overwrite: libc::c_int,
+) -> libc::c_int {
+    match process_hooks_setenv(var, val, overwrite) {
+        SUDO_HOOK_RET_STOP => return 0,
+        SUDO_HOOK_RET_ERROR => return -1,
+        _ => return setenv_unhooked(var, val, overwrite),
+    };
+}
+
+#[no_mangle]
+unsafe extern "C" fn rpl_unsetenv(mut var: *const libc::c_char) -> libc::c_int {
+    let mut ep: *mut *mut libc::c_char = environ;
+    let mut len: size_t = 0 as size_t;
+    if var.is_null() || *var == '\u{0}' as libc::c_char || !(strchr(var, '=' as i32)).is_null() {
+        *__errno_location() = EINVAL;
+        return -1;
+    }
+    len = strlen(var);
+    while !(*ep).is_null() {
+        if strncmp(var, *ep, len) == 0 as libc::c_int
+            && *(*ep).offset(len as isize) as libc::c_int == '=' as i32
+        {
+            let mut cur: *mut *mut libc::c_char = ep;
+            loop {
+                *cur = *cur.offset(1);
+                if (*cur).is_null() {
+                    break;
+                }
+                cur = cur.offset(1);
+            }
+        } else {
+            ep = ep.offset(1);
+        }
+    }
+    return 0;
+}
+
+unsafe extern "C" fn unsetenv_unhooked(mut var: *const libc::c_char) -> libc::c_int {
+    let mut ret: libc::c_int = 0 as libc::c_int;
+    let mut fn_3: sudo_fn_unsetenv_t = None;
+    fn_3 = ::std::mem::transmute::<*mut libc::c_void, sudo_fn_unsetenv_t>(sudo_dso_findsym_v1(
+        -(1 as libc::c_int) as *mut libc::c_void,
+        b"unsetenv\0" as *const u8 as *const libc::c_char,
+    ));
+    if fn_3.is_some() {
+        ret = fn_3.expect("is null func pointer")(var as *mut libc::c_void) as libc::c_int;
+    } else {
+        ret = rpl_unsetenv(var);
+    }
+    return ret;
+}
+#[no_mangle]
+pub unsafe extern "C" fn unsetenv(mut var: *const libc::c_char) -> libc::c_int {
+    let mut ret: libc::c_int = 0 as libc::c_int;
+    match process_hooks_unsetenv(var) {
+        SUDO_HOOK_RET_STOP => ret = 0,
+        SUDO_HOOK_RET_ERROR => ret = -1,
+        _ => ret = unsetenv_unhooked(var),
+    };
+    return ret;
+}
