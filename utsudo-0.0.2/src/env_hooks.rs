@@ -168,3 +168,25 @@ unsafe extern "C" fn rpl_setenv(
     return 0;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn getenv_unhooked(mut name: *const libc::c_char) -> *mut libc::c_char {
+    let mut ep: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut val: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut namelen: size_t = 0 as size_t;
+    while *name.offset(namelen as isize) != '\u{0}' as libc::c_char
+        && *name.offset(namelen as isize) != '=' as libc::c_char
+    {
+        namelen += 1;
+    }
+    ep = environ;
+    while !(*ep).is_null() {
+        if strncmp(*ep, name, namelen) == 0
+            && *(*ep).offset(namelen as isize) == '=' as libc::c_char
+        {
+            val = (*ep).offset(namelen as isize).offset(1 as isize);
+            break;
+        }
+        ep = ep.offset(1);
+    }
+    return val;
+}
