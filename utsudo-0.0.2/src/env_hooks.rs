@@ -256,3 +256,53 @@ pub unsafe extern "C" fn unsetenv(mut var: *const libc::c_char) -> libc::c_int {
     };
     return ret;
 }
+
+#[no_mangle]
+unsafe extern "C" fn putenv_unhooked(mut string: *mut libc::c_char) -> libc::c_int {
+    let mut fn_1: sudo_fn_putenv_t = None;
+    fn_1 = ::std::mem::transmute::<*mut libc::c_void, sudo_fn_putenv_t>(sudo_dso_findsym_v1(
+        -(1 as libc::c_int) as *mut libc::c_void,
+        b"putenv\0" as *const u8 as *const libc::c_char,
+    ));
+    if fn_1.is_some() {
+        return fn_1.expect("is null func pointer")(string);
+    }
+    return rpl_putenv(string);
+}
+#[no_mangle]
+unsafe extern "C" fn putenv(mut string: *mut libc::c_char) -> libc::c_int {
+    match process_hooks_putenv(string) {
+        SUDO_HOOK_RET_STOP => return 0 as libc::c_int,
+        SUDO_HOOK_RET_ERROR => return -(1 as libc::c_int),
+        _ => return putenv_unhooked(string), 
+    };
+}
+
+unsafe extern "C" fn setenv_unhooked(
+    mut var: *const libc::c_char,
+    mut val: *const libc::c_char,
+    mut overwrite: libc::c_int,
+) -> libc::c_int {
+    let mut fn_2: sudo_fn_setenv_t = None;
+    fn_2 = ::std::mem::transmute::<*mut libc::c_void, sudo_fn_setenv_t>(sudo_dso_findsym_v1(
+        -(1 as libc::c_int) as *mut libc::c_void,
+        b"setenv\0" as *const u8 as *const libc::c_char,
+    ));
+    if fn_2.is_some() {
+        return fn_2.expect("non-null function pointer")(var, val, overwrite);
+    }
+    return rpl_setenv(var, val, overwrite);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn setenv(
+    mut var: *const libc::c_char,
+    mut val: *const libc::c_char,
+    mut overwrite: libc::c_int,
+) -> libc::c_int {
+    match process_hooks_setenv(var, val, overwrite) {
+        SUDO_HOOK_RET_STOP => return 0,
+        SUDO_HOOK_RET_ERROR => return -1,
+        _ => return setenv_unhooked(var, val, overwrite),
+    };
+}
