@@ -188,3 +188,66 @@ unsafe extern "C" fn preload_dso(
     }
     debug_return_ptr!(envp);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn disable_execute(
+    mut envp: *mut *mut libc::c_char,
+    mut dso: *const libc::c_char,
+) -> *mut *mut libc::c_char {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+    if !dso.is_null() {
+        envp = preload_dso(envp, dso);
+    }
+    debug_return_ptr!(envp);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_execve(
+    mut fd: libc::c_int,
+    mut path: *const libc::c_char,
+    mut argv: *const *mut libc::c_char,
+    mut envp: *mut *mut libc::c_char,
+    mut noexec: bool,
+) -> libc::c_int {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+    sudo_debug_execve!(SUDO_DEBUG_INFO, path, argv, envp);
+    if noexec {
+        envp = disable_execute(envp, sudo_conf_noexec_path_v1());
+    }
+    if fd != -1 {
+        fexecve(fd, argv, envp as *const *mut libc::c_char);
+    } else {
+        execve(path, argv, envp as *const *mut libc::c_char);
+    }
+    if fd == -1 && *__errno_location() == ENOEXEC {
+        let mut argc: libc::c_int = 0;
+        let mut nargv: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+        while !(*argv.offset(argc as isize)).is_null() {
+            argc += 1;
+        }
+        nargv = reallocarray(
+            0 as *mut libc::c_void,
+            (argc + 2) as size_t,
+            std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+        ) as *mut *mut libc::c_char;
+        if !nargv.is_null() {
+            let ref mut nargv0 = *nargv.offset(0 as libc::c_int as isize);
+            *nargv0 = b"sh\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+            let ref mut nargv1 = *nargv.offset(1 as libc::c_int as isize);
+            *nargv1 = path as *mut libc::c_char;
+            memcpy(
+                nargv.offset(2 as isize) as *mut libc::c_void,
+                argv.offset(1 as isize) as *const libc::c_void,
+                (argc as libc::c_ulong)
+                    .wrapping_mul(std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong),
+            );
+            execve(
+                _PATH_SUDO_BSHELL!(),
+                nargv as *const *mut libc::c_char,
+                envp as *const *mut libc::c_char,
+            );
+            free(nargv as *mut libc::c_void);
+        }
+    }
+    debug_return_int!(-(1 as libc::c_int));
+}
