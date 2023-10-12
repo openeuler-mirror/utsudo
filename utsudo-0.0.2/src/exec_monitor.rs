@@ -115,5 +115,41 @@ extern "C" {
     fn sudo_fatal_nodebug_v1(fmt: *const libc::c_char, _: ...) -> !;
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct monitor_closure {
+    pub cmnd_pid: pid_t,
+    pub cmnd_pgrp: pid_t,
+    pub mon_pgrp: pid_t,
+    pub backchannel: libc::c_int,
+    pub cstat: *mut command_status,
+    pub evbase: *mut sudo_event_base,
+    pub errpipe_event: *mut sudo_event,
+    pub backchannel_event: *mut sudo_event,
+    pub sigint_event: *mut sudo_event,
+    pub sigquit_event: *mut sudo_event,
+    pub sigtstp_event: *mut sudo_event,
+    pub sigterm_event: *mut sudo_event,
+    pub sighup_event: *mut sudo_event,
+    pub sigusr1_event: *mut sudo_event,
+    pub sigusr2_event: *mut sudo_event,
+    pub sigchld_event: *mut sudo_event,
+}
+
+#[macro_export]
+macro_rules! WIFCONTINUED {
+    ($status: expr) => {
+        ($status == 0xffff)
+    };
+}
+static mut tty_initialized: bool = false;
+
+
+
+
+
+
+
+
 
 
