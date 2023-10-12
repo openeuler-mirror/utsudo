@@ -438,7 +438,103 @@ unsafe extern "C" fn mon_handle_sigchld(mut mc: *mut monitor_closure) {
 }
 
 
-
+unsafe extern "C" fn mon_signal_cb(
+    mut signo: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut sc: *mut sudo_ev_siginfo_container = v as *mut sudo_ev_siginfo_container;
+    let mut mc: *mut monitor_closure = (*sc).closure as *mut monitor_closure;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /*
+     * Handle SIGCHLD specially and deliver other signals
+     * directly to the command.
+     */
+    if signo == SIGCHLD {
+        mon_handle_sigchld(mc);
+        if (*mc).cmnd_pid == -(1 as libc::c_int) {
+            /* Command exited or was killed, exit event loop. */
+            sudo_ev_loopexit_v1((*mc).evbase);
+        }
+    } else {
+        /*
+         * If the signal came from the process group of the command we ran,
+         * do not forward it as we don't want the child to indirectly kill
+         * itself.  This can happen with, e.g., BSD-derived versions of
+         * reboot that call kill(-1, SIGTERM) to kill all other processes.
+         */
+        if USER_SIGNALED!((*sc).siginfo) && (*(*sc).siginfo)._sifields._kill.si_pid != 0 {
+            let mut si_pgrp: pid_t = getpgid((*(*sc).siginfo)._sifields._kill.si_pid);
+            if si_pgrp != -(1 as libc::c_int) {
+                if si_pgrp == (*mc).cmnd_pgrp {
+                    debug_return!();
+                }
+            } else if (*(*sc).siginfo)._sifields._kill.si_pid == (*mc).cmnd_pid {
+                debug_return!();
+            }
+        }
+        deliver_signal(mc, signo, false);
+    }
+    debug_return!();
+}
+/* Note: this is basically the same as errpipe_cb() in exec_nopty.c */
+unsafe extern "C" fn mon_errpipe_cb(
+    mut fd: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut mc: *mut monitor_closure = v as *mut monitor_closure;
+    let mut nread: ssize_t = 0;
+    let mut errval: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /*
+     * Read errno from child or EOF when command is executed.
+     * Note that the error pipe is *blocking*.
+     */
+    nread = read(
+        fd,
+        &mut errval as *mut libc::c_int as *mut libc::c_void,
+        std::mem::size_of::<libc::c_int>() as libc::c_ulong,
+    );
+    match nread {
+        -1 => {
+            if errno!() != EAGAIN && errno!() != EINTR {
+                if (*(*mc).cstat).val == CMD_INVALID {
+                    /* XXX - need a way to distinguish non-exec error. */
+                    (*(*mc).cstat).type_0 = CMD_ERRNO;
+                    (*(*mc).cstat).val = errno!();
+                }
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                    b"%s: failed to read error pipe\0" as *const u8 as *const libc::c_char,
+                    stdext::function_name!().as_ptr()
+                );
+                sudo_ev_loopbreak_v1((*mc).evbase);
+            }
+        }
+        _ => {
+            if nread == 0 as libc::c_long {
+                /* The error pipe closes when the command is executed. */
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"EOF on error pipe\0" as *const u8 as *const libc::c_char
+                );
+            } else {
+                /* Errno value when child is unable to execute command. */
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"errno from child: %s\0" as *const u8 as *const libc::c_char,
+                    strerror(errval)
+                );
+                (*(*mc).cstat).type_0 = CMD_ERRNO;
+                (*(*mc).cstat).val = errval;
+            }
+            sudo_ev_del_v1((*mc).evbase, (*mc).errpipe_event);
+            close(fd);
+        }
+    }
+    debug_return!();
+}
 
 
 
