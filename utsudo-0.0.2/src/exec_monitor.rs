@@ -308,6 +308,140 @@ unsafe extern "C" fn send_status(
     debug_return_int!(n);
 }
 
+unsafe extern "C" fn mon_handle_sigchld(mut mc: *mut monitor_closure) {
+    let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+    let mut status: libc::c_int = 0;
+    let mut pid: pid_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /* Read command status. */
+    loop {
+        pid = waitpid(
+            (*mc).cmnd_pid,
+            &mut status,
+            WUNTRACED | WCONTINUED | WNOHANG,
+        );
+        if !(pid == -(1 as libc::c_int) && errno!() == EINTR) {
+            break;
+        }
+        break;
+    }
+    match pid {
+        0 => {
+            errno!() = ECHILD;
+            sudo_warn!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"waitpid\0" as *const u8 as *const libc::c_char
+            );
+            debug_return!();
+        }
+        /* FALLTHROUGH */
+        -1 => {
+            sudo_warn!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"waitpid\0" as *const u8 as *const libc::c_char
+            );
+            debug_return!();
+        }
+        _ => {}
+    }
+    if WIFCONTINUED!(status) {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: command (%d) resumed\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*mc).cmnd_pid
+        );
+    } else if WIFSTOPPED!(status) {
+        if sudo_sig2str(WSTOPSIG!(status), signame.as_mut_ptr()) == -(1 as libc::c_int) {
+            snprintf(
+                signame.as_mut_ptr(),
+                std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                b"%d\0" as *const u8 as *const libc::c_char,
+                WSTOPSIG!(status),
+            );
+        }
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: command (%d) stopped, SIG%s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*mc).cmnd_pid,
+            signame.as_mut_ptr()
+        );
+    } else if WIFSIGNALED!(status) {
+        if sudo_sig2str(WTERMSIG!(status), signame.as_mut_ptr()) == -(1 as libc::c_int) {
+            snprintf(
+                signame.as_mut_ptr(),
+                std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                b"%d\0" as *const u8 as *const libc::c_char,
+                WTERMSIG!(status),
+            );
+        }
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: command (%d) killed, SIG%s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*mc).cmnd_pid,
+            signame.as_mut_ptr()
+        );
+        (*mc).cmnd_pid == -(1 as libc::c_int);
+    } else if WIFEXITED!(status) {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: command (%d) exited: %d\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*mc).cmnd_pid,
+            WEXITSTATUS!(status)
+        );
+        (*mc).cmnd_pid == -(1 as libc::c_int);
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN,
+            b"%s: unexpected wait status %d for command (%d)" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            status,
+            (*mc).cmnd_pid
+        );
+    }
+    /* Don't overwrite execve() failure with child exit status. */
+    if (*(*mc).cstat).type_0 == CMD_INVALID {
+        /*
+         * Store wait status in cstat and forward to parent if stopped.
+         * Parent does not expect SIGCONT so don't bother sending it.
+         */
+        if !WIFCONTINUED!(status) {
+            (*(*mc).cstat).type_0 = CMD_WSTATUS;
+            (*(*mc).cstat).val = status;
+            if WIFSTOPPED!(status) {
+                /* Save the foreground pgid so we can restore it later. */
+                pid = tcgetpgrp(io_fds[SFD_SLAVE as usize]);
+                if pid != (*mc).mon_pgrp {
+                    (*mc).cmnd_pgrp = pid;
+                }
+                send_status((*mc).backchannel, (*mc).cstat);
+            }
+        }
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN,
+            b"%s: not overwriting command status %d,%d with %d,%d\0" as *const u8
+                as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*(*mc).cstat).type_0,
+            (*(*mc).cstat).val,
+            CMD_WSTATUS,
+            status
+        );
+    }
+    debug_return!();
+}
+
+
+
+
+
+
 
 
 
