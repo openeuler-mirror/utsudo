@@ -536,8 +536,136 @@ unsafe extern "C" fn mon_errpipe_cb(
     debug_return!();
 }
 
+unsafe extern "C" fn mon_backchannel_cb(
+    mut fd: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut mc: *mut monitor_closure = v as *mut monitor_closure;
+    let mut cstmp: command_status = command_status { type_0: 0, val: 0 };
+    let mut n: ssize_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /*
+     * Read command from backchannel, should be a signal.
+     * Note that the backchannel is a *blocking* socket.
+     */
+    n = recv(
+        fd,
+        &mut cstmp as *mut command_status as *mut libc::c_void,
+        std::mem::size_of::<command_status>() as libc::c_ulong,
+        MSG_WAITALL as libc::c_int,
+    );
+    if n as libc::c_ulong != std::mem::size_of::<command_status>() as libc::c_ulong {
+        if n == -(1 as libc::c_int) as libc::c_long {
+            if errno!() == EINTR || errno!() == EAGAIN {
+                debug_return!();
+            }
+            sudo_warn!(b"error reading from socketpair\0" as *const u8 as *const libc::c_char,);
+        } else {
+            /* short read or EOF, parent process died? */
+        }
+        /* XXX - need a way to distinguish non-exec error. */
+        (*(*mc).cstat).type_0 = CMD_ERRNO;
+        (*(*mc).cstat).val = if n != 0 { EIO } else { ECONNRESET };
+        sudo_ev_loopbreak_v1((*mc).evbase);
+    } else {
+        match cstmp.type_0 {
+            CMD_TTYWINCH => {
+                handle_winch(mc, cstmp.val as libc::c_uint);
+            }
+            CMD_SIGNO => {
+                deliver_signal(mc, cstmp.val, true);
+            }
+            _ => {
+                sudo_warnx!(
+                    b"unexpected reply type on backchannel: %d\0" as *const u8
+                        as *const libc::c_char,
+                    cstmp.type_0
+                );
+            }
+        }
+    }
+    debug_return!();
+}
 
-
+unsafe extern "C" fn exec_cmnd_pty(
+    mut details: *mut command_details,
+    mut foreground: bool,
+    mut errfd: libc::c_int,
+) {
+    let mut self_0: pid_t = getpid();
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /* Register cleanup function */
+    sudo_fatal_callback_register_v1(Some(pty_cleanup as unsafe extern "C" fn() -> ()));
+    /* Set command process group here too to avoid a race.*/
+    setpgid(0, self_0);
+    /* Wire up standard fds, note that stdout/stderr may be pipes. */
+    if io_fds[SFD_STDIN as usize] != STDIN_FILENO {
+        if dup2(io_fds[SFD_STDIN as usize], STDIN_FILENO) == -(1 as libc::c_int) {
+            sudo_fatal!(b"dup2 \0" as *const u8 as *const libc::c_char,);
+        }
+        if io_fds[SFD_STDIN as usize] != io_fds[SFD_SLAVE as usize] {
+            close(io_fds[SFD_STDIN as usize]);
+        }
+    }
+    if io_fds[SFD_STDOUT as usize] != STDOUT_FILENO {
+        if dup2(io_fds[SFD_STDOUT as usize], STDOUT_FILENO) == -(1 as libc::c_int) {
+            sudo_fatal!(b"dup2 \0" as *const u8 as *const libc::c_char,);
+        }
+        if io_fds[SFD_STDOUT as usize] != io_fds[SFD_SLAVE as usize] {
+            close(io_fds[SFD_STDOUT as usize]);
+        }
+    }
+    if io_fds[SFD_STDERR as usize] != STDERR_FILENO {
+        if dup2(io_fds[SFD_STDERR as usize], STDERR_FILENO) == -(1 as libc::c_int) {
+            sudo_fatal!(b"dup2 \0" as *const u8 as *const libc::c_char,);
+        }
+        if io_fds[SFD_STDERR as usize] != io_fds[SFD_SLAVE as usize] {
+            close(io_fds[SFD_STDERR as usize]);
+        }
+    }
+    /* Wait for parent to grant us the tty if we are foreground. */
+    if foreground as libc::c_int != 0 && ISSET!((*details).flags, CD_EXEC_BG) == 0 {
+        /* 1us */
+        let mut ts: timespec = {
+            let mut init = timespec {
+                tv_sec: 0 as __time_t,
+                tv_nsec: 1000 as __syscall_slong_t,
+            };
+            init
+        };
+        sudo_debug_printf!(
+            SUDO_DEBUG_DEBUG,
+            b"%s: waiting for controlling tty\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr()
+        );
+        while tcgetpgrp(io_fds[SFD_SLAVE as usize]) != self_0 {
+            nanosleep(&mut ts, 0 as *mut timespec);
+        }
+        sudo_debug_printf!(
+            SUDO_DEBUG_DEBUG,
+            b"%s: got controlling tty\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr()
+        );
+    }
+    /* Done with the pty slave, don't leak it. */
+    if io_fds[SFD_SLAVE as usize] != -(1 as libc::c_int) {
+        close(io_fds[SFD_SLAVE as usize]);
+    }
+    /* Execute command; only returns on error. */
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"executing %s in the %s\0" as *const u8 as *const libc::c_char,
+        (*details).command,
+        if foreground as libc::c_int != 0 {
+            b"foreground\0" as *const u8 as *const libc::c_char
+        } else {
+            b"background\0" as *const u8 as *const libc::c_char
+        }
+    );
+    exec_cmnd(details, errfd);
+    debug_return!();
+}
 
 
 
