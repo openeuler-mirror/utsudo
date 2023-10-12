@@ -144,8 +144,96 @@ macro_rules! WIFCONTINUED {
 }
 static mut tty_initialized: bool = false;
 
-
-
+unsafe extern "C" fn deliver_signal(
+    mut mc: *mut monitor_closure,
+    mut signo: libc::c_int,
+    mut from_parent: bool,
+) {
+    let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /* Avoid killing more than a single process or process group. */
+    if (*mc).cmnd_pid <= 0 {
+        debug_return!();
+    }
+    if signo == SIGCONT_FG {
+        sudo_strlcpy(
+            signame.as_mut_ptr(),
+            b"CONT_FG\0" as *const u8 as *const libc::c_char,
+            std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+        );
+    } else if signo == SIGCONT_BG {
+        sudo_strlcpy(
+            signame.as_mut_ptr(),
+            b"CONT_BG\0" as *const u8 as *const libc::c_char,
+            std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+        );
+    } else if sudo_sig2str(signo, signame.as_mut_ptr()) == -(1 as libc::c_int) {
+        snprintf(
+            signame.as_mut_ptr(),
+            std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+            b"%d\0" as *const u8 as *const libc::c_char,
+            signo,
+        );
+    }
+    /* Handle signal from parent or monitor.*/
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"received SIG%s%s\0" as *const u8 as *const libc::c_char,
+        signame.as_mut_ptr(),
+        if from_parent as libc::c_int != 0 {
+            b" from parent\0" as *const u8 as *const libc::c_char
+        } else {
+            b"\0" as *const u8 as *const libc::c_char
+        }
+    );
+    match signo {
+        SIGALRM => {
+            terminate_command((*mc).cmnd_pid, true);
+        }
+        SIGCONT_FG => {
+            /* Continue in foreground, grant it controlling tty. */
+            if tcsetpgrp(io_fds[SFD_SLAVE as usize], (*mc).cmnd_pgrp) == -(1 as libc::c_int) {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                    b"%s: unable to set foreground pgrp to %d (command)\0" as *const u8
+                        as *const libc::c_char,
+                    stdext::function_name!().as_ptr(),
+                    (*mc).cmnd_pgrp
+                );
+            }
+            /* Lazily initialize the pty if needed. */
+            if !tty_initialized {
+                if sudo_term_copy_v1(io_fds[SFD_USERTTY as usize], io_fds[SFD_SLAVE as usize]) {
+                    tty_initialized = true;
+                }
+            }
+            killpg((*mc).cmnd_pid, SIGCONT);
+        }
+        SIGCONT_BG => {
+            /* Continue in background, I take controlling tty. */
+            if tcsetpgrp(io_fds[SFD_SLAVE as usize], (*mc).mon_pgrp) == -(1 as libc::c_int) {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                    b"%s: unable to set foreground pgrp to %d (monitor)\0" as *const u8
+                        as *const libc::c_char,
+                    stdext::function_name!().as_ptr(),
+                    (*mc).mon_pgrp
+                );
+            }
+            killpg((*mc).cmnd_pid, SIGCONT);
+        }
+        SIGKILL => {
+            _exit(1); /* XXX */
+            killpg((*mc).cmnd_pid, signo);
+        }
+        /* NOTREACHED */
+        _ => {
+            /* Relay signal to command. */
+            killpg((*mc).cmnd_pid, signo);
+        }
+    }
+    debug_return!();
+}
 
 
 
