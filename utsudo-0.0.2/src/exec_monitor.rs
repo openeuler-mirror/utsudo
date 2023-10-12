@@ -235,8 +235,78 @@ unsafe extern "C" fn deliver_signal(
     debug_return!();
 }
 
+unsafe extern "C" fn handle_winch(mut mc: *mut monitor_closure, mut wsize_packed: libc::c_uint) {
+    let mut wsize: winsize = winsize {
+        ws_row: 0,
+        ws_col: 0,
+        ws_xpixel: 0,
+        ws_ypixel: 0,
+    };
+    let mut owsize: winsize = winsize {
+        ws_row: 0,
+        ws_col: 0,
+        ws_xpixel: 0,
+        ws_ypixel: 0,
+    };
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /* Rows and colums are stored as two shorts packed into a single int. */
+    wsize.ws_row = (wsize_packed & 0xffff as libc::c_uint) as libc::c_ushort;
+    wsize.ws_col = (wsize_packed >> 16 & 0xffff as libc::c_uint) as libc::c_ushort;
+    if ioctl(
+        io_fds[SFD_SLAVE as usize],
+        TIOCGWINSZ as libc::c_ulong,
+        &mut owsize as *mut winsize,
+    ) == 0
+        && (wsize.ws_row != owsize.ws_row || wsize.ws_col != owsize.ws_col)
+    {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"window size change %dx%d -> %dx%d\0" as *const u8 as *const libc::c_char,
+            owsize.ws_col as libc::c_int,
+            owsize.ws_row as libc::c_int,
+            wsize.ws_col as libc::c_int,
+            wsize.ws_row as libc::c_int
+        );
+        ioctl(
+            io_fds[SFD_SLAVE as usize],
+            TIOCSWINSZ as libc::c_ulong,
+            &mut wsize as *mut winsize,
+        );
+        deliver_signal(mc, SIGWINCH, true);
+    }
+    debug_return!();
+}
 
-
+unsafe extern "C" fn send_status(
+    mut fd: libc::c_int,
+    mut cstat: *mut command_status,
+) -> libc::c_int {
+    let mut n: libc::c_int = -(1 as libc::c_int);
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    if (*cstat).type_0 != CMD_INVALID {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"sending status message to parent: [%d, %d]\0" as *const u8 as *const libc::c_char,
+            (*cstat).type_0,
+            (*cstat).val
+        );
+        n = send(
+            fd,
+            cstat as *const libc::c_void,
+            std::mem::size_of::<command_status>() as libc::c_ulong,
+            0,
+        ) as libc::c_int;
+        if n as libc::c_ulong != std::mem::size_of::<command_status>() as libc::c_ulong {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                b"%s: unable to send status to parent\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr()
+            );
+        }
+        (*cstat).type_0 = CMD_INVALID; /* prevent re-sending */
+    }
+    debug_return_int!(n);
+}
 
 
 
