@@ -920,3 +920,235 @@ unsafe extern "C" fn fill_exec_closure_monitor(
     sudo_ev_base_setdef_v1(0 as *mut sudo_event_base);
     debug_return!();
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn exec_monitor(
+    mut details: *mut command_details,
+    mut oset: *mut sigset_t,
+    mut foreground: bool,
+    mut backchannel: libc::c_int,
+) -> libc::c_int {
+    let mut mc: monitor_closure = {
+        let mut init = monitor_closure {
+            cmnd_pid: 0 as libc::c_int,
+            cmnd_pgrp: 0,
+            mon_pgrp: 0,
+            backchannel: 0,
+            cstat: 0 as *mut command_status,
+            evbase: 0 as *mut sudo_event_base,
+            errpipe_event: 0 as *mut sudo_event,
+            backchannel_event: 0 as *mut sudo_event,
+            sigint_event: 0 as *mut sudo_event,
+            sigquit_event: 0 as *mut sudo_event,
+            sigtstp_event: 0 as *mut sudo_event,
+            sigterm_event: 0 as *mut sudo_event,
+            sighup_event: 0 as *mut sudo_event,
+            sigusr1_event: 0 as *mut sudo_event,
+            sigusr2_event: 0 as *mut sudo_event,
+            sigchld_event: 0 as *mut sudo_event,
+        };
+        init
+    };
+    let mut cstat: command_status = command_status { type_0: 0, val: 0 };
+    let mut sa: sigaction = sigaction {
+        __sigaction_handler: Signal_handler { sa_handler: None },
+        sa_mask: __sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
+    };
+    let mut errpipe: [libc::c_int; 2] = [0; 2];
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /* The pty master is not used by the monitor. */
+    if io_fds[SFD_MASTER as usize] != -(1 as libc::c_int) {
+        close(io_fds[SFD_MASTER as usize]);
+    }
+    /* Ignore any SIGTTIN or SIGTTOU we receive (shouldn't be possible). */
+    memset(
+        &mut sa as *mut sigaction as *mut libc::c_void,
+        0,
+        std::mem::size_of::<sigaction>() as libc::c_ulong,
+    );
+    sigemptyset(&mut sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    sa.__sigaction_handler.sa_handler = SIG_IGN!();
+    if sudo_sigaction(SIGTTIN, &mut sa, 0 as *mut sigaction) != 0 {
+        sudo_warn!(
+            b"unable to set handler for signal %d\0" as *const u8 as *const libc::c_char,
+            SIGTTIN
+        );
+    }
+    if sudo_sigaction(SIGTTOU, &mut sa, 0 as *mut sigaction) != 0 {
+        sudo_warn!(
+            b"unable to set handler for signal %d\0" as *const u8 as *const libc::c_char,
+            SIGTTOU
+        );
+    }
+    /* If we are starting in the foreground, the pty was already initialized. */
+    if foreground {
+        tty_initialized = true;
+    }
+    /*
+     * Start a new session with the parent as the session leader
+     * and the slave pty as the controlling terminal.
+     * This allows us to be notified when the command has been suspended.
+     */
+    'bad: loop {
+        if setsid() == -(1 as libc::c_int) {
+            sudo_warn!(b"setsid\0" as *const u8 as *const libc::c_char,);
+            break 'bad;
+        }
+        if pty_make_controlling() == -(1 as libc::c_int) {
+            sudo_warn!(b"unable to set controlling tty\0" as *const u8 as *const libc::c_char,);
+            break 'bad;
+        }
+        /*
+         * We use a pipe to get errno if execve(2) fails in the child.
+         */
+        if pipe2(errpipe.as_mut_ptr(), O_CLOEXEC as libc::c_int) != 0 {
+            sudo_fatal!(b"unable to create pipe\0" as *const u8 as *const libc::c_char,);
+        }
+        /*
+         * Before forking, wait for the main sudo process to tell us to go.
+         * Avoids race conditions when the command exits quickly.
+         */
+        while recv(
+            backchannel,
+            &mut cstat as *mut command_status as *mut libc::c_void,
+            std::mem::size_of::<command_status>() as libc::c_ulong,
+            MSG_WAITALL as libc::c_int,
+        ) == -(1 as libc::c_int) as libc::c_long
+        {
+            if errno!() != EINTR && errno!() != EAGAIN {
+                sudo_fatal!(
+                    b"unable to receive message from parent\0" as *const u8 as *const libc::c_char,
+                );
+            }
+        }
+        mc.cmnd_pid = sudo_debug_fork_v1();
+        match mc.cmnd_pid {
+            -1 => {
+                sudo_warn!(b"unable to fork\0" as *const u8 as *const libc::c_char,);
+                break 'bad;
+            }
+            0 => {
+                /* child */
+                sigprocmask(SIG_SETMASK, oset, 0 as *mut sigset_t);
+                close(backchannel);
+                close(errpipe[0 as usize]);
+                if io_fds[SFD_USERTTY as usize] != -(1 as libc::c_int) {
+                    close(io_fds[SFD_USERTTY as usize]);
+                }
+                restore_signals();
+                /* setup tty and exec command */
+                exec_cmnd_pty(details, foreground, errpipe[1 as usize]);
+                if write(
+                    errpipe[1 as usize],
+                    __errno_location() as *const libc::c_void,
+                    std::mem::size_of::<libc::c_int>() as libc::c_ulong,
+                ) == -(1 as libc::c_int) as libc::c_long
+                {
+                    sudo_warn!(
+                        b"unable to execute %s\0" as *const u8 as *const libc::c_char,
+                        (*details).command
+                    );
+                    _exit(1);
+                }
+            }
+            _ => {}
+        }
+        close(errpipe[1 as usize]);
+        /* No longer need execfd. */
+        if (*details).execfd != -(1 as libc::c_int) {
+            close((*details).execfd);
+            (*details).execfd = -(1 as libc::c_int);
+        }
+        /* Send the command's pid to main sudo process. */
+        cstat.type_0 = CMD_PID;
+        cstat.val = mc.cmnd_pid;
+        send_status(backchannel, &mut cstat);
+        /*
+         * Create new event base and register read events for the
+         * signal pipe, error pipe, and backchannel.
+         */
+        fill_exec_closure_monitor(&mut mc, &mut cstat, errpipe[0 as usize], backchannel);
+        /* Restore signal mask now that signal handlers are setup. */
+        sigprocmask(SIG_SETMASK, oset, 0 as *mut sigset_t);
+        /* If any of stdin/stdout/stderr are pipes, close them in parent. */
+        if io_fds[SFD_STDIN as usize] != io_fds[SFD_SLAVE as usize] {
+            close(io_fds[SFD_STDIN as usize]);
+        }
+        if io_fds[SFD_STDOUT as usize] != io_fds[SFD_SLAVE as usize] {
+            close(io_fds[SFD_STDOUT as usize]);
+        }
+        if io_fds[SFD_STDERR as usize] != io_fds[SFD_SLAVE as usize] {
+            close(io_fds[SFD_STDERR as usize]);
+        }
+        /* Put command in its own process group. */
+        mc.cmnd_pgrp = mc.cmnd_pid;
+        setpgid(mc.cmnd_pid, mc.cmnd_pgrp);
+        /* Make the command the foreground process for the pty slave. */
+        if (foreground as libc::c_int != 0)
+            && ISSET!((*details).flags, CD_EXEC_BG) as libc::c_int == 0
+        {
+            if tcsetpgrp(io_fds[SFD_SLAVE as usize], mc.cmnd_pgrp) == -(1 as libc::c_int) {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                    b"%s: unable to set foreground pgrp to %d (command)\0" as *const u8
+                        as *const libc::c_char,
+                    stdext::function_name!().as_ptr(),
+                    mc.cmnd_pgrp
+                )
+            }
+        }
+        /*
+         * Wait for errno on pipe, signal on backchannel or for SIGCHLD.
+         * The event loop ends when the child is no longer running and
+         * the error pipe is closed.
+         */
+        cstat.type_0 = CMD_INVALID;
+        cstat.val = 0;
+        sudo_ev_dispatch_v1(mc.evbase);
+        if mc.cmnd_pid != -(1 as libc::c_int) {
+            let mut pid: pid_t = 0;
+            /* Command still running, did the parent die? */
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR,
+                b"Command still running after event loop exit, terminating\0" as *const u8
+                    as *const libc::c_char
+            );
+            terminate_command(mc.cmnd_pid, true);
+            loop {
+                pid = waitpid(mc.cmnd_pid, 0 as *mut libc::c_int, 0);
+                if !(pid == -(1 as libc::c_int) && errno!() == EINTR) {
+                    break;
+                }
+                /* XXX - update cstat with wait status? */
+            }
+        }
+        /*
+         * Take the controlling tty.  This prevents processes spawned by the
+         * command from receiving SIGHUP when the session leader (us) exits.
+         */
+        if tcsetpgrp(io_fds[SFD_SLAVE as usize], mc.mon_pgrp) == -1 {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                b"%s: unable to set foreground pgrp to %d (monitor)\0" as *const u8
+                    as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                mc.mon_pgrp
+            )
+        }
+        /* Send parent status. */
+        send_status(backchannel, &mut cstat);
+        sudo_debug_exit_int_v1(
+            (*::std::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"exec_nopty\0")).as_ptr(),
+            b"exec_nopty.c\0" as *const u8 as *const libc::c_char,
+            line!() as libc::c_int,
+            sudo_debug_subsys,
+            1,
+        );
+        _exit(1);
+        break;
+    }
+    debug_return_int!(-(1 as libc::c_int));
+}
