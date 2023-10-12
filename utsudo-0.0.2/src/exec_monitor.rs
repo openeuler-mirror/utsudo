@@ -308,6 +308,236 @@ unsafe extern "C" fn send_status(
     debug_return_int!(n);
 }
 
+unsafe extern "C" fn mon_handle_sigchld(mut mc: *mut monitor_closure) {
+    let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+    let mut status: libc::c_int = 0;
+    let mut pid: pid_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /* Read command status. */
+    loop {
+        pid = waitpid(
+            (*mc).cmnd_pid,
+            &mut status,
+            WUNTRACED | WCONTINUED | WNOHANG,
+        );
+        if !(pid == -(1 as libc::c_int) && errno!() == EINTR) {
+            break;
+        }
+        break;
+    }
+    match pid {
+        0 => {
+            errno!() = ECHILD;
+            sudo_warn!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"waitpid\0" as *const u8 as *const libc::c_char
+            );
+            debug_return!();
+        }
+        /* FALLTHROUGH */
+        -1 => {
+            sudo_warn!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"waitpid\0" as *const u8 as *const libc::c_char
+            );
+            debug_return!();
+        }
+        _ => {}
+    }
+    if WIFCONTINUED!(status) {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: command (%d) resumed\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*mc).cmnd_pid
+        );
+    } else if WIFSTOPPED!(status) {
+        if sudo_sig2str(WSTOPSIG!(status), signame.as_mut_ptr()) == -(1 as libc::c_int) {
+            snprintf(
+                signame.as_mut_ptr(),
+                std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                b"%d\0" as *const u8 as *const libc::c_char,
+                WSTOPSIG!(status),
+            );
+        }
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: command (%d) stopped, SIG%s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*mc).cmnd_pid,
+            signame.as_mut_ptr()
+        );
+    } else if WIFSIGNALED!(status) {
+        if sudo_sig2str(WTERMSIG!(status), signame.as_mut_ptr()) == -(1 as libc::c_int) {
+            snprintf(
+                signame.as_mut_ptr(),
+                std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                b"%d\0" as *const u8 as *const libc::c_char,
+                WTERMSIG!(status),
+            );
+        }
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: command (%d) killed, SIG%s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*mc).cmnd_pid,
+            signame.as_mut_ptr()
+        );
+        (*mc).cmnd_pid == -(1 as libc::c_int);
+    } else if WIFEXITED!(status) {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: command (%d) exited: %d\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*mc).cmnd_pid,
+            WEXITSTATUS!(status)
+        );
+        (*mc).cmnd_pid == -(1 as libc::c_int);
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN,
+            b"%s: unexpected wait status %d for command (%d)" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            status,
+            (*mc).cmnd_pid
+        );
+    }
+    /* Don't overwrite execve() failure with child exit status. */
+    if (*(*mc).cstat).type_0 == CMD_INVALID {
+        /*
+         * Store wait status in cstat and forward to parent if stopped.
+         * Parent does not expect SIGCONT so don't bother sending it.
+         */
+        if !WIFCONTINUED!(status) {
+            (*(*mc).cstat).type_0 = CMD_WSTATUS;
+            (*(*mc).cstat).val = status;
+            if WIFSTOPPED!(status) {
+                /* Save the foreground pgid so we can restore it later. */
+                pid = tcgetpgrp(io_fds[SFD_SLAVE as usize]);
+                if pid != (*mc).mon_pgrp {
+                    (*mc).cmnd_pgrp = pid;
+                }
+                send_status((*mc).backchannel, (*mc).cstat);
+            }
+        }
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN,
+            b"%s: not overwriting command status %d,%d with %d,%d\0" as *const u8
+                as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*(*mc).cstat).type_0,
+            (*(*mc).cstat).val,
+            CMD_WSTATUS,
+            status
+        );
+    }
+    debug_return!();
+}
+
+
+unsafe extern "C" fn mon_signal_cb(
+    mut signo: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut sc: *mut sudo_ev_siginfo_container = v as *mut sudo_ev_siginfo_container;
+    let mut mc: *mut monitor_closure = (*sc).closure as *mut monitor_closure;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /*
+     * Handle SIGCHLD specially and deliver other signals
+     * directly to the command.
+     */
+    if signo == SIGCHLD {
+        mon_handle_sigchld(mc);
+        if (*mc).cmnd_pid == -(1 as libc::c_int) {
+            /* Command exited or was killed, exit event loop. */
+            sudo_ev_loopexit_v1((*mc).evbase);
+        }
+    } else {
+        /*
+         * If the signal came from the process group of the command we ran,
+         * do not forward it as we don't want the child to indirectly kill
+         * itself.  This can happen with, e.g., BSD-derived versions of
+         * reboot that call kill(-1, SIGTERM) to kill all other processes.
+         */
+        if USER_SIGNALED!((*sc).siginfo) && (*(*sc).siginfo)._sifields._kill.si_pid != 0 {
+            let mut si_pgrp: pid_t = getpgid((*(*sc).siginfo)._sifields._kill.si_pid);
+            if si_pgrp != -(1 as libc::c_int) {
+                if si_pgrp == (*mc).cmnd_pgrp {
+                    debug_return!();
+                }
+            } else if (*(*sc).siginfo)._sifields._kill.si_pid == (*mc).cmnd_pid {
+                debug_return!();
+            }
+        }
+        deliver_signal(mc, signo, false);
+    }
+    debug_return!();
+}
+/* Note: this is basically the same as errpipe_cb() in exec_nopty.c */
+unsafe extern "C" fn mon_errpipe_cb(
+    mut fd: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut mc: *mut monitor_closure = v as *mut monitor_closure;
+    let mut nread: ssize_t = 0;
+    let mut errval: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /*
+     * Read errno from child or EOF when command is executed.
+     * Note that the error pipe is *blocking*.
+     */
+    nread = read(
+        fd,
+        &mut errval as *mut libc::c_int as *mut libc::c_void,
+        std::mem::size_of::<libc::c_int>() as libc::c_ulong,
+    );
+    match nread {
+        -1 => {
+            if errno!() != EAGAIN && errno!() != EINTR {
+                if (*(*mc).cstat).val == CMD_INVALID {
+                    /* XXX - need a way to distinguish non-exec error. */
+                    (*(*mc).cstat).type_0 = CMD_ERRNO;
+                    (*(*mc).cstat).val = errno!();
+                }
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                    b"%s: failed to read error pipe\0" as *const u8 as *const libc::c_char,
+                    stdext::function_name!().as_ptr()
+                );
+                sudo_ev_loopbreak_v1((*mc).evbase);
+            }
+        }
+        _ => {
+            if nread == 0 as libc::c_long {
+                /* The error pipe closes when the command is executed. */
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"EOF on error pipe\0" as *const u8 as *const libc::c_char
+                );
+            } else {
+                /* Errno value when child is unable to execute command. */
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"errno from child: %s\0" as *const u8 as *const libc::c_char,
+                    strerror(errval)
+                );
+                (*(*mc).cstat).type_0 = CMD_ERRNO;
+                (*(*mc).cstat).val = errval;
+            }
+            sudo_ev_del_v1((*mc).evbase, (*mc).errpipe_event);
+            close(fd);
+        }
+    }
+    debug_return!();
+}
+
+
+
 
 
 
