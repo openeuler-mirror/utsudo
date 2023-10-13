@@ -556,3 +556,182 @@ unsafe extern "C" fn fill_exec_closure_nopty(
     debug_return!();
 }
 
+
+/*
+ * Free the dynamically-allocated contents of the exec closure.
+ */
+unsafe extern "C" fn free_exec_closure_nopty(mut ec: *mut exec_closure_nopty) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    sudo_ev_base_free_v1((*ec).evbase);
+    sudo_ev_free_v1((*ec).errpipe_event);
+    sudo_ev_free_v1((*ec).sigint_event);
+    sudo_ev_free_v1((*ec).sigquit_event);
+    sudo_ev_free_v1((*ec).sigtstp_event);
+    sudo_ev_free_v1((*ec).sigterm_event);
+    sudo_ev_free_v1((*ec).sighup_event);
+    sudo_ev_free_v1((*ec).sigalrm_event);
+    sudo_ev_free_v1((*ec).sigpipe_event);
+    sudo_ev_free_v1((*ec).sigusr1_event);
+    sudo_ev_free_v1((*ec).sigusr2_event);
+    sudo_ev_free_v1((*ec).sigchld_event);
+    sudo_ev_free_v1((*ec).sigcont_event);
+    sudo_ev_free_v1((*ec).siginfo_event);
+    debug_return!();
+}
+/*
+ * Execute a command and wait for it to finish.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn exec_nopty(
+    mut details: *mut command_details,
+    mut cstat: *mut command_status,
+) {
+    let mut ec: exec_closure_nopty = {
+        let mut init = exec_closure_nopty {
+            cmnd_pid: 0 as libc::c_int,
+            ppgrp: 0,
+            cstat: 0 as *mut command_status,
+            details: 0 as *mut command_details,
+            evbase: 0 as *mut sudo_event_base,
+            errpipe_event: 0 as *mut sudo_event,
+            sigint_event: 0 as *mut sudo_event,
+            sigquit_event: 0 as *mut sudo_event,
+            sigtstp_event: 0 as *mut sudo_event,
+            sigterm_event: 0 as *mut sudo_event,
+            sighup_event: 0 as *mut sudo_event,
+            sigalrm_event: 0 as *mut sudo_event,
+            sigpipe_event: 0 as *mut sudo_event,
+            sigusr1_event: 0 as *mut sudo_event,
+            sigusr2_event: 0 as *mut sudo_event,
+            sigchld_event: 0 as *mut sudo_event,
+            sigcont_event: 0 as *mut sudo_event,
+            siginfo_event: 0 as *mut sudo_event,
+        };
+        init
+    };
+    let mut set: sigset_t = sigset_t { __val: [0; 16] };
+    let mut oset: sigset_t = sigset_t { __val: [0; 16] };
+    let mut errpipe: [libc::c_int; 2] = [0; 2];
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /*
+     * The policy plugin's session init must be run before we fork
+     * or certain pam modules won't be able to track their state.
+     */
+    if policy_init_session(details) != true as libc::c_int {
+        sudo_fatalx!(
+            b"policy plugin failed session initialization\0" as *const u8 as *const libc::c_char,
+        );
+    }
+    /*
+     * We use a pipe to get errno if execve(2) fails in the child.
+     */
+    if pipe2(errpipe.as_mut_ptr(), O_CLOEXEC as libc::c_int) != 0 {
+        sudo_fatal!(b"unable to create pipe \0" as *const u8 as *const libc::c_char,);
+    }
+    /*
+     * Block signals until we have our handlers setup in the parent so
+     * we don't miss SIGCHLD if the command exits immediately.
+     */
+    sigfillset(&mut set);
+    sigprocmask(SIG_BLOCK, &mut set, &mut oset);
+    /* Check for early termination or suspend signals before we fork. */
+    if sudo_terminated(cstat) {
+        sigprocmask(SIG_SETMASK, &mut oset, 0 as *mut sigset_t);
+        debug_return!();
+    }
+    if (*details).flags & 0x800 as libc::c_int != 0 {
+        if selinux_setup(
+            (*details).selinux_role,
+            (*details).selinux_type,
+            (*details).tty,
+            -(1 as libc::c_int),
+            1 as libc::c_int != 0,
+        ) == -(1 as libc::c_int)
+        {
+            (*cstat).type_0 = 1 as libc::c_int;
+            (*cstat).val = *__errno_location();
+            sudo_debug_exit_v1(
+                (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"exec_nopty\0"))
+                    .as_ptr(),
+                b"exec_nopty.c\0" as *const u8 as *const libc::c_char,
+                387 as libc::c_int,
+                sudo_debug_subsys,
+            );
+            return;
+        }
+    }
+    ec.cmnd_pid = sudo_debug_fork_v1();
+    match ec.cmnd_pid {
+        -1 => {
+            sudo_fatal!(b"unable to fork \0" as *const u8 as *const libc::c_char,);
+        }
+        0 => {
+            /* child */
+            sigprocmask(SIG_SETMAS, &mut oset, 0 as *mut sigset_t);
+            close(errpipe[0 as usize]);
+            exec_cmnd(details, errpipe[1 as usize]);
+            while write(
+                errpipe[1 as usize],
+                __errno_location() as *const libc::c_void,
+                std::mem::size_of::<libc::c_int>() as libc::c_ulong,
+            ) == -1 as ssize_t
+            {
+                if *__errno_location() != EINTR {
+                    break;
+                }
+            }
+            sudo_debug_exit_int_v1(
+                (*::std::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"exec_nopty\0"))
+                    .as_ptr(),
+                b"exec_nopty.c\0" as *const u8 as *const libc::c_char,
+                line!() as libc::c_int,
+                sudo_debug_subsys,
+                1,
+            );
+            _exit(1);
+        }
+        _ => {}
+    }
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"executed %s, pid %d \0" as *const u8 as *const libc::c_char,
+        (*details).command,
+        ec.cmnd_pid
+    );
+    close(errpipe[1 as usize]);
+    /* No longer need execfd. */
+    if (*details).execfd != -1 {
+        close((*details).execfd);
+        (*details).execfd = -1
+    }
+    /* Set command timeout if specified. */
+    if ISSET!((*details).flags, CD_SET_TIMEOUT) != 0 {
+        alarm((*details).timeout as libc::c_uint);
+    }
+    /*
+     * Fill in exec closure, allocate event base, signal events and
+     * the error pipe event.
+     */
+    fill_exec_closure_nopty(&mut ec, cstat, details, errpipe[0 as usize]);
+    /* Restore signal mask now that signal handlers are setup. */
+    sigprocmask(SIG_SETMASK, &mut oset, 0 as *mut sigset_t);
+    /*
+     * Non-pty event loop.
+     * Wait for command to exit, handles signals and the error pipe.
+     */
+    if sudo_ev_dispatch_v1(ec.evbase) == -1 {
+        sudo_warn!(b"error in event loop \0" as *const u8 as *const libc::c_char,);
+    }
+    if sudo_ev_got_break_v1(ec.evbase) {
+        /* error from callback */
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR,
+            b"event loop exited prematurely \0" as *const u8 as *const libc::c_char
+        );
+        /* kill command */
+        terminate_command(ec.cmnd_pid, true);
+    }
+    /* Free things up. */
+    free_exec_closure_nopty(&mut ec);
+    debug_return!();
+}
