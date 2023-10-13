@@ -183,3 +183,99 @@ unsafe extern "C" fn errpipe_cb(
     }
     debug_return!();
 }
+
+/* Signal callback */
+#[inline]
+unsafe extern "C" fn signal_cb_nopty(
+    mut signo: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut sc: *mut sudo_ev_siginfo_container = v as *mut sudo_ev_siginfo_container;
+    let mut ec: *mut exec_closure_nopty = (*sc).closure as *mut exec_closure_nopty;
+    let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; 32];
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    if (*ec).cmnd_pid == -1 {
+        debug_return!();
+    }
+    if sudo_sig2str(signo, signame.as_mut_ptr()) == -1 {
+        snprintf(
+            signame.as_mut_ptr(),
+            std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+            b"%d\0" as *const u8 as *const libc::c_char,
+            signo,
+        );
+    }
+    sudo_debug_printf!(
+        SUDO_DEBUG_DIAG,
+        b"%s: evbase %p, command: %d, signo %s(%d), cstat %p\0" as *const u8 as *const libc::c_char,
+        stdext::function_name!().as_ptr(),
+        (*ec).evbase,
+        (*ec).cmnd_pid,
+        signame,
+        signo,
+        (*ec).cstat
+    );
+    match signo {
+        SIGCHLD => {
+            handle_sigchld_nopty(ec);
+            if (*ec).cmnd_pid == -1 {
+                /* Command exited or was killed, exit event loop. */
+                sudo_ev_loopexit_v1((*ec).evbase);
+            }
+            debug_return!();
+        }
+        SIGINT | SIGQUIT | SIGTSTP => {
+            /*
+             * Only forward user-generated signals not sent by a process in
+             * the command's own process group.  Signals sent by the kernel
+             * may include SIGTSTP when the user presses ^Z.  Curses programs
+             * often trap ^Z and send SIGTSTP to their own pgrp, so we don't
+             * want to send an extra SIGTSTP.
+             */
+            if !USER_SIGNALED!((*sc).siginfo) {
+                debug_return!();
+            }
+            if (*(*sc).siginfo)._sifields._kill.si_pid != 0 {
+                let mut si_pgrp: pid_t = getpgid((*(*sc).siginfo)._sifields._kill.si_pid);
+                if si_pgrp != -1 {
+                    if si_pgrp == (*ec).ppgrp || si_pgrp == (*ec).cmnd_pid {
+                        debug_return!();
+                    } else if (*(*sc).siginfo)._sifields._kill.si_pid == (*ec).cmnd_pid {
+                        debug_return!();
+                    }
+                }
+            }
+        }
+        _ => {
+            /*
+             * Do not forward signals sent by a process in the command's process
+             * group, as we don't want the command to indirectly kill itself.
+             * For example, this can happen with some versions of reboot that
+             * call kill(-1, SIGTERM) to kill all other processes.
+             */
+            if USER_SIGNALED!((*sc).siginfo) && (*(*sc).siginfo)._sifields._kill.si_pid != 0 {
+                let mut si_pgrp: pid_t = getpgid((*(*sc).siginfo)._sifields._kill.si_pid);
+                if si_pgrp != -1 {
+                    if si_pgrp == (*ec).ppgrp || si_pgrp == (*ec).cmnd_pid {
+                        debug_return!();
+                    } else if (*(*sc).siginfo)._sifields._kill.si_pid == (*ec).cmnd_pid {
+                        debug_return!();
+                    }
+                }
+            }
+        }
+    }
+    /* Send signal to command. */
+    if signo == SIGALRM {
+        terminate_command((*ec).cmnd_pid, false);
+    } else if kill((*ec).cmnd_pid, signo) != 0 {
+        sudo_warn!(
+            b"kill(%d, SIG%s)\0" as *const u8 as *const libc::c_char,
+            (*ec).cmnd_pid,
+            signame
+        );
+    }
+    debug_return!();
+}
+
