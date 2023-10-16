@@ -222,3 +222,88 @@ unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> l
         #[cfg(not(target_arch = "x86_64"))]
         return __fxstat(0 as libc::c_int, __fd, __statbuf);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_check_temp_file(
+    mut tfd: libc::c_int,
+    mut tfile: *const libc::c_char,
+    mut uid: uid_t,
+    mut sb: *mut stat,
+) -> bool {
+    let mut sbuf: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        #[cfg(target_arch = "x86_64")]
+        st_nlink: 0,
+        st_mode: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        st_nlink: 0,
+        st_uid: 0,
+        st_gid: 0,
+        #[cfg(target_arch = "x86_64")]
+        __pad0: 0,
+        st_rdev: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad1: 0,
+        st_size: 0,
+        st_blksize: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad2: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        #[cfg(target_arch = "x86_64")]
+        __glibc_reserved: [0; 3],
+        #[cfg(not(target_arch = "x86_64"))]
+        __glibc_reserved: [0; 2],
+    };
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    if sb.is_null() {
+        sb = &mut sbuf;
+    }
+
+    if fstat(tfd, sb) == -1 {
+        sudo_warn!(
+            b"unable to stat %s\0" as *const u8 as *const libc::c_char,
+            tfile
+        );
+        debug_return_bool!(false);
+    }
+
+    if !(S_ISREG!((*sb).st_mode)) {
+        sudo_warnx!(
+            b"not a regular file %s\0" as *const u8 as *const libc::c_char,
+            tfile
+        );
+        debug_return_bool!(false);
+    }
+    if ((*sb).st_mode & ALLPERMS!() as libc::c_uint) != (S_IREAD | S_IWRITE) as libc::c_uint {
+        sudo_warnx!(
+            b"bad file mode: 0%o %s\0" as *const u8 as *const libc::c_char,
+            tfile
+        );
+        debug_return_bool!(false);
+    }
+    if (*sb).st_uid != uid {
+        sudo_warnx!(
+            b"%s is owned by uid %u, should be %u\0" as *const u8 as *const libc::c_char,
+            tfile,
+            ((*sb).st_uid) as libc::c_uint,
+            uid
+        );
+        debug_return_bool!(false);
+    }
+    debug_return_bool!(true)
+}
