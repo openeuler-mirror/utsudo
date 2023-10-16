@@ -11,6 +11,15 @@ use utsudo_util::sudo_debug::*;
 use utsudo_util::sudo_debug_macro::*;
 use utsudo_util::*;
 
+#[repr(C)]
+pub struct group {
+    pub gr_name: *mut libc::c_char,
+    pub gr_passwd: *mut libc::c_char,
+    pub gr_gid: __gid_t,
+    pub gr_mem: *mut *mut libc::c_char,
+}
+
+
 #[no_mangle]
 pub unsafe extern "C" fn get_pty(
     mut master: *mut libc::c_int,
