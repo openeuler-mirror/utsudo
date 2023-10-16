@@ -66,7 +66,12 @@ pub const S_IRWXO: libc::c_int = S_IRWXG >> 3;
 pub const S_IREAD: libc::c_int = 0o400;
 pub const S_IWRITE: libc::c_int = 0o200;
 
-
+#[macro_export]
+macro_rules! ALLPERMS {
+    () => {
+        (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO)
+    };
+}
 
 /*
  * Extend the given fd to the specified size in bytes.
