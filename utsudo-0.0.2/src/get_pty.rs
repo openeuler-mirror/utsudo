@@ -11,6 +11,22 @@ use utsudo_util::sudo_debug::*;
 use utsudo_util::sudo_debug_macro::*;
 use utsudo_util::*;
 
+extern "C" {
+    fn getgrnam(__name: *const libc::c_char) -> *mut group;
+    fn openpty(
+        __amaster: *mut libc::c_int,
+        __aslave: *mut libc::c_int,
+        __name: *mut libc::c_char,
+        __termp: *const termios,
+        __winp: *const winsize,
+    ) -> libc::c_int;
+    fn chown(__file: *const libc::c_char, __owner: __uid_t, __group: __gid_t) -> libc::c_int;
+}
+
+pub type speed_t = libc::c_uint;
+pub type cc_t = libc::c_uchar;
+pub type tcflag_t = libc::c_uint;
+
 #[repr(C)]
 pub struct group {
     pub gr_name: *mut libc::c_char,
