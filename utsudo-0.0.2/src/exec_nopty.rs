@@ -101,3 +101,85 @@ extern "C" {
     fn sudo_fatalx_nodebug_v1(fmt: *const libc::c_char, _: ...);
     fn sudo_fatal_nodebug_v1(fmt: *const libc::c_char, _: ...);
 }
+
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct exec_closure_nopty {
+    pub cmnd_pid: pid_t,
+    pub ppgrp: pid_t,
+    pub cstat: *mut command_status,
+    pub details: *mut command_details,
+    pub evbase: *mut sudo_event_base,
+    pub errpipe_event: *mut sudo_event,
+    pub sigint_event: *mut sudo_event,
+    pub sigquit_event: *mut sudo_event,
+    pub sigtstp_event: *mut sudo_event,
+    pub sigterm_event: *mut sudo_event,
+    pub sighup_event: *mut sudo_event,
+    pub sigalrm_event: *mut sudo_event,
+    pub sigpipe_event: *mut sudo_event,
+    pub sigusr1_event: *mut sudo_event,
+    pub sigusr2_event: *mut sudo_event,
+    pub sigchld_event: *mut sudo_event,
+    pub sigcont_event: *mut sudo_event,
+    pub siginfo_event: *mut sudo_event,
+}
+#[inline]
+/* Note: this is basically the same as mon_errpipe_cb() in exec_monitor.c */
+unsafe extern "C" fn errpipe_cb(
+    mut fd: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut ec: *mut exec_closure_nopty = v as *mut exec_closure_nopty;
+    let mut nread: ssize_t = 0 as ssize_t;
+    let mut errval: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /*
+     * Read errno from child or EOF when command is executed.
+     * Note that the error pipe is *blocking*.
+     */
+    nread = read(
+        fd,
+        &mut errval as *mut libc::c_int as *mut libc::c_void,
+        std::mem::size_of::<libc::c_int>() as libc::c_ulong,
+    );
+    match nread {
+        -1 => {
+            if *__errno_location() != EAGAIN && *__errno_location() != EINTR {
+                if (*(*ec).cstat).val == CMD_INVALID {
+                    /* XXX - need a way to distinguish non-exec error. */
+                    (*(*ec).cstat).type_0 = CMD_ERRNO;
+                    (*(*ec).cstat).val = *__errno_location();
+                }
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                    b"%s: failed to read error pipe\0" as *const u8 as *const libc::c_char,
+                    stdext::function_name!().as_ptr()
+                );
+                sudo_ev_loopbreak_v1((*ec).evbase);
+            }
+        }
+        _ => {
+            if nread == 0 as ssize_t {
+                /* The error pipe closes when the command is executed. */
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"EOF on error pipe\0" as *const u8 as *const libc::c_char
+                );
+            } else {
+                /* Errno value when child is unable to execute command. */
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"errno from child: %s\0" as *const u8 as *const libc::c_char
+                );
+                (*(*ec).cstat).type_0 = CMD_ERRNO;
+                (*(*ec).cstat).val = errval;
+            }
+            sudo_ev_del_v1((*ec).evbase, (*ec).errpipe_event);
+            close(fd);
+        }
+    }
+    debug_return!();
+}
