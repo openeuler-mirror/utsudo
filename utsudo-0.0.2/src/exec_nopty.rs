@@ -279,3 +279,280 @@ unsafe extern "C" fn signal_cb_nopty(
     debug_return!();
 }
 
+/*
+ * Fill in the exec closure and setup initial exec events.
+ * Allocates events for the signal pipe and error pipe.
+ */
+#[inline]
+unsafe extern "C" fn fill_exec_closure_nopty(
+    mut ec: *mut exec_closure_nopty,
+    mut cstat: *mut command_status,
+    mut details: *mut command_details,
+    mut errfd: libc::c_int,
+) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /* Fill in the non-event part of the closure. */
+    (*ec).ppgrp = getpgrp();
+    let ref mut cstat0 = (*ec).cstat;
+    *cstat0 = cstat;
+    let ref mut details0 = (*ec).details;
+    *details0 = details;
+    /* Setup event base and events. */
+    let ref mut evbase0 = (*ec).evbase;
+    *evbase0 = sudo_ev_base_alloc_v1();
+    if (*ec).evbase.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    /* Event for command status via errfd. */
+    let ref mut errpipe_event0 = (*ec).errpipe_event;
+    *errpipe_event0 = sudo_ev_alloc_v1(
+        errfd,
+        (SUDO_EV_READ | SUDO_EV_PERSIST) as libc::c_short,
+        Some(errpipe_cb as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> ()),
+        ec as *mut libc::c_void,
+    );
+    if ((*ec).errpipe_event).is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).errpipe_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"error pipe fd %d\n\0" as *const u8 as *const libc::c_char,
+        errfd
+    );
+    /* Events for local signals. */
+    let ref mut sigint_event0 = (*ec).sigint_event;
+    *sigint_event0 = sudo_ev_alloc_v1(
+        SIGINT,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_nopty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigint_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigint_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    let ref mut sigquit_event0 = (*ec).sigquit_event;
+    *sigquit_event0 = sudo_ev_alloc_v1(
+        SIGQUIT,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_nopty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigquit_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigquit_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    let ref mut sigtstp_event0 = (*ec).sigtstp_event;
+    *sigtstp_event0 = sudo_ev_alloc_v1(
+        SIGTSTP,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_nopty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigtstp_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigtstp_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    let ref mut sigterm_event0 = (*ec).sigterm_event;
+    *sigterm_event0 = sudo_ev_alloc_v1(
+        SIGTERM,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_nopty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigterm_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigterm_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    let ref mut sighup_event0 = (*ec).sighup_event;
+    *sighup_event0 = sudo_ev_alloc_v1(
+        SIGHUP,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_nopty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sighup_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sighup_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    let ref mut sigalrm_event0 = (*ec).sigalrm_event;
+    *sigalrm_event0 = sudo_ev_alloc_v1(
+        SIGALRM,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_nopty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigalrm_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigalrm_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    let ref mut sigpipe_event0 = (*ec).sigpipe_event;
+    *sigpipe_event0 = sudo_ev_alloc_v1(
+        SIGPIPE,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_nopty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigpipe_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigpipe_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    let ref mut sigusr1_event0 = (*ec).sigusr1_event;
+    *sigusr1_event0 = sudo_ev_alloc_v1(
+        SIGUSR1,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_nopty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigusr1_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigusr1_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    let ref mut sigusr2_event0 = (*ec).sigusr2_event;
+    *sigusr2_event0 = sudo_ev_alloc_v1(
+        SIGUSR2,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_nopty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigusr2_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigusr2_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    let ref mut sigchld_event0 = (*ec).sigchld_event;
+    *sigchld_event0 = sudo_ev_alloc_v1(
+        SIGCHLD,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_nopty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigchld_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigchld_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    let ref mut sigcont_event0 = (*ec).sigcont_event;
+    *sigcont_event0 = sudo_ev_alloc_v1(
+        SIGCONT,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_nopty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigcont_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigcont_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    /* Set the default event base. */
+    sudo_ev_base_setdef_v1((*ec).evbase);
+    debug_return!();
+}
+
