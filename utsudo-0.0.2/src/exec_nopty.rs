@@ -735,3 +735,204 @@ pub unsafe extern "C" fn exec_nopty(
     free_exec_closure_nopty(&mut ec);
     debug_return!();
 }
+
+/*
+ * Wait for command status after receiving SIGCHLD.
+ * If the command exits, fill in cstat and stop the event loop.
+ * If the command stops, save the tty pgrp, suspend sudo, then restore
+ * the tty pgrp when sudo resumes.
+ */
+unsafe extern "C" fn handle_sigchld_nopty(mut ec: *mut exec_closure_nopty) {
+    let mut pid: pid_t = 0;
+    let mut status: libc::c_int = 0;
+    let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    loop {
+        pid = waitpid((*ec).cmnd_pid, &mut status, WUNTRACED | WNOHANG);
+        if !(pid == -(1 as libc::c_int) && *__errno_location() == EINTR) {
+            break;
+        }
+        break;
+    }
+    match pid {
+        0 => {
+            /* waitpid() will return 0 for SIGCONT, which we don't care about */
+            debug_return!();
+        }
+        -1 => {
+            sudo_warn!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"waitpid\0" as *const u8 as *const libc::c_char
+            );
+            debug_return!();
+        }
+        _ => {}
+    }
+    if WIFSTOPPED!(status) {
+        /*
+         * Save the controlling terminal's process group so we can restore it
+         * after we resume, if needed.  Most well-behaved shells change the
+         * pgrp back to its original value before suspending so we must
+         * not try to restore in that case, lest we race with the command upon
+         * resume, potentially stopping sudo with SIGTTOU while the command
+         * continues to run.
+         */
+        let mut sa: sigaction = sigaction {
+            __sigaction_handler: Signal_handler { sa_handler: None },
+            sa_mask: sigset_t { __val: [0; 16] },
+            sa_flags: 0,
+            sa_restorer: None,
+        };
+        let mut osa: sigaction = sigaction {
+            __sigaction_handler: Signal_handler { sa_handler: None },
+            sa_mask: sigset_t { __val: [0; 16] },
+            sa_flags: 0,
+            sa_restorer: None,
+        };
+        let mut saved_pgrp: pid_t = -(1 as libc::c_int);
+        let mut fd: libc::c_int = 0;
+        let mut signo: libc::c_int = WSTOPSIG!(status);
+        if sudo_sig2str(signo, signame.as_mut_ptr()) == -(1 as libc::c_int) {
+            snprintf(
+                signame.as_mut_ptr(),
+                std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                b"%d\0" as *const u8 as *const libc::c_char,
+                signo,
+            );
+        }
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: command (%d) stopped, SIG%s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*ec).cmnd_pid,
+            signame
+        );
+        fd = open(_PATH_TTY!(), O_RDWR);
+        if fd != -(1 as libc::c_int) {
+            saved_pgrp = tcgetpgrp(fd);
+            if saved_pgrp == -(1 as libc::c_int) {
+                close(fd);
+                fd = -(1 as libc::c_int);
+            }
+        }
+        if saved_pgrp != -(1 as libc::c_int) {
+            /*
+             * Command was stopped trying to access the controlling terminal.
+             * If the command has a different pgrp and we own the controlling
+             * terminal, give it to the command's pgrp and let it continue.
+             */
+            if signo == SIGTTOU || signo == SIGTTIN {
+                if saved_pgrp == (*ec).ppgrp {
+                    let mut cmnd_pgrp: pid_t = getpgid((*ec).cmnd_pid);
+                    if cmnd_pgrp != (*ec).ppgrp {
+                        if tcsetpgrp_nobg(fd, cmnd_pgrp) == 0 {
+                            if killpg(cmnd_pgrp, SIGCONT) != 0 {
+                                sudo_warn!(
+                                    b"kill(%d, SIGCONT)\0" as *const u8 as *const libc::c_char,
+                                    cmnd_pgrp
+                                );
+                            }
+                            close(fd);
+                            debug_return!();
+                        }
+                    }
+                }
+            }
+        }
+        if signo == SIGTSTP {
+            memset(
+                &mut sa as *mut sigaction as *mut libc::c_void,
+                0,
+                std::mem::size_of::<sigaction>() as libc::c_ulong,
+            );
+            sigemptyset(&mut sa.sa_mask);
+            sa.sa_flags = SA_RESTART;
+            sa.__sigaction_handler.sa_handler = None;
+            if sudo_sigaction(
+                SIGTSTP,
+                &mut sa as *mut sigaction,
+                &mut osa as *mut sigaction,
+            ) != 0
+            {
+                sudo_warn!(
+                    b"unable to set handler for signal %d\0" as *const u8 as *const libc::c_char,
+                    SIGTSTP
+                );
+            }
+        }
+        if kill(getpid(), signo) != 0 {
+            sudo_warn!(
+                b"kill(%d, SIG%s)0" as *const u8 as *const libc::c_char,
+                getpid(),
+                signame
+            );
+        }
+        if signo == SIGTSTP {
+            if sudo_sigaction(SIGTSTP, &mut osa, 0 as *mut sigaction) != 0 {
+                sudo_warn!(
+                    b"unable to restore handler for signal %d\0" as *const u8
+                        as *const libc::c_char,
+                    SIGTSTP
+                );
+            }
+        }
+        if saved_pgrp != -(1 as libc::c_int) {
+            /*
+             * On resume, restore foreground process group, if different.
+             * Otherwise, we cannot resume some shells (pdksh).
+             *
+             * It is possible that we are no longer the foreground process so
+             * use tcsetpgrp_nobg() to prevent sudo from receiving SIGTTOU.
+             */
+            if saved_pgrp != (*ec).ppgrp {
+                tcsetpgrp_nobg(fd, saved_pgrp);
+            }
+            close(fd);
+        }
+    } else {
+        /* Command has exited or been killed, we are done. */
+        if WIFSIGNALED!(status) {
+            if sudo_sig2str(WTERMSIG!(status), signame.as_mut_ptr()) == -1 {
+                snprintf(
+                    signame.as_mut_ptr(),
+                    std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                    b"%d\0" as *const u8 as *const libc::c_char,
+                    WTERMSIG!(status),
+                );
+            }
+            sudo_debug_printf!(
+                SUDO_DEBUG_INFO,
+                b"%s: command (%d) killed, SIG%s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                (*ec).cmnd_pid,
+                signame
+            );
+        } else {
+            sudo_debug_printf!(
+                SUDO_DEBUG_INFO,
+                b"%s: command (%d) exited: %d\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                (*ec).cmnd_pid,
+                WEXITSTATUS!(status)
+            );
+        }
+        /* Don't overwrite execve() failure with command exit status. */
+        if (*(*ec).cstat).type_0 == CMD_INVALID {
+            (*(*ec).cstat).type_0 = CMD_WSTATUS;
+            (*(*ec).cstat).val = status;
+        } else {
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN,
+                b"%s: not overwriting command status %d,%d with %d,%d\0" as *const u8
+                    as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                (*(*ec).cstat).type_0,
+                (*(*ec).cstat).val,
+                CMD_WSTATUS,
+                status
+            );
+        }
+        (*ec).cmnd_pid = -(1 as libc::c_int);
+    }
+}
