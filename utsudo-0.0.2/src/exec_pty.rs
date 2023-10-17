@@ -31,6 +31,15 @@ pub struct io_buffer {
     pub buf: [libc::c_char; 64 * 1024],
 }
 
+pub type sudo_io_action_t =
+    Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint, *mut io_buffer) -> bool>;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct SLIST_ENTRY_io_buffer {
+    pub sle_next: *mut io_buffer,
+}
+
 
 #[macro_export]
 macro_rules! TAILQ_EMPTY {
@@ -107,3 +116,20 @@ static mut iobufs: io_buffer_list = io_buffer_list {
     slh_first: 0 as *const io_buffer as *mut io_buffer,
 };
 static mut utmp_user: *const libc::c_char = 0 as *const libc::c_char;
+
+/*
+ * Cleanup hook for sudo_fatal()/sudo_fatalx()
+ */
+#[no_mangle]
+pub unsafe extern "C" fn pty_cleanup() {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    if io_fds[SFD_USERTTY as usize] != -(1 as libc::c_int) {
+        sudo_term_restore_v1(io_fds[SFD_USERTTY as usize], false);
+    }
+    if !utmp_user.is_null() {
+        utmp_logout(ptyname.as_mut_ptr(), 0);
+    }
+
+    debug_return!();
+}
