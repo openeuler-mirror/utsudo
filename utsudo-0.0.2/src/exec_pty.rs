@@ -152,3 +152,66 @@ pub unsafe extern "C" fn pty_cleanup() {
 
     debug_return!();
 }
+
+/*
+ * Allocate a pty if /dev/tty is a tty.
+ * Fills in io_fds[SFD_USERTTY], io_fds[SFD_MASTER], io_fds[SFD_SLAVE]
+ * and ptyname globals.
+ */
+unsafe extern "C" fn pty_setup(
+    mut details: *mut command_details,
+    mut tty: *const libc::c_char,
+) -> bool {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    io_fds[SFD_USERTTY as usize] = open(_PATH_TTY!(), O_RDWR);
+    if io_fds[SFD_USERTTY as usize] == -(1 as libc::c_int) {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: no %s, not allocating a pty\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            _PATH_TTY!()
+        );
+        debug_return_bool!(false);
+    }
+
+    if !get_pty(
+        &mut *io_fds.as_mut_ptr().offset(SFD_MASTER as isize),
+        &mut *io_fds.as_mut_ptr().offset(SFD_SLAVE as isize),
+        ptyname.as_mut_ptr(),
+        std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+        (*details).euid,
+    ) {
+        sudo_fatal!(b"unable to allocate pty\0" as *const u8 as *const libc::c_char,);
+    }
+
+    /* Update tty name in command details (used by SELinux and AIX). */
+    (*details).tty = ptyname.as_mut_ptr();
+
+    /* Add entry to utmp/utmpx? */
+    if ISSET!((*details).flags, CD_SET_UTMP) != 0 {
+        utmp_user = if !((*details).utmp_user).is_null() {
+            (*details).utmp_user
+        } else {
+            user_details.username
+        };
+        utmp_login(
+            tty,
+            ptyname.as_mut_ptr(),
+            io_fds[SFD_SLAVE as usize],
+            utmp_user,
+        );
+    }
+
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"%s: %s fd %d, pty master fd %d, pty slave fd %d\0" as *const u8 as *const libc::c_char,
+        stdext::function_name!().as_ptr(),
+        _PATH_TTY!(),
+        io_fds[SFD_USERTTY as usize],
+        io_fds[SFD_MASTER as usize],
+        io_fds[SFD_SLAVE as usize]
+    );
+
+    debug_return_bool!(true)
+}
