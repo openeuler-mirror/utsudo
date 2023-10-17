@@ -53,6 +53,42 @@ macro_rules! SLIST_FIRST {
     };
 }
 
+#[macro_export]
+macro_rules! sudo_ev_get_fd {
+    ($_ev:expr) => {
+        if !($_ev).is_null() {
+            (*$_ev).fd
+        } else {
+            -(1 as libc::c_int)
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! sudo_ev_get_base {
+    ($_ev:expr) => {
+        if !($_ev).is_null() {
+            (*$_ev).base
+        } else {
+            0 as *mut sudo_event_base
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! USERTTY_EVENT {
+    ($_ev:expr) => {
+        (sudo_ev_get_fd!(($_ev)) == io_fds[SFD_USERTTY as usize])
+    };
+}
+
+#[macro_export]
+macro_rules! S_ISFIFO {
+    ($mode: expr) => {
+        __S_ISTYPE!(($mode), __S_IFIFO as libc::c_uint)
+    };
+}
+
 #[inline]
 unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
         #[cfg(target_arch = "x86_64")]
