@@ -59,6 +59,32 @@ pub struct TAILQ_ENTRY_monitor_message {
     pub tqe_prev: *mut *mut monitor_message,
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct exec_closure_pty {
+    pub monitor_pid: pid_t,
+    pub cmnd_pid: pid_t,
+    pub ppgrp: pid_t,
+    pub rows: libc::c_short,
+    pub cols: libc::c_short,
+    pub cstat: *mut command_status,
+    pub details: *mut command_details,
+    pub evbase: *mut sudo_event_base,
+    pub backchannel_event: *mut sudo_event,
+    pub fwdchannel_event: *mut sudo_event,
+    pub sigint_event: *mut sudo_event,
+    pub sigquit_event: *mut sudo_event,
+    pub sigtstp_event: *mut sudo_event,
+    pub sigterm_event: *mut sudo_event,
+    pub sighup_event: *mut sudo_event,
+    pub sigalrm_event: *mut sudo_event,
+    pub sigusr1_event: *mut sudo_event,
+    pub sigusr2_event: *mut sudo_event,
+    pub sigchld_event: *mut sudo_event,
+    pub sigwinch_event: *mut sudo_event,
+    pub monitor_messages: monitor_message_list,
+}
+
 
 #[macro_export]
 macro_rules! TAILQ_EMPTY {
@@ -214,4 +240,23 @@ unsafe extern "C" fn pty_setup(
     );
 
     debug_return_bool!(true)
+}
+
+/*
+ * Make the tty slave the controlling tty.
+ * This is only used by the monitor but ptyname[] is static.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn pty_make_controlling() -> libc::c_int {
+    if io_fds[SFD_SLAVE as usize] != -(1 as libc::c_int) {
+        if ioctl(
+            io_fds[SFD_SLAVE as usize],
+            TIOCSCTTY as libc::c_ulong,
+            0 as *mut libc::c_void,
+        ) != 0
+        {
+            return -(1 as libc::c_int);
+        }
+    }
+    return 0;
 }
