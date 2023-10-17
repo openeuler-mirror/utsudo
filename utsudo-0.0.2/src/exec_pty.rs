@@ -40,6 +40,25 @@ pub struct SLIST_ENTRY_io_buffer {
     pub sle_next: *mut io_buffer,
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct monitor_message_list {
+    pub tqh_first: *mut monitor_message,
+    pub tqh_last: *mut *mut monitor_message,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct monitor_message {
+    pub entries: TAILQ_ENTRY_monitor_message,
+    pub cstat: command_status,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct TAILQ_ENTRY_monitor_message {
+    pub tqe_next: *mut monitor_message,
+    pub tqe_prev: *mut *mut monitor_message,
+}
+
 
 #[macro_export]
 macro_rules! TAILQ_EMPTY {
