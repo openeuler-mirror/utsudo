@@ -384,3 +384,58 @@ unsafe extern "C" fn log_ttyout(
 
     debug_return_bool!(ret)
 }
+
+/* Call I/O plugin stdout log method. */
+unsafe extern "C" fn log_stdout(
+    mut buf: *const libc::c_char,
+    mut n: libc::c_uint,
+    mut iob: *mut io_buffer,
+) -> bool {
+    let mut plugin: *mut plugin_container = 0 as *mut plugin_container;
+    let mut omask: sigset_t = sigset_t { __val: [0; 16] };
+    let mut ret: bool = true;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    sigprocmask(SIG_BLOCK, &mut ttyblock, &mut omask);
+    plugin = TAILQ_FIRST!(io_plugins);
+    while !plugin.is_null() {
+        if ((*(*plugin).u.io).log_stdout).is_some() {
+            let mut rc: libc::c_int = 0;
+
+            sudo_debug_set_active_instance_v1((*plugin).debug_instance);
+            rc = ((*(*plugin).u.io).log_stdout).expect("non-null function pointer")(buf, n);
+            if rc <= 0 {
+                if rc < 0 {
+                    /* Error: disable plugin's I/O function. */
+                    let ref mut plugin0 = (*(*plugin).u.io).log_stdout;
+                    *plugin0 = None;
+                }
+                ret = false;
+                break;
+            }
+        }
+        plugin = (*plugin).entries.tqe_next;
+    }
+    sudo_debug_set_active_instance_v1(sudo_debug_instance);
+    if !ret {
+        /*
+         * I/O plugin rejected the output, delete the write event
+         * (user's stdout) so we do not display the rejected output.
+         */
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: deleting and freeing stdout wevent %p\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*iob).wevent
+        );
+        sudo_ev_free_v1((*iob).wevent);
+        let ref mut wevent0 = (*iob).wevent;
+        *wevent0 = 0 as *mut sudo_event;
+        let ref mut len0 = (*iob).len;
+        *len0 = 0 as libc::c_int;
+        (*iob).off = *len0;
+    }
+    sigprocmask(SIG_SETMASK, &mut omask, 0 as *mut sigset_t);
+
+    debug_return_bool!(ret)
+}
