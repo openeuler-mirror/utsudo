@@ -46,6 +46,13 @@ macro_rules! TAILQ_FIRST {
     };
 }
 
+#[macro_export]
+macro_rules! SLIST_FIRST {
+    ($head:expr) => {
+        (($head).slh_first)
+    };
+}
+
 #[inline]
 unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
         #[cfg(target_arch = "x86_64")]
@@ -53,3 +60,14 @@ unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> l
         #[cfg(not(target_arch = "x86_64"))]
         return __fxstat(0, __fd, __statbuf);
 }
+static mut ptyname: [libc::c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];
+#[no_mangle]
+pub static mut io_fds: [libc::c_int; 6] = [-1; 6];
+static mut foreground: bool = false;
+static mut pipeline: bool = false;
+static mut ttymode: libc::c_int = TERM_COOKED;
+static mut ttyblock: sigset_t = sigset_t { __val: [0; 16] };
+static mut iobufs: io_buffer_list = io_buffer_list {
+    slh_first: 0 as *const io_buffer as *mut io_buffer,
+};
+static mut utmp_user: *const libc::c_char = 0 as *const libc::c_char;
