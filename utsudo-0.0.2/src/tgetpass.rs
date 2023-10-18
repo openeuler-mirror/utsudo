@@ -1,4 +1,41 @@
 /*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
+
+#![allow(clashing_extern_declarations)]
+
+use crate::struct_macro::*;
+use utsudo_util::sudo_debug::*;
+use utsudo_util::sudo_debug_macro::*;
+use utsudo_util::*;
+
+use crate::ISSET;
+use crate::SET;
+use crate::WIFSTOPPED;
+use crate::_PATH_TTY;
+
+unsafe extern "C" fn tgetpass_display_error(mut errval: tgetpass_errval) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_CONV);
+
+    match errval {
+        TGP_ERRVAL_NOERROR => {}
+        TGP_ERRVAL_TIMEOUT => {
+            sudo_warnx!(b"timed out reading password\0" as *const u8 as *const libc::c_char,);
+        }
+        TGP_ERRVAL_NOPASSWORD => {
+            sudo_warnx!(b"no password was provided\0" as *const u8 as *const libc::c_char,);
+        }
+        TGP_ERRVAL_READERROR => {
+            sudo_warn!(b"unable to read password\0" as *const u8 as *const libc::c_char,);
+        }
+        _ => {}
+    }
+    debug_return!();
+}
+
+/*
  * Like getpass(3) but with timeout and echo flags.
  */
 #[no_mangle]
