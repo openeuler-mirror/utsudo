@@ -77,3 +77,89 @@ pub struct C2RustUnnamed {
 
 pub type sudo_utmp_t = utmpx;
 
+
+
+
+
+
+
+
+#[no_mangle]
+pub unsafe extern "C" fn utmp_logout(
+    mut line: *const libc::c_char,
+    mut status: libc::c_int,
+) -> bool {
+    let mut ret: bool = false;
+    let mut ut: *mut sudo_utmp_t = 0 as *mut sudo_utmp_t;
+    let mut utbuf: sudo_utmp_t = sudo_utmp_t {
+        ut_type: 0,
+        ut_pid: 0,
+        ut_line: [0; 32],
+        ut_id: [0; 4],
+        ut_user: [0; 32],
+        ut_host: [0; 256],
+        ut_exit: __exit_status {
+            e_termination: 0,
+            e_exit: 0,
+        },
+        ut_session: 0,
+        ut_tv: C2RustUnnamed {
+            tv_sec: 0,
+            tv_usec: 0,
+        },
+        ut_addr_v6: [0; 4],
+        __glibc_reserved: [0; 20],
+    };
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTMP);
+
+    /* Strip off /dev/ prefix from line as needed. */
+    if strncmp(
+        line,
+        b"/dev/\0" as *const u8 as *const libc::c_char,
+        (::std::mem::size_of::<[libc::c_char; 6]>() as libc::c_ulong).wrapping_sub(1),
+    ) == 0
+    {
+        line = line.offset(
+            (::std::mem::size_of::<[libc::c_char; 6]>() as libc::c_ulong).wrapping_sub(1) as isize,
+        );
+    }
+
+    memset(
+        &mut utbuf as *mut sudo_utmp_t as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<sudo_utmp_t>() as libc::c_ulong,
+    );
+    strncpy(
+        (utbuf.ut_line).as_mut_ptr(),
+        line,
+        ::std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+    );
+    ut = getutxline(&mut utbuf);
+    if !ut.is_null() {
+        memset(
+            ((*ut).ut_user).as_mut_ptr() as *mut libc::c_void,
+            0 as libc::c_int,
+            ::std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+        );
+        (*ut).ut_type = DEAD_PROCESS;
+
+        (*ut).ut_exit.e_termination = (if WIFSIGNALED!(status) {
+            WTERMSIG!(status)
+        } else {
+            0
+        }) as libc::c_short;
+
+        (*ut).ut_exit.e_exit = (if WIFEXITED!(status) {
+            WEXITSTATUS!(status)
+        } else {
+            0
+        }) as libc::c_short;
+
+        utmp_settime(ut);
+        if !(pututxline(ut)).is_null() {
+            ret = true;
+        }
+    }
+    debug_return_bool!(ret)
+}
