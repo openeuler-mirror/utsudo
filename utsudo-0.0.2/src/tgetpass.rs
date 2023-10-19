@@ -16,6 +16,51 @@ use crate::SET;
 use crate::WIFSTOPPED;
 use crate::_PATH_TTY;
 
+static mut signo: [sig_atomic_t; 65] = [0; 65];
+
+unsafe extern "C" fn suspend(
+    mut signo_0: libc::c_int,
+    mut callback: *mut sudo_conv_callback,
+) -> libc::c_int {
+    let mut ret: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_CONV);
+
+    if !callback.is_null()
+        && SUDO_API_VERSION_GET_MAJOR!((*callback).version)
+            != SUDO_CONV_CALLBACK_VERSION_MAJOR as libc::c_uint
+    {
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+            b"callback major version mismatch, expected %u, got %u\0" as *const u8
+                as *const libc::c_char,
+            SUDO_CONV_CALLBACK_VERSION_MAJOR as libc::c_uint,
+            SUDO_API_VERSION_GET_MAJOR!((*callback).version)
+        );
+        callback = 0 as *mut sudo_conv_callback;
+    }
+
+    if !callback.is_null() && ((*callback).on_suspend).is_some() {
+        if ((*callback).on_suspend).expect("non-null function pointer")(
+            signo_0,
+            (*callback).closure,
+        ) == -(1 as libc::c_int)
+        {
+            ret = -(1 as libc::c_int);
+        }
+    }
+
+    kill(getpid(), signo_0);
+    if !callback.is_null() && ((*callback).on_resume).is_some() {
+        if ((*callback).on_resume).expect("non-null function pointer")(signo_0, (*callback).closure)
+            == -(1 as libc::c_int)
+        {
+            ret = -(1 as libc::c_int);
+        }
+    }
+
+    debug_return_int!(ret);
+}
+
 unsafe extern "C" fn tgetpass_display_error(mut errval: tgetpass_errval) {
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_CONV);
 
