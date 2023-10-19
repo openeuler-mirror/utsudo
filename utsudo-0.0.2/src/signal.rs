@@ -201,3 +201,53 @@ static mut saved_signals: [signal_state; 14] = [
         init
     },
 ];
+
+extern "C" {
+    fn sigaction(
+        __sig: libc::c_int,
+        __act: *const sigaction,
+        __oact: *mut sigaction,
+    ) -> libc::c_int;
+    fn memset(__s: *mut libc::c_void, __c: libc::c_int, __n: size_t) -> *mut libc::c_void;
+    fn sigfillset(__set: *mut __sigset_t) -> libc::c_int;
+    fn sudo_warn_gettext_v1(
+        domainname: *const libc::c_char,
+        msgid: *const libc::c_char,
+    ) -> *mut libc::c_char;
+}
+#[no_mangle]
+pub unsafe extern "C" fn save_signals() {
+    let mut ss: *mut signal_state = 0 as *mut signal_state;
+    //define debug_decl(save_signals,SUDO_DEBUG_MAIN);
+    debug_decl!(save_signals, SUDO_DEBUG_MAIN);
+    //end of define
+    //as_mut_ptr()
+    ss = saved_signals.as_mut_ptr();
+    while (*ss).signo != -1 {
+        if sigaction((*ss).signo, 0 as *const sigaction, &mut (*ss).sa) != 0 {
+            //define sudo_warn(U_("unable to save handler for signal %d"),ss->signo);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to save handler for signal %d\0" as *const u8 as *const libc::c_char
+                ),
+                (*ss).signo
+            );
+            sudo_warn!(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to save handler for signal %d\0" as *const u8 as *const libc::c_char
+                ),
+                (*ss).signo
+            );
+            //end of define
+        }
+        ss = ss.offset(1);
+    }
+    //define debug_return;
+    debug_return!();
+    //end of define
+}
+
+
