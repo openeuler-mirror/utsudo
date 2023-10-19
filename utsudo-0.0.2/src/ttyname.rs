@@ -1,3 +1,44 @@
+/*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
+
+use crate::struct_macro::*;
+use utsudo_util::sudo_debug::*;
+use utsudo_util::sudo_debug_macro::*;
+use utsudo_util::*;
+
+use crate::INT_MAX;
+use crate::INT_MIN;
+
+extern "C" {
+    fn __errno_location() -> *mut libc::c_int;
+    fn open(__file: *const libc::c_char, __oflag: libc::c_int, _: ...) -> libc::c_int;
+    fn close(__fd: libc::c_int) -> libc::c_int;
+    fn read(__fd: libc::c_int, __buf: *mut libc::c_void, __nbytes: size_t) -> ssize_t;
+    fn strrchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
+    fn memchr(_: *const libc::c_void, _: libc::c_int, _: libc::c_ulong) -> *mut libc::c_void;
+    fn sudo_ttyname_dev_v1(
+        tdev: dev_t,
+        name: *mut libc::c_char,
+        namelen: size_t,
+    ) -> *mut libc::c_char;
+    fn sudo_strtonum(
+        _: *const libc::c_char,
+        _: libc::c_longlong,
+        _: libc::c_longlong,
+        _: *mut *const libc::c_char,
+    ) -> libc::c_longlong;
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        line: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
+}
 
 /*
  * Store the name of the tty to which the process is attached in name.
