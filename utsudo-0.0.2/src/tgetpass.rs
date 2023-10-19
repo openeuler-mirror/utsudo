@@ -16,6 +16,34 @@ use crate::SET;
 use crate::WIFSTOPPED;
 use crate::_PATH_TTY;
 
+/* Conversation callback API version major/minor */
+// #define SUDO_CONV_CALLBACK_VERSION_MAJOR	1
+// #define SUDO_CONV_CALLBACK_VERSION_MINOR	0
+pub const SUDO_CONV_CALLBACK_VERSION_MAJOR: libc::c_int = 1;
+pub const SUDO_CONV_CALLBACK_VERSION_MINOR: libc::c_int = 0;
+
+/* Getters and setters for plugin API versions */
+// #define SUDO_API_VERSION_GET_MAJOR(v) ((v) >> 16)
+// #define SUDO_API_VERSION_GET_MINOR(v) ((v) & 0xffffU)
+macro_rules! SUDO_API_VERSION_GET_MAJOR {
+    ($v:expr) => {
+        (($v) >> 16)
+    };
+}
+
+// #define TGP_STDIN	0x02		/* read from stdin, not /dev/tty */
+// #define TGP_ASKPASS	0x04		/* read from askpass helper program */
+// #define TGP_BELL	0x20		/* bell on password prompt */
+pub const TGP_STDIN: libc::c_int = 0x02;
+pub const TGP_ASKPASS: libc::c_int = 0x04;
+pub const TGP_BELL: libc::c_int = 0x20;
+
+pub type tgetpass_errval = libc::c_uint;
+pub const TGP_ERRVAL_READERROR: tgetpass_errval = 3;
+pub const TGP_ERRVAL_NOPASSWORD: tgetpass_errval = 2;
+pub const TGP_ERRVAL_TIMEOUT: tgetpass_errval = 1;
+pub const TGP_ERRVAL_NOERROR: tgetpass_errval = 0;
+
 static mut signo: [sig_atomic_t; 65] = [0; 65];
 
 unsafe extern "C" fn suspend(
