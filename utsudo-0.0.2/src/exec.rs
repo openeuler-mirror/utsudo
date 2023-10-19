@@ -94,3 +94,93 @@ pub const PRIO_PGRP: __priority_which = 1;
 pub const PRIO_PROCESS: __priority_which = 0;
 pub type __priority_which = libc::c_uint;
 pub type __priority_which_t = __priority_which;
+
+#[macro_export]
+macro_rules! sudo_isset {
+    ($_a:expr, $_i:expr) => {{
+        (*(($_a).offset((($_i) / NBBY) as isize)) & (1 << (($_i) % NBBY)))
+    }};
+}
+/*
+ * Setup the execution environment immediately prior to the call to execve().
+ * Group setup is performed by policy_init_session(), called earlier.
+ * Returns true on success and false on failure.
+ */
+#[inline]
+pub unsafe extern "C" fn exec_setup(mut details: *mut command_details) -> bool {
+    let mut ret: bool = false;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    if !(*details).pw.is_null() {
+        //空，该分支没有走到。
+    }
+    'done: loop {
+        if ISSET!((*details).flags, CD_SET_GROUPS) != 0 {
+            /* set_user_groups() prints error message on failure.*/
+            if !set_user_groups(details) {
+                break 'done;
+            }
+        }
+        if ISSET!((*details).flags, CD_SET_PRIORITY) != 0 {
+            if setpriority(PRIO_PROCESS, 0 as id_t, (*details).priority) != 0 {
+                sudo_warn!(
+                    b"unable to set process priority %s\0" as *const u8 as *const libc::c_char,
+                );
+                break 'done;
+            }
+        }
+        /* Policy may override umask in PAM or login.conf. */
+        if ISSET!((*details).flags, CD_OVERRIDE_UMASK) != 0 {
+            umask((*details).umask);
+        }
+        if !((*details).chroot).is_null() {
+            if chroot((*details).chroot) != 0
+                || chdir(b"/\0" as *const u8 as *const libc::c_char) != 0
+            {
+                sudo_warn!(b"unable to change root to %s\0" as *const u8 as *const libc::c_char,);
+                break 'done;
+            }
+        }
+        /*
+         * Unlimit the number of processes since Linux's setuid() will
+         * return EAGAIN if RLIMIT_NPROC would be exceeded by the uid switch.
+         */
+        unlimit_nproc();
+        if setresuid((*details).uid, (*details).euid, (*details).euid) != 0 {
+            sudo_warn!(
+                b"unable to change to runas uid (%u, %u)\0" as *const u8 as *const libc::c_char,
+                (*details).uid,
+                (*details).euid
+            );
+            break 'done;
+        }
+        /* Restore previous value of RLIMIT_NPROC.*/
+        restore_nproc();
+        /*
+         * Only change cwd if we have chroot()ed or the policy modules
+         * specifies a different cwd.  Must be done after uid change.
+         */
+        if !((*details).cwd).is_null() {
+            if !((*details).chroot).is_null()
+                || (user_details.cwd).is_null()
+                || strcmp((*details).cwd, user_details.cwd) != 0
+            {
+                /* Note: cwd is relative to the new root, if any. */
+                if chdir((*details).cwd) != 0 {
+                    sudo_warn!(
+                        b"unable to change directory to %s" as *const u8 as *const libc::c_char,
+                        (*details).cwd
+                    );
+                    break 'done;
+                }
+            }
+        }
+        ret = true;
+        break;
+    }
+    debug_return_bool!(ret)
+}
+
+
+
+
+
