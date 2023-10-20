@@ -509,3 +509,123 @@ unsafe extern "C" fn sudo_askpass(
 
     debug_return_str_masked!(pass);
 }
+
+unsafe extern "C" fn getln(
+    mut fd: libc::c_int,
+    mut buf: *mut libc::c_char,
+    mut bufsiz: size_t,
+    mut feedback: bool,
+    mut errval: *mut tgetpass_errval,
+) -> *mut libc::c_char {
+    let mut left: size_t = bufsiz;
+    let mut nr: ssize_t = -(1 as libc::c_int) as ssize_t;
+    let mut cp: *mut libc::c_char = buf;
+    let mut c: libc::c_char = '\0' as i32 as libc::c_char;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_CONV);
+
+    *errval = TGP_ERRVAL_NOERROR;
+
+    if left == 0 {
+        *errval = TGP_ERRVAL_READERROR;
+        *__errno_location() = EINVAL;
+        debug_return_str!(0 as *mut libc::c_char); /* sanity */
+    }
+
+    loop {
+        left = left.wrapping_sub(1);
+        if !(left != 0) {
+            break;
+        }
+        nr = read(fd, &mut c as *mut libc::c_char as *mut libc::c_void, 1);
+        if nr != 1 || c as libc::c_int == '\n' as i32 || c as libc::c_int == '\r' as i32 {
+            break;
+        }
+
+        if feedback {
+            if c as libc::c_int == sudo_term_eof {
+                nr = 0 as libc::c_int as ssize_t;
+                break;
+            } else if c as libc::c_int == sudo_term_kill {
+                while cp > buf {
+                    if write(
+                        fd,
+                        b"\x08 \x08\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+                        3 as libc::c_int as size_t,
+                    ) == -(1 as libc::c_int) as libc::c_long
+                    {
+                        break;
+                    }
+                    cp = cp.offset(-1);
+                }
+                cp = buf;
+                left = bufsiz;
+                continue;
+            } else if c as libc::c_int == sudo_term_erase {
+                if cp > buf {
+                    let mut _y: ssize_t = write(
+                        fd,
+                        b"\x08 \x08\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+                        3 as libc::c_int as size_t,
+                    );
+                    cp = cp.offset(-1);
+                    left = left.wrapping_add(1);
+                }
+                continue;
+            } else {
+                let mut _y_0: ssize_t = write(
+                    fd,
+                    b"*\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+                    1 as libc::c_int as size_t,
+                );
+            }
+        } // ! feedback
+        let fresh0 = cp;
+        cp = cp.offset(1);
+        *fresh0 = c;
+    } // ! loop
+
+    *cp = '\0' as i32 as libc::c_char;
+
+    if feedback {
+        /* erase stars */
+        while cp > buf {
+            if write(
+                fd,
+                b"\x08 \x08\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+                3 as libc::c_int as size_t,
+            ) == -(1 as libc::c_int) as libc::c_long
+            {
+                break;
+            }
+            cp = cp.offset(-1);
+        }
+    }
+
+    match nr {
+        -1 => {
+            /* Read error */
+            if *__errno_location() == EINTR {
+                if signo[SIGALRM as libc::c_int as usize] == 1 {
+                    *errval = TGP_ERRVAL_TIMEOUT;
+                }
+            } else {
+                *errval = TGP_ERRVAL_READERROR;
+            }
+            debug_return_str!(0 as *mut libc::c_char)
+        }
+        0 => {
+            /* EOF is only an error if no bytes were read. */
+            if left == bufsiz.wrapping_sub(1 as libc::c_int as libc::c_ulong) {
+                *errval = TGP_ERRVAL_NOPASSWORD;
+                debug_return_str!(0 as *mut libc::c_char)
+            }
+        }
+        /* FALLTHROUGH */
+        _ => {}
+    }
+    debug_return_str_masked!(buf);
+}
+
+unsafe extern "C" fn tgetpass_handler(mut s: libc::c_int) {
+    ::core::ptr::write_volatile(&mut signo[s as usize] as *mut sig_atomic_t, 1);
+}
