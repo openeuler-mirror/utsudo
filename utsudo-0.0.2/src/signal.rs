@@ -202,6 +202,16 @@ static mut saved_signals: [signal_state; 14] = [
     },
 ];
 
+type sig_atomic_t = libc::c_int;
+static mut pending_signals: [sig_atomic_t; 65] = [0; 65];
+unsafe extern "C" fn sudo_handler(mut signo: libc::c_int) {
+    pending_signals[signo as usize] = 1;
+}
+#[no_mangle]
+pub unsafe extern "C" fn signal_pending(mut signo: libc::c_int) -> bool {
+    return pending_signals[signo as usize] == 1;
+}
+
 extern "C" {
     fn sigaction(
         __sig: libc::c_int,
@@ -249,5 +259,63 @@ pub unsafe extern "C" fn save_signals() {
     debug_return!();
     //end of define
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn restore_signals() {
+    let mut ss: *mut signal_state = 0 as *mut signal_state;
+    //define debug_decl(restore_signals,SUDO_DEBUG_MAIN);
+    debug_decl!(restore_signals, SUDO_DEBUG_MAIN);
+    //end of define
+    ss = saved_signals.as_mut_ptr();
+    while (*ss).signo != -1 {
+        if (*ss).restore != 0 {
+            //define sudo_debug_printf();  if,elif,else...
+            sudo_debug_printf!(
+                SUDO_DEBUG_INFO,
+                b"signal.c\0" as *const u8 as *const libc::c_char,
+                (*ss).signo,
+                if (*ss).sa.__sigaction_handler.sa_handler
+                    == ::std::mem::transmute::<libc::intptr_t, __sighandler_t>(
+                        1 as libc::c_int as libc::intptr_t
+                    )
+                {
+                    b"SIG_IGN\0" as *const u8 as *const libc::c_char
+                } else if ((*ss).sa.__sigaction_handler.sa_handler).is_none() {
+                    b"SIG_DFL\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"???\0" as *const u8 as *const libc::c_char
+                }
+            );
+            //end of define
+            if sigaction((*ss).signo, &mut (*ss).sa, 0 as *mut sigaction) != 0 {
+                //define sudo_warn(U_("unable to restore handler for signal %d"),ss->signo);
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to restore handler for signal %d\0" as *const u8
+                            as *const libc::c_char
+                    ),
+                    (*ss).signo
+                );
+                sudo_warn!(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to restore handler for signal %d\0" as *const u8
+                            as *const libc::c_char
+                    ),
+                    (*ss).signo
+                );
+                //end of define
+            }
+        }
+        ss = ss.offset(1);
+    }
+    //define debug_return;
+    debug_return!();
+    //end of define;
+}
+
+
 
 
