@@ -103,11 +103,38 @@ pub unsafe extern "C" fn utmp_setid(old: *mut sudo_utmp_t, new: *mut sudo_utmp_t
         }
     }
 
+    /* Store as much as will fit, skipping parts of the beginning as needed. */
+    /* cppcheck-suppress uninitdata */
+    idlen = strlen(line);
+    if idlen > ::std::mem::size_of::<[libc::c_char; 4]>() as libc::c_ulong {
+        line = line.offset(
+            idlen.wrapping_sub(::std::mem::size_of::<[libc::c_char; 4]>() as libc::c_ulong)
+                as isize,
+        );
+        idlen = ::std::mem::size_of::<[libc::c_char; 4]>() as libc::c_ulong;
+    }
+    strncpy(((*new).ut_id).as_mut_ptr(), line, idlen);
 
+    debug_return!();
+}
 
+/*
+ * Store time in utmp structure.
+ */
 
+pub unsafe extern "C" fn utmp_settime(ut: *mut sudo_utmp_t) {
+    let mut tv: timeval = timeval {
+        tv_sec: 0,
+        tv_usec: 0,
+    };
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTMP);
 
-
+    if gettimeofday(&mut tv, 0 as *mut timezone) == 0 {
+        (*ut).ut_tv.tv_sec = tv.tv_sec as __int32_t;
+        (*ut).ut_tv.tv_usec = tv.tv_usec as __int32_t;
+    }
+    debug_return!();
+}
 #[no_mangle]
 pub unsafe extern "C" fn utmp_logout(
     mut line: *const libc::c_char,
