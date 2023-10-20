@@ -392,3 +392,120 @@ pub unsafe extern "C" fn tgetpass(
 
     debug_return_str_masked!(pass);
 }
+
+/*
+ * Fork a child and exec sudo-askpass to get the password from the user.
+ */
+unsafe extern "C" fn sudo_askpass(
+    mut askpass: *const libc::c_char,
+    mut prompt: *const libc::c_char,
+) -> *mut libc::c_char {
+    static mut buf: [libc::c_char; 256] = [0; 256];
+    static mut pass: *mut libc::c_char = 0 as *const libc::c_char as *mut libc::c_char;
+    let mut sa: sigaction = sigaction {
+        __sigaction_handler: Signal_handler { sa_handler: None },
+        sa_mask: __sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
+    };
+    let mut savechld: sigaction = sigaction {
+        __sigaction_handler: Signal_handler { sa_handler: None },
+        sa_mask: __sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
+    };
+    let mut errval: tgetpass_errval = TGP_ERRVAL_NOERROR;
+    let mut pfd: [libc::c_int; 2] = [0; 2];
+    let mut status: libc::c_int = 0;
+    let mut child: pid_t = 0;
+
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_CONV);
+
+    /* Set SIGCHLD handler to default since we call waitpid() below. */
+    memset(
+        &mut sa as *mut sigaction as *mut libc::c_void,
+        0 as libc::c_int,
+        ::std::mem::size_of::<sigaction>() as libc::c_ulong,
+    );
+    sigemptyset(&mut sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    sa.__sigaction_handler.sa_handler = None;
+    sigaction(SIGCHLD, &mut sa, &mut savechld);
+
+    if pipe(pfd.as_mut_ptr()) == -(1 as libc::c_int) {
+        sudo_fatal!(b"unable to create pipe\0" as *const u8 as *const libc::c_char,);
+    }
+
+    child = sudo_debug_fork_v1();
+    if child == -(1 as libc::c_int) {
+        sudo_fatal!(b"unable to fork\0" as *const u8 as *const libc::c_char,);
+    }
+
+    if child == 0 {
+        /* child, point stdout to output side of the pipe and exec askpass */
+        if dup2(pfd[1], STDOUT_FILENO) == -(1 as libc::c_int) {
+            sudo_warn!(b"dup2\0" as *const u8 as *const libc::c_char,);
+            _exit(255);
+        }
+        if setuid(ROOT_UID as libc::c_uint) == -(1 as libc::c_int) {
+            sudo_warn!(
+                b"setuid(%d)\0" as *const u8 as *const libc::c_char,
+                ROOT_UID
+            );
+        }
+        if setgid(user_details.gid) != 0 {
+            sudo_warn!(
+                b"unable to set gid to %u\0" as *const u8 as *const libc::c_char,
+                user_details.gid
+            );
+            _exit(255);
+        }
+        if setuid(user_details.uid) != 0 {
+            sudo_warn!(
+                b"unable to set uid to %u\0" as *const u8 as *const libc::c_char,
+                user_details.uid
+            );
+            _exit(255);
+        }
+        sudo_closefrom(STDERR_FILENO + 1);
+        execl(askpass, askpass, prompt, 0 as *mut libc::c_char);
+        sudo_warn!(
+            b"unable to run %s\0" as *const u8 as *const libc::c_char,
+            askpass
+        );
+        _exit(255);
+    }
+
+    /* Get response from child (askpass). */
+    close(pfd[1]);
+    pass = getln(
+        pfd[0 as libc::c_int as usize],
+        buf.as_mut_ptr(),
+        ::core::mem::size_of::<[libc::c_char; 256]>() as libc::c_ulong,
+        0 as libc::c_int != 0,
+        &mut errval,
+    );
+    close(pfd[0]);
+
+    tgetpass_display_error(errval);
+
+    /* Wait for child to exit. */
+    loop {
+        let mut rv: pid_t = waitpid(child, &mut status, 0);
+        if rv == -1 && *__errno_location() != EINTR {
+            break;
+        }
+        if rv != -1 && !WIFSTOPPED!(status) {
+            break;
+        }
+    }
+
+    if pass.is_null() {
+        *__errno_location() = EINTR; /* make cancel button simulate ^C */
+    }
+
+    /* Restore saved SIGCHLD handler. */
+    sigaction(SIGCHLD, &mut savechld, 0 as *mut sigaction);
+
+    debug_return_str_masked!(pass);
+}
