@@ -51,3 +51,35 @@ extern "C" {
 }
 use crate::sudo_debug_printf2_v1;
 use stdext::function_name;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct plugin_info {
+    pub entries: tmp_1,
+    pub path: *mut libc::c_char,
+    pub symbol_name: *mut libc::c_char,
+    pub options: *mut *mut libc::c_char,
+    pub lineno: libc::c_uint,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct plugin_info_list {
+    pub tqh_first: *mut plugin_info,
+    pub tqh_last: *mut *mut plugin_info,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct tmp_1 {
+    pub tqe_next: *mut plugin_info,
+    pub tqe_prev: *mut *mut plugin_info,
+}
+
+unsafe extern "C" fn stat(
+    mut __path: *const libc::c_char,
+    mut __statbuf: *mut stat,
+) -> libc::c_int {
+        #[cfg(target_arch = "x86_64")]
+        return __xstat(1 as libc::c_int, __path, __statbuf);
+        #[cfg(not(target_arch = "x86_64"))]
+        return __xstat(0 as libc::c_int, __path, __statbuf);
+}
