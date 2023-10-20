@@ -1,4 +1,3 @@
-
 /*
  * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
  *
@@ -77,7 +76,32 @@ pub struct C2RustUnnamed {
 
 pub type sudo_utmp_t = utmpx;
 
+/*
+ * Create ut_id from the new ut_line and the old ut_id.
+ */
+pub unsafe extern "C" fn utmp_setid(old: *mut sudo_utmp_t, new: *mut sudo_utmp_t) {
+    let mut line: *mut libc::c_char = ((*new).ut_line).as_mut_ptr();
+    let mut idlen: size_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTMP);
 
+    /* Skip over "tty" in the id if old entry did too. */
+    if old.is_null() {
+        /* cppcheck-suppress uninitdata */
+        if strncmp(line, b"tty\0" as *const u8 as *const libc::c_char, 3) == 0 {
+            idlen = std::cmp::min(
+                ::std::mem::size_of::<[libc::c_char; 4]>() as libc::c_ulong,
+                3,
+            );
+            if strncmp(
+                ((*old).ut_id).as_mut_ptr(),
+                b"tty\0" as *const u8 as *const libc::c_char,
+                idlen,
+            ) != 0
+            {
+                line = line.offset(3 as libc::c_int as isize);
+            }
+        }
+    }
 
 
 
