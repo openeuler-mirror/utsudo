@@ -27,6 +27,15 @@ use utsudo_util::sudo_debug::*;
 use utsudo_util::sudo_debug_macro::*;
 use utsudo_util::*;
 
+#[inline]
+unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
+        #[cfg(target_arch = "x86_64")]
+        return __fxstat(1 as libc::c_int, __fd, __statbuf);
+        #[cfg(not(target_arch = "x86_64"))]
+        return __fxstat(0 as libc::c_int, __fd, __statbuf);
+}
+#[link(name = "utsudo_variadic")]
+
 extern "C" {
     fn utimensat(
         __fd: libc::c_int,
@@ -114,6 +123,283 @@ extern "C" {
     );
     fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
 }
+
+
+
+unsafe extern "C" fn sesh_sudoedit(
+    mut argc: libc::c_int,
+    mut argv: *mut *mut libc::c_char,
+) -> libc::c_int {
+    let mut i: libc::c_int = 0;
+    let mut oflags_src: libc::c_int = 0;
+    let mut oflags_dst: libc::c_int = 0;
+    let mut post: libc::c_int = 0;
+    let mut ret: libc::c_int = 1 as libc::c_int;
+    let mut fd_src: libc::c_int = -(1 as libc::c_int);
+    let mut fd_dst: libc::c_int = -(1 as libc::c_int);
+    let mut follow: libc::c_int = 0 as libc::c_int;
+    let mut nread: ssize_t = 0;
+    let mut nwritten: ssize_t = 0;
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        #[cfg(target_arch = "x86_64")]
+        st_nlink: 0,
+        st_mode: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        st_nlink: 0,
+        st_uid: 0,
+        st_gid: 0,
+        #[cfg(target_arch = "x86_64")]
+        __pad0: 0,
+        st_rdev: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad1: 0,
+        st_size: 0,
+        st_blksize: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad2: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        #[cfg(target_arch = "x86_64")]
+        __glibc_reserved: [0; 3],
+        #[cfg(not(target_arch = "x86_64"))]
+        __glibc_reserved: [0; 2],
+    };
+    let mut times: [timespec; 2] = [timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    }; 2];
+    let mut buf: [libc::c_char; 8192] = [0; 8192];
+    debug_decl!(sesh_sudoedit, SUDO_DEBUG_EDIT);
+    if strcmp(
+        *argv.offset(2 as libc::c_int as isize),
+        b"-h\0" as *const u8 as *const libc::c_char,
+    ) == 0 as libc::c_int
+    {
+        argv = argv.offset(1);
+        argc -= 1;
+        follow = 0o400000 as libc::c_int;
+    }
+    if argc < 3 {
+        debug_return_int!(1);
+    }
+    if strcmp(
+        *argv.offset(2 as libc::c_int as isize),
+        b"0\0" as *const u8 as *const libc::c_char,
+    ) == 0 as libc::c_int
+    {
+        post = 0;
+    } else if strcmp(
+        *argv.offset(2 as libc::c_int as isize),
+        b"0\0" as *const u8 as *const libc::c_char,
+    ) == 0 as libc::c_int
+    {
+        post = 1;
+    } else {
+        debug_return_int!(30);
+    }
+    argv = argv.offset(3 as libc::c_int as isize);
+    argc -= 3 as libc::c_int;
+    if argc == 0 {
+        debug_return_int!(0);
+    }
+    if argc & 1 != 0 {
+        debug_return_int!(31);
+    }
+    oflags_src = 0 as libc::c_int
+        | (if post != 0 {
+            0o4000 as libc::c_int | 0o400000 as libc::c_int
+        } else {
+            follow
+        });
+    oflags_dst = 0o1 as libc::c_int
+        | 0o100 as libc::c_int
+        | (if post != 0 {
+            follow
+        } else {
+            0o200 as libc::c_int
+        });
+    //start goto
+    'cleanup_0: loop {
+        'nocleanup: loop {
+            //for
+            i = 0;
+            loop {
+                if !(i < argc - 1) {
+                    break;
+                }
+                let mut path_src: *const libc::c_char = *argv.offset(i as isize);
+                let mut path_dst: *const libc::c_char =
+                    *argv.offset((i + 1 as libc::c_int) as isize);
+                fd_src = open(
+                    path_src,
+                    oflags_src,
+                    0o400 as libc::c_int | 0o200 as libc::c_int,
+                );
+                if fd_src < 0 {
+                    if *__errno_location() != 2 {
+                        //define sudo_warn("%s",path_src);
+                        sudo_debug_printf!(
+                            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                            b"%s\0" as *const u8 as *const libc::c_char,
+                            path_src
+                        );
+                        sudo_warn_nodebug_v1(b"%s\0" as *const u8 as *const libc::c_char, path_src);
+                        //end of define;
+                        if post != 0 {
+                            ret = 33;
+                            break 'nocleanup;
+                        }
+                        //end of post != 0
+                        else {
+                            break 'cleanup_0;
+                        }
+                    } //end of __errno_location
+                } //end of "if fd_src < 0"
+                if post != 0 {
+                    if !sudo_check_temp_file(fd_src, path_src, geteuid(), &mut sb) {
+                        ret = 33;
+                        break 'nocleanup;
+                    }
+                    fcntl(
+                        fd_src,
+                        4 as libc::c_int,
+                        fcntl(fd_src, 3 as libc::c_int, 0 as libc::c_int)
+                            & !(0o4000 as libc::c_int),
+                    );
+                }
+                fd_dst = open(
+                    path_dst,
+                    oflags_dst,
+                    if post != 0 {
+                        0o400 as libc::c_int
+                            | 0o200 as libc::c_int
+                            | 0o400 as libc::c_int >> 3 as libc::c_int
+                            | 0o400 as libc::c_int >> 3 as libc::c_int >> 3 as libc::c_int
+                    } else {
+                        0o400 as libc::c_int | 0o200 as libc::c_int
+                    },
+                );
+                if fd_dst < 0 {
+                    //define sudo_warn("%s",path_dst);
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                        b"%s\0" as *const u8 as *const libc::c_char,
+                        path_dst
+                    );
+                    sudo_warn_nodebug_v1(b"%s\0" as *const u8 as *const libc::c_char, path_dst);
+                    //end of define;
+                    if post != 0 {
+                        ret = 33;
+                        break 'nocleanup;
+                    } else {
+                        break 'cleanup_0;
+                    }
+                }
+                if fd_src != -1 {
+                    let mut len_src: off_t = -(1 as libc::c_int) as off_t;
+                    let mut len_dst: off_t = -(1 as libc::c_int) as off_t;
+                    if post != 0 {
+                        len_src = sb.st_size;
+                        if fstat(fd_dst, &mut sb) != 0 as libc::c_int {
+                            ret = 33;
+                            break 'nocleanup;
+                        }
+                        len_dst = sb.st_size;
+                    }
+                    if sudo_copy_file(path_src, fd_src, len_src, path_dst, fd_dst, len_dst) == -1 {
+                        if post != 0 {
+                            ret = 33;
+                            break 'nocleanup;
+                        } else {
+                            break 'cleanup_0;
+                        }
+                    }
+                } //end of fd_src != -1
+                if post == 0 {
+                    if fd_src == -1 || fstat(fd_src, &mut sb) != 0 {
+                        memset(
+                            &mut sb as *mut stat as *mut libc::c_void,
+                            0 as libc::c_int,
+                            ::std::mem::size_of::<stat>() as libc::c_ulong,
+                        );
+                    }
+                    times[0 as libc::c_int as usize].tv_sec = sb.st_mtim.tv_sec;
+                    times[0 as libc::c_int as usize].tv_nsec = sb.st_mtim.tv_nsec;
+                    times[1 as libc::c_int as usize].tv_sec =
+                        times[0 as libc::c_int as usize].tv_sec;
+                    times[1 as libc::c_int as usize].tv_nsec =
+                        times[0 as libc::c_int as usize].tv_nsec;
+                    if futimens(fd_dst, times.as_mut_ptr() as *const timespec) == -1 {
+                        if utimensat(-100, path_dst, times.as_mut_ptr() as *const timespec, 0) == -1
+                        {
+                            //define sudo_warn("%s",path_dst);
+                            sudo_debug_printf!(
+                                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                                b"%s\0" as *const u8 as *const libc::c_char,
+                                path_dst
+                            );
+                            sudo_warn_nodebug_v1(
+                                b"%s\0" as *const u8 as *const libc::c_char,
+                                path_dst,
+                            );
+                            //end of define;
+                        }
+                    }
+                } //end of post==0
+                close(fd_dst);
+                fd_dst = -1;
+                if fd_src != -1 {
+                    close(fd_src);
+                    fd_src = -1;
+                }
+                i += 2;
+            } //end of loop ,same as for
+            //line 294
+            ret = 0;
+            if post != 0 {
+                i = 0 as libc::c_int;
+                while i < argc - 1 as libc::c_int {
+                    unlink(*argv.offset(i as isize));
+                    i += 2 as libc::c_int;
+                }
+            }
+            break 'nocleanup;
+        } //end of nocleanup
+        if fd_dst != -1 {
+            close(fd_dst);
+        }
+        if fd_src != -1 {
+            close(fd_src);
+        }
+        return ret;
+        break 'cleanup_0;
+    } //end of cleanup_0
+    i = 0;
+    while i < argc - 1 as libc::c_int {
+        unlink(*argv.offset((i + 1 as libc::c_int) as isize));
+        i += 2;
+    }
+    if fd_dst != -1 {
+        close(fd_dst);
+    }
+    if fd_src != -1 {
+        close(fd_src);
+    }
+    return 32;
+} //end of function
 
 pub fn main() {
     let mut args: Vec<*mut libc::c_char> = Vec::new();
