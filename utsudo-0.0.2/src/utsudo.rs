@@ -536,6 +536,134 @@ extern "C" {
         io_plugins_0: *mut plugin_container_list,
     ) -> bool;
 }
+pub type sudo_gc_types = libc::c_uint;
+pub const GC_PTR: sudo_gc_types = 2;
+pub const GC_VECTOR: sudo_gc_types = 1;
+pub const GC_UNKNOWN: sudo_gc_types = 0;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union C2RustUnnamed_13 {
+    pub generic: *mut generic_plugin,
+    pub policy: *mut policy_plugin,
+    pub policy_1_0: *mut policy_plugin_1_0,
+    pub io: *mut io_plugin,
+    pub io_1_0: *mut io_plugin_1_0,
+    pub io_1_1: *mut io_plugin_1_1,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct plugin_container {
+    pub entries: C2RustUnnamed_14,
+    pub debug_files: *mut sudo_conf_debug_file_list,
+    pub name: *mut libc::c_char,
+    pub path: *mut libc::c_char,
+    pub options: *mut *mut libc::c_char,
+    pub handle: *mut libc::c_void,
+    pub debug_instance: libc::c_int,
+    pub u: C2RustUnnamed_13,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_14 {
+    pub tqe_next: *mut plugin_container,
+    pub tqe_prev: *mut *mut plugin_container,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct plugin_container_list {
+    pub tqh_first: *mut plugin_container,
+    pub tqh_last: *mut *mut plugin_container,
+}
+#[no_mangle]
+pub static mut policy_plugin: plugin_container = plugin_container {
+    entries: C2RustUnnamed_14 {
+        tqe_next: 0 as *const plugin_container as *mut plugin_container,
+        tqe_prev: 0 as *const *mut plugin_container as *mut *mut plugin_container,
+    },
+    debug_files: 0 as *const sudo_conf_debug_file_list as *mut sudo_conf_debug_file_list,
+    name: 0 as *const libc::c_char as *mut libc::c_char,
+    path: 0 as *const libc::c_char as *mut libc::c_char,
+    options: 0 as *const *mut libc::c_char as *mut *mut libc::c_char,
+    handle: 0 as *const libc::c_void as *mut libc::c_void,
+    debug_instance: 0,
+    u: C2RustUnnamed_13 {
+        generic: 0 as *const generic_plugin as *mut generic_plugin,
+    },
+};
+#[no_mangle]
+pub static mut io_plugins: plugin_container_list = plugin_container_list {
+    tqh_first: 0 as *const plugin_container as *mut plugin_container,
+    tqh_last: 0 as *const *mut plugin_container as *mut *mut plugin_container,
+};
+#[no_mangle]
+pub static mut user_details: user_details = user_details {
+    pid: 0,
+    ppid: 0,
+    pgid: 0,
+    tcpgid: 0,
+    sid: 0,
+    uid: 0,
+    euid: 0,
+    gid: 0,
+    egid: 0,
+    username: 0 as *const libc::c_char,
+    cwd: 0 as *const libc::c_char,
+    tty: 0 as *const libc::c_char,
+    host: 0 as *const libc::c_char,
+    shell: 0 as *const libc::c_char,
+    groups: 0 as *const gid_t as *mut gid_t,
+    ngroups: 0,
+    ts_rows: 0,
+    ts_cols: 0,
+};
+#[no_mangle]
+pub static mut list_user: *const libc::c_char = 0 as *const libc::c_char;
+
+#[no_mangle]
+pub static mut sudo_debug_instance: libc::c_int = -(1 as libc::c_int);
+static mut command_details: command_details = command_details {
+    uid: 0,
+    euid: 0,
+    gid: 0,
+    egid: 0,
+    umask: 0,
+    priority: 0,
+    timeout: 0,
+    ngroups: 0,
+    closefrom: 0,
+    flags: 0,
+    execfd: 0,
+    preserved_fds: preserved_fd_list {
+        tqh_first: 0 as *const preserved_fd as *mut preserved_fd,
+        tqh_last: 0 as *const *mut preserved_fd as *mut *mut preserved_fd,
+    },
+    pw: 0 as *const passwd as *mut passwd,
+    groups: 0 as *const gid_t as *mut gid_t,
+    command: 0 as *const libc::c_char,
+    cwd: 0 as *const libc::c_char,
+    login_class: 0 as *const libc::c_char,
+    chroot: 0 as *const libc::c_char,
+    selinux_role: 0 as *const libc::c_char,
+    selinux_type: 0 as *const libc::c_char,
+    utmp_user: 0 as *const libc::c_char,
+    tty: 0 as *const libc::c_char,
+    argv: 0 as *const *mut libc::c_char as *mut *mut libc::c_char,
+    envp: 0 as *const *mut libc::c_char as *mut *mut libc::c_char,
+};
+static mut sudo_mode: libc::c_int = 0;
+
+#[inline]
+unsafe extern "C" fn stat(
+    mut __path: *const libc::c_char,
+    mut __statbuf: *mut stat,
+) -> libc::c_int {
+        #[cfg(target_arch = "x86_64")]
+        return __xstat(1 as libc::c_int, __path, __statbuf);
+        #[cfg(not(target_arch = "x86_64"))]
+        return __xstat(0 as libc::c_int, __path, __statbuf); 
+}
 
 unsafe extern "C" fn gc_init() {}
 
