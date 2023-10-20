@@ -180,7 +180,159 @@ pub unsafe extern "C" fn exec_setup(mut details: *mut command_details) -> bool {
     debug_return_bool!(ret)
 }
 
-
-
+/*
+ * Setup the execution environment and execute the command.
+ * If SELinux is enabled, run the command via sesh, otherwise
+ * execute it directly.
+ * If the exec fails, cstat is filled in with the value of errno.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn exec_cmnd(mut details: *mut command_details, mut errfd: libc::c_int) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    restore_signals();
+    if exec_setup(details) == true {
+        /* headed for execve() */
+        if (*details).closefrom >= 0 {
+            let mut fd: libc::c_int = 0;
+            let mut maxfd: libc::c_int = 0;
+            let mut debug_fds: *mut libc::c_uchar = 0 as *mut libc::c_uchar;
+            /* Preserve debug fds and error pipe as needed.*/
+            maxfd = sudo_debug_get_fds_v1(&mut debug_fds);
+            while fd <= maxfd {
+                if sudo_isset!(debug_fds, fd) != 0 {
+                    add_preserved_fd(&mut (*details).preserved_fds, fd);
+                }
+                fd += 1;
+            }
+            if errfd != -1 {
+                add_preserved_fd(&mut (*details).preserved_fds, errfd);
+            }
+            /* Close all fds except those explicitly preserved.*/
+            closefrom_except((*details).closefrom, &mut (*details).preserved_fds);
+        }
+        if ISSET!((*details).flags, CD_RBAC_ENABLED) != 0 {
+            selinux_execve(
+                (*details).execfd,
+                (*details).command,
+                (*details).argv as *const *mut libc::c_char,
+                (*details).envp,
+                ISSET!((*details).flags, CD_NOEXEC) != 0,
+            );
+        } else {
+            sudo_execve(
+                (*details).execfd,
+                (*details).command,
+                (*details).argv as *const *mut libc::c_char,
+                (*details).envp,
+                ISSET!((*details).flags, CD_NOEXEC) != 0,
+            );
+        }
+    }
+    sudo_debug_printf!(
+        SUDO_DEBUG_ERROR,
+        b"unable to exec %s: %s\0" as *const u8 as *const libc::c_char,
+        (*details).command,
+        strerror(*__errno_location())
+    );
+    debug_return!();
+}
+/*
+ * Check for caught signals sent to sudo before command execution.
+ * Also suspends the process if SIGTSTP was caught.
+ * Returns true if we should terminate, else false.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_terminated(mut cstat: *mut command_status) -> bool {
+    let mut signo: libc::c_int = 0;
+    let mut sigtstp: bool = false;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    while signo < NSIG as libc::c_int {
+        if signal_pending(signo) {
+            match signo {
+                SIGCHLD => {
+                    /* Ignore. */
+                    break;
+                }
+                SIGTSTP => {
+                    /* Suspend below if not terminated.*/
+                    sigtstp = true;
+                    break;
+                }
+                _ => {
+                    /* Terminal signal, do not exec command.*/
+                    (*cstat).type_0 = CMD_WSTATUS;
+                    (*cstat).val = signo + 128;
+                    debug_return_bool!(true);
+                    break;
+                }
+            }
+        }
+        signo += 1;
+    }
+    if sigtstp {
+        let mut sa: sigaction = sigaction {
+            __sigaction_handler: Signal_handler { sa_handler: None },
+            sa_mask: __sigset_t {
+                __val: [0; _SIGSET_NWORDS as usize],
+            },
+            sa_flags: 0,
+            sa_restorer: None,
+        };
+        let mut set: sigset_t = __sigset_t {
+            __val: [0; _SIGSET_NWORDS as usize],
+        };
+        let mut oset: sigset_t = __sigset_t {
+            __val: [0; _SIGSET_NWORDS as usize],
+        };
+        /* Send SIGTSTP to ourselves, unblocking it if needed.*/
+        memset(
+            &mut sa as *mut sigaction as *mut libc::c_void,
+            0,
+            std::mem::size_of::<sigaction>() as libc::c_ulong,
+        );
+        sigemptyset(&mut sa.sa_mask);
+        sa.sa_flags = SA_RESTART;
+        sa.__sigaction_handler.sa_handler = None;
+        if sudo_sigaction(SIGTSTP, &mut sa, 0 as *mut sigaction) != 0 {
+            sudo_warn!(
+                b"unable to set handler for signal %d" as *const u8 as *const libc::c_char,
+                SIGTSTP
+            );
+        }
+        sigemptyset(&mut set);
+        sigaddset(&mut set, SIGTSTP);
+        sigprocmask(SIG_UNBLOCK, &mut set, &mut oset);
+        if kill(getpid(), SIGTSTP) != 0 {
+            sudo_warn!(
+                b"kill(%d, SIGTSTP)" as *const u8 as *const libc::c_char,
+                getpid()
+            );
+        }
+        sigprocmask(SIG_SETMASK, &mut oset, 0 as *mut sigset_t);
+        /* No need to restore old SIGTSTP handler. */
+    }
+    debug_return_bool!(false)
+}
+unsafe extern "C" fn sudo_needs_pty(mut details: *mut command_details) -> bool {
+    let mut plugin: *mut plugin_container = 0 as *mut plugin_container;
+    if ISSET!((*details).flags, CD_USE_PTY) != 0 {
+        return true;
+    }
+    plugin = io_plugins.tqh_first;
+    while !plugin.is_null() {
+        if ((*(*plugin).u.io).log_ttyin).is_some()
+            || ((*(*plugin).u.io).log_ttyout).is_some()
+            || ((*(*plugin).u.io).log_stdin).is_some()
+            || ((*(*plugin).u.io).log_stdout).is_some()
+            || ((*(*plugin).u.io).log_stderr).is_some()
+            || ((*(*plugin).u.io).change_winsize).is_some()
+            || ((*(*plugin).u.io).log_suspend).is_some()
+        {
+            return true;
+        }
+        plugin = (*plugin).entries.tqe_next;
+    }
+    return false;
+}
 
 
