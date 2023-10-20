@@ -11,6 +11,47 @@ use utsudo_util::sudo_debug::*;
 use utsudo_util::sudo_debug_macro::*;
 use utsudo_util::*;
 
+use crate::errno;
+use crate::CLR;
+use crate::ISSET;
+use crate::SIG_IGN;
+use crate::SUDO_API_MKVERSION;
+use crate::USER_SIGNALED;
+use crate::WEXITSTATUS;
+use crate::WIFSIGNALED;
+use crate::WIFSTOPPED;
+use crate::WSTOPSIG;
+use crate::WTERMSIG;
+use crate::_PATH_TTY;
+use crate::__S_ISTYPE;
+
+//#define PATH_MAX        4096	/* # chars in a path name including nul */
+pub const PATH_MAX: libc::c_int = 4096;
+
+// #define TERM_COOKED	0
+// #define TERM_RAW	1
+pub const TERM_COOKED: libc::c_int = 0;
+pub const TERM_RAW: libc::c_int = 1;
+
+//#define TIOCSCTTY	0x540E
+pub const TIOCSCTTY: libc::c_int = 0x540E;
+
+//#define SUDO_EVLOOP_NONBLOCK	0x02	/* Do not block in event loop */
+pub const SUDO_EVLOOP_NONBLOCK: libc::c_int = 0x02;
+
+//#define FD_CLOEXEC	1	/* Actually anything with low bit set goes */
+pub const FD_CLOEXEC: libc::c_int = 1;
+
+// SOCK_STREAM = 1,		/* Sequenced, reliable, connection-based byte streams.  */
+pub const SOCK_STREAM: libc::c_int = 1;
+
+// #define PF_LOCAL	1	/* Local to host (pipes and file-domain).  */
+// #define PF_UNIX		PF_LOCAL /* POSIX name for PF_LOCAL.  */
+pub const PF_LOCAL: libc::c_int = 1;
+pub const PF_UNIX: libc::c_int = PF_LOCAL;
+
+//#define	__S_IFIFO	0010000	/* FIFO.  */
+pub const __S_IFIFO: libc::c_int = 0o010000;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
