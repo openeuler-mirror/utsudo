@@ -1,4 +1,3 @@
-
 /*
  * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
  *
@@ -347,3 +346,239 @@ macro_rules! WCOREDUMP {
         (($status) & 0x80)
     };
 }
+
+#[link(name = "utsudo_variadic")]
+extern "C" {
+    fn umask(__mask: __mode_t) -> __mode_t;
+    fn __xstat(
+        __ver: libc::c_int,
+        __filename: *const libc::c_char,
+        __stat_buf: *mut stat,
+    ) -> libc::c_int;
+    fn kill(__pid: __pid_t, __sig: libc::c_int) -> libc::c_int;
+    fn sigemptyset(__set: *mut sigset_t) -> libc::c_int;
+    fn sigprocmask(
+        __how: libc::c_int,
+        __set: *const sigset_t,
+        __oset: *mut sigset_t,
+    ) -> libc::c_int;
+    fn sigaction(
+        __sig: libc::c_int,
+        __act: *const sigaction,
+        __oact: *mut sigaction,
+    ) -> libc::c_int;
+    fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
+    fn snprintf(
+        _: *mut libc::c_char,
+        _: libc::c_ulong,
+        _: *const libc::c_char,
+        _: ...
+    ) -> libc::c_int;
+    fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char, _: ...) -> libc::c_int;
+    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn reallocarray(__ptr: *mut libc::c_void, __nmemb: size_t, __size: size_t)
+        -> *mut libc::c_void;
+    fn free(__ptr: *mut libc::c_void);
+    fn exit(_: libc::c_int) -> !;
+    fn getenv(__name: *const libc::c_char) -> *mut libc::c_char;
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
+    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong) -> *mut libc::c_void;
+    fn strncmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong) -> libc::c_int;
+    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
+    fn strchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
+    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn access(__name: *const libc::c_char, __type: libc::c_int) -> libc::c_int;
+    fn close(__fd: libc::c_int) -> libc::c_int;
+    fn getcwd(__buf: *mut libc::c_char, __size: size_t) -> *mut libc::c_char;
+    fn dup2(__fd: libc::c_int, __fd2: libc::c_int) -> libc::c_int;
+    fn sysconf(__name: libc::c_int) -> libc::c_long;
+    fn getpid() -> __pid_t;
+    fn getppid() -> __pid_t;
+    fn getpgid(__pid: __pid_t) -> __pid_t;
+    fn getsid(__pid: __pid_t) -> __pid_t;
+    fn getuid() -> __uid_t;
+    fn geteuid() -> __uid_t;
+    fn getgid() -> __gid_t;
+    fn getegid() -> __gid_t;
+    fn getgroups(__size: libc::c_int, __list: *mut __gid_t) -> libc::c_int;
+    fn setuid(__uid: __uid_t) -> libc::c_int;
+    fn setgid(__gid: __gid_t) -> libc::c_int;
+    fn setegid(__gid: __gid_t) -> libc::c_int;
+    fn tcgetpgrp(__fd: libc::c_int) -> __pid_t;
+    fn __errno_location() -> *mut libc::c_int;
+    fn fcntl(__fd: libc::c_int, __cmd: libc::c_int, _: ...) -> libc::c_int;
+    fn open(__file: *const libc::c_char, __oflag: libc::c_int, _: ...) -> libc::c_int;
+    fn getpwuid(__uid: __uid_t) -> *mut passwd;
+    fn tzset();
+    fn is_selinux_enabled() -> libc::c_int;
+    fn sudo_debug_exit_bool_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        line: libc::c_int,
+        subsys: libc::c_int,
+        ret: bool,
+    );
+    fn sudo_warn_set_conversation_v1(
+        conv: Option<
+            unsafe extern "C" fn(
+                libc::c_int,
+                *const sudo_conv_message,
+                *mut sudo_conv_reply,
+                *mut sudo_conv_callback,
+            ) -> libc::c_int,
+        >,
+    );
+    fn sudo_conf_read_v1(conf_file: *const libc::c_char, conf_types: libc::c_int) -> libc::c_int;
+    fn sudo_conf_debug_files_v1(progname: *const libc::c_char) -> *mut sudo_conf_debug_file_list;
+    fn sudo_conf_disable_coredump_v1() -> bool;
+    fn sudo_conf_group_source_v1() -> libc::c_int;
+    fn sudo_conf_max_groups_v1() -> libc::c_int;
+    fn sudo_debug_get_active_instance_v1() -> libc::c_int;
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        line: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
+    fn sudo_debug_register_v1(
+        program: *const libc::c_char,
+        subsystems: *const *const libc::c_char,
+        ids: *mut libc::c_uint,
+        debug_files: *mut sudo_conf_debug_file_list,
+    ) -> libc::c_int;
+    fn sudo_debug_set_active_instance_v1(inst: libc::c_int) -> libc::c_int;
+    fn sudo_gethostname_v1() -> *mut libc::c_char;
+    fn sudo_parse_gids_v1(
+        gidstr: *const libc::c_char,
+        basegid: *const gid_t,
+        gidsp: *mut *mut gid_t,
+    ) -> libc::c_int;
+    fn sudo_getgrouplist2_v1(
+        name: *const libc::c_char,
+        basegid: gid_t,
+        groupsp: *mut *mut gid_t,
+        ngroupsp: *mut libc::c_int,
+    ) -> libc::c_int;
+    fn sudo_new_key_val_v1(
+        key: *const libc::c_char,
+        value: *const libc::c_char,
+    ) -> *mut libc::c_char;
+    fn initprogname(_: *const libc::c_char);
+    fn sudo_setgroups_v1(ngids: libc::c_int, gids: *const gid_t) -> libc::c_int;
+    fn sudo_strsplit_v1(
+        str: *const libc::c_char,
+        endstr: *const libc::c_char,
+        sep: *const libc::c_char,
+        last: *mut *const libc::c_char,
+    ) -> *const libc::c_char;
+    fn sudo_strtobool_v1(str: *const libc::c_char) -> libc::c_int;
+    fn sudo_strtonum(
+        _: *const libc::c_char,
+        _: libc::c_longlong,
+        _: libc::c_longlong,
+        _: *mut *const libc::c_char,
+    ) -> libc::c_longlong;
+    fn sudo_strtoid_v2(str: *const libc::c_char, errstr: *mut *const libc::c_char) -> id_t;
+    fn sudo_strtomode_v1(cp: *const libc::c_char, errstr: *mut *const libc::c_char) -> libc::c_int;
+    fn sudo_get_ttysize_v1(rowp: *mut libc::c_int, colp: *mut libc::c_int);
+    fn sudo_execute(details: *mut command_details, cstat: *mut command_status) -> libc::c_int;
+    fn parse_args(
+        argc: libc::c_int,
+        argv: *mut *mut libc::c_char,
+        nargc: *mut libc::c_int,
+        nargv: *mut *mut *mut libc::c_char,
+        settingsp: *mut *mut sudo_settings,
+        env_addp: *mut *mut *mut libc::c_char,
+    ) -> libc::c_int;
+    fn sudo_fatalx_nodebug_v1(fmt: *const libc::c_char, _: ...) -> !;
+    fn setlocale(__category: libc::c_int, __locale: *const libc::c_char) -> *mut libc::c_char;
+    fn sudo_warnx_nodebug_v1(fmt: *const libc::c_char, _: ...);
+    fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
+    fn sudo_edit(details: *mut command_details) -> libc::c_int;
+    fn usage(_: libc::c_int);
+    fn deregister_hook(hook: *mut sudo_hook) -> libc::c_int;
+    fn getenv_unhooked(name: *const libc::c_char) -> *mut libc::c_char;
+    fn get_process_ttyname(name: *mut libc::c_char, namelen: size_t) -> *mut libc::c_char;
+    fn textdomain(__domainname: *const libc::c_char) -> *mut libc::c_char;
+    fn bindtextdomain(
+        __domainname: *const libc::c_char,
+        __dirname: *const libc::c_char,
+    ) -> *mut libc::c_char;
+    fn sudo_fatal_nodebug_v1(fmt: *const libc::c_char, _: ...) -> !;
+    fn sudo_pw_dup(pw: *const passwd) -> *mut passwd;
+    fn sudo_getprogname() -> *const libc::c_char;
+    fn init_signals();
+    fn save_signals();
+    fn add_preserved_fd(pfds: *mut preserved_fd_list, fd: libc::c_int) -> libc::c_int;
+    fn parse_preserved_fds(pfds: *mut preserved_fd_list, fdstr: *const libc::c_char);
+    fn disable_coredump();
+    fn unlimit_sudo();
+    fn sudo_conversation(
+        num_msgs: libc::c_int,
+        msgs: *const sudo_conv_message,
+        replies: *mut sudo_conv_reply,
+        callback: *mut sudo_conv_callback,
+    ) -> libc::c_int;
+    fn sudo_conversation_1_7(
+        num_msgs: libc::c_int,
+        msgs: *const sudo_conv_message,
+        replies: *mut sudo_conv_reply,
+    ) -> libc::c_int;
+    fn sudo_conversation_printf(
+        msg_type: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    ) -> libc::c_int;
+    fn sudo_load_plugins(
+        policy_plugin_0: *mut plugin_container,
+        io_plugins_0: *mut plugin_container_list,
+    ) -> bool;
+}
+
+unsafe extern "C" fn gc_init() {}
+
+pub fn main() {
+    let mut args: Vec<*mut libc::c_char> = Vec::new();
+    for arg in ::std::env::args() {
+        args.push(
+            (::std::ffi::CString::new(arg))
+                .expect("Failed to convert argument into CString.")
+                .into_raw(),
+        );
+    }
+    args.push(::core::ptr::null_mut());
+    let mut vars: Vec<*mut libc::c_char> = Vec::new();
+    for (var_name, var_value) in ::std::env::vars() {
+        let var: String = format!("{}={}", var_name, var_value);
+        vars.push(
+            (::std::ffi::CString::new(var))
+                .expect("Failed to convert environment variable into CString.")
+                .into_raw(),
+        );
+    }
+    vars.push(::core::ptr::null_mut());
+    unsafe {
+        ::std::process::exit(main_0(
+            (args.len() - 1) as libc::c_int,
+            args.as_mut_ptr() as *mut *mut libc::c_char,
+            vars.as_mut_ptr() as *mut *mut libc::c_char,
+        ) as i32)
+    }
+}
+
+unsafe extern "C" fn run_static_initializers() {
+    io_plugins = {
+        let mut init = plugin_container_list {
+            tqh_first: 0 as *mut plugin_container,
+            tqh_last: &mut io_plugins.tqh_first,
+        };
+        init
+    };
+}
+#[used]
+#[cfg_attr(target_os = "linux", link_section = ".init_array")]
+#[cfg_attr(target_os = "windows", link_section = ".CRT$XIB")]
+#[cfg_attr(target_os = "macos", link_section = "__DATA,__mod_init_func")]
+static INIT_ARRAY: [unsafe extern "C" fn(); 1] = [run_static_initializers];
