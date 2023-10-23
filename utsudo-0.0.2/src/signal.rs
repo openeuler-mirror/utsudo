@@ -316,6 +316,140 @@ pub unsafe extern "C" fn restore_signals() {
     //end of define;
 }
 
-
-
+#[no_mangle]
+pub unsafe extern "C" fn init_signals() {
+    let mut sa: sigaction = sigaction {
+        __sigaction_handler: Signal_handler { sa_handler: None },
+        sa_mask: __sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
+    };
+    let mut ss: *mut signal_state = 0 as *mut signal_state;
+    //define debug_decl(init_signals,SUDO_DEBUG_MAIN);
+    debug_decl!(init_signals, SUDO_DEBUG_MAIN);
+    //end of define
+    memset(
+        &mut sa as *mut sigaction as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<sigaction>() as size_t,
+    );
+    sigfillset(&mut sa.sa_mask);
+    sa.sa_flags = 0x10000000;
+    //Some
+    sa.__sigaction_handler.sa_handler =
+        Some(sudo_handler as unsafe extern "C" fn(libc::c_int) -> ());
+    ss = saved_signals.as_mut_ptr();
+    while (*ss).signo > 0 {
+        match (*ss).signo {
+            13 | 18 | 21 | 22 => {}
+            17 => {
+                if (*ss).sa.__sigaction_handler.sa_handler
+                    == ::std::mem::transmute::<libc::intptr_t, __sighandler_t>(
+                        1 as libc::c_int as libc::intptr_t,
+                    )
+                {
+                    //define sudo_debug_printf(SUDO_DEBUG_INFO,"will restore signal %d on exec",SIGCHLD);
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_INFO,
+                        b"will restore signal %d on exec\0" as *const u8 as *const libc::c_char,
+                        17
+                    );
+                    //end of define
+                    (*ss).restore = 1;
+                }
+                if sigaction(17, &mut sa, 0 as *mut sigaction) != 0 {
+                    //define sudo_warn(U_("unable to set handler for signal %d"),SIGCHLD);
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"unable to set handler for signal %d\0" as *const u8
+                                as *const libc::c_char
+                        ),
+                        17
+                    );
+                    sudo_warn!(
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"unable to set handler for signal %d\0" as *const u8
+                                as *const libc::c_char
+                        ),
+                        17
+                    );
+                    //end of define
+                }
+            }
+            _ => {
+                if (*ss).sa.__sigaction_handler.sa_handler
+                    != ::std::mem::transmute::<libc::intptr_t, __sighandler_t>(
+                        1 as libc::c_int as libc::intptr_t,
+                    )
+                {
+                    if sigaction((*ss).signo, &mut sa, 0 as *mut sigaction) != 0 {
+                        //define sudo_warn(U_("unable to set handler for signal %d"),ss->signo);
+                        sudo_debug_printf!(
+                            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                            sudo_warn_gettext_v1(
+                                0 as *const libc::c_char,
+                                b"unable to set handler for signal %d\0" as *const u8
+                                    as *const libc::c_char
+                            ),
+                            (*ss).signo
+                        );
+                        sudo_warn!(
+                            sudo_warn_gettext_v1(
+                                0 as *const libc::c_char,
+                                b"unable to set handler for signal %d\0" as *const u8
+                                    as *const libc::c_char
+                            ),
+                            (*ss).signo
+                        );
+                        //end of define
+                    }
+                }
+            }
+        } //end of match
+        ss = ss.offset(1);
+    } //end of while
+    if saved_signals[5].sa.__sigaction_handler.sa_handler
+        != ::std::mem::transmute::<libc::intptr_t, __sighandler_t>(
+            1 as libc::c_int as libc::intptr_t,
+        )
+    {
+        //define sudo_debug_printf(SUDO_DEBUG_INFO,"will restore signal %d on exec",13);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"will restore signal %d on exec\0" as *const u8 as *const libc::c_char,
+            13
+        );
+        //end of define
+        //line 173 174
+        saved_signals[5].restore = 1;
+        sa.__sigaction_handler.sa_handler = ::std::mem::transmute::<libc::intptr_t, __sighandler_t>(
+            1 as libc::c_int as libc::intptr_t,
+        );
+        if sigaction(13, &mut sa, 0 as *mut sigaction) != 0 {
+            //sudo_warn(U_("unable to set handler for signal %d"),SIGPIPE); //SIGPIPE = 13
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to set handler for signal %d\0" as *const u8 as *const libc::c_char
+                ),
+                13
+            );
+            sudo_warn!(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to set handler for signal %d\0" as *const u8 as *const libc::c_char
+                ),
+                13
+            );
+            //end of define
+        }
+    }
+    //define debug_return;
+    debug_return!();
+    //end of define;
+}
 
