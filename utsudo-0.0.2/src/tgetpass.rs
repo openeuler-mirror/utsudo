@@ -44,6 +44,61 @@ pub const TGP_ERRVAL_NOPASSWORD: tgetpass_errval = 2;
 pub const TGP_ERRVAL_TIMEOUT: tgetpass_errval = 1;
 pub const TGP_ERRVAL_NOERROR: tgetpass_errval = 0;
 
+extern "C" {
+    fn kill(__pid: __pid_t, __sig: libc::c_int) -> libc::c_int;
+    fn sigemptyset(_set: *mut sigset_t) -> libc::c_int;
+    fn sigaction(
+        __sig: libc::c_int,
+        __act: *const sigaction,
+        __oact: *mut sigaction,
+    ) -> libc::c_int;
+    fn waitpid(__pid: __pid_t, __stat_loc: *mut libc::c_int, __options: libc::c_int) -> __pid_t;
+    static mut stdout: *mut FILE;
+    fn fflush(__stream: *mut FILE) -> libc::c_int;
+    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong) -> *mut libc::c_void;
+    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn close(__fd: libc::c_int) -> libc::c_int;
+    fn read(__fd: libc::c_int, __buf: *mut libc::c_void, __nbytes: size_t) -> ssize_t;
+    fn write(__fd: libc::c_int, __buf: *const libc::c_void, __n: size_t) -> ssize_t;
+    fn pipe(__pipedes: *mut libc::c_int) -> libc::c_int;
+    fn alarm(__seconds: libc::c_uint) -> libc::c_uint;
+    fn dup2(__fd: libc::c_int, __fd2: libc::c_int) -> libc::c_int;
+    fn execl(__path: *const libc::c_char, __arg: *const libc::c_char, _: ...) -> libc::c_int;
+    fn _exit(_: libc::c_int) -> !;
+    fn getpid() -> __pid_t;
+    fn setuid(__uid: __uid_t) -> libc::c_int;
+    fn setgid(__gid: __gid_t) -> libc::c_int;
+    fn __errno_location() -> *mut libc::c_int;
+    fn open(__file: *const libc::c_char, __oflag: libc::c_int, _: ...) -> libc::c_int;
+    fn sudo_conf_askpass_path_v1() -> *const libc::c_char;
+    fn sudo_warn_gettext_v1(
+        domainname: *const libc::c_char,
+        msgid: *const libc::c_char,
+    ) -> *mut libc::c_char;
+    fn sudo_fatal_nodebug_v1(fmt: *const libc::c_char, _: ...) -> !;
+    fn sudo_fatalx_nodebug_v1(fmt: *const libc::c_char, _: ...) -> !;
+    fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
+    fn sudo_warnx_nodebug_v1(fmt: *const libc::c_char, _: ...);
+    fn sudo_debug_fork_v1() -> pid_t;
+    fn sudo_debug_printf2_v1(
+        func: *const libc::c_char,
+        file: *const libc::c_char,
+        line: libc::c_int,
+        level: libc::c_int,
+        fmt: *const libc::c_char,
+        _: ...
+    );
+    fn sudo_term_cbreak_v1(fd: libc::c_int) -> bool;
+    fn sudo_term_noecho_v1(fd: libc::c_int) -> bool;
+    fn sudo_term_restore_v1(fd: libc::c_int, flush: bool) -> bool;
+    fn sudo_closefrom(_: libc::c_int);
+    static mut user_details: user_details;
+    fn getenv_unhooked(name: *const libc::c_char) -> *mut libc::c_char;
+    static mut sudo_term_eof: libc::c_int;
+    static mut sudo_term_erase: libc::c_int;
+    static mut sudo_term_kill: libc::c_int;
+}
+
 static mut signo: [sig_atomic_t; 65] = [0; 65];
 
 unsafe extern "C" fn suspend(
