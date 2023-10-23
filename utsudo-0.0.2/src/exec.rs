@@ -418,9 +418,59 @@ pub unsafe extern "C" fn sudo_execute(
     }
 }
 
-
-
-
-
-
-
+/*
+ * Kill command with increasing urgency.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn terminate_command(mut pid: pid_t, mut use_pgrp: bool) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /* Avoid killing more than a single process or process group. */
+    if pid <= 0 {
+        debug_return!();
+    }
+    /*
+     * Note that SIGCHLD will interrupt the sleep()
+     */
+    if use_pgrp {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"killpg %d SIGHUP\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        killpg(pid, SIGHUP);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"killpg %d SIGTERM\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        killpg(pid, SIGTERM);
+        sleep(2 as libc::c_uint);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"killpg %d SIGKILL\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        killpg(pid, SIGKILL);
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"kill %d SIGHUP\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        kill(pid, SIGHUP);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"kill %d SIGTERM\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        kill(pid, SIGTERM);
+        sleep(2 as libc::c_uint);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"kill %d SIGKILL\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        kill(pid, SIGKILL);
+    }
+    debug_return!();
+}
