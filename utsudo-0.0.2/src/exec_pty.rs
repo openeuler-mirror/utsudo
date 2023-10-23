@@ -601,3 +601,21 @@ unsafe extern "C" fn log_winchange(mut rows: libc::c_uint, mut cols: libc::c_uin
 
     debug_return!();
 }
+
+/*
+ * Check whether we are running in the foregroup.
+ * Updates the foreground global and does lazy init of the
+ * the pty slave as needed.
+ */
+unsafe extern "C" fn check_foreground(mut ec: *mut exec_closure_pty) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    if io_fds[SFD_USERTTY as usize] != -(1 as libc::c_int) {
+        foreground = tcgetpgrp(io_fds[SFD_USERTTY as usize]) == (*ec).ppgrp;
+
+        /* Also check for window size changes. */
+        sync_ttysize(ec);
+    }
+
+    debug_return!();
+}
