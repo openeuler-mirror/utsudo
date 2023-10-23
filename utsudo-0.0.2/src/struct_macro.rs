@@ -4,3 +4,297 @@
  * SPDX-License-Identifier: MulanPSL-2.0
  */
 
+#![allow(non_camel_case_types, non_snake_case, unused_imports)]
+
+// #define SUDO_CONV_REPL_MAX	255
+pub const SUDO_CONV_REPL_MAX: libc::c_int = 255;
+// #define O_WRONLY	     01
+pub const O_WRONLY: libc::c_int = 0o1;
+// #define TGP_ECHO	0x01		/* leave echo on when reading passwd */
+pub const TGP_ECHO: libc::c_int = 0x01;
+// #define TGP_MASK	0x08		/* mask user input when reading */
+pub const TGP_MASK: libc::c_int = 0x08;
+// #define TGP_NOECHO_TRY	0x10		/* turn off echo if possible */
+pub const TGP_NOECHO_TRY: libc::c_int = 0x10;
+
+/* Standard file descriptors.  */
+//#define	STDIN_FILENO	0	/* Standard input.  */
+//#define	STDOUT_FILENO	1	/* Standard output.  */
+//#define	STDERR_FILENO	2	/* Standard error output.  */
+pub const STDIN_FILENO: libc::c_int = 0;
+pub const STDOUT_FILENO: libc::c_int = 1;
+pub const STDERR_FILENO: libc::c_int = 2;
+
+/* Indices into io_fds[] when running a command in a pty. */
+// #define SFD_STDIN	0
+// #define SFD_STDOUT	1
+// #define SFD_STDERR	2
+// #define SFD_MASTER	3
+// #define SFD_SLAVE	4
+// #define SFD_USERTTY	5
+pub const SFD_STDIN: libc::c_int = 0;
+pub const SFD_STDOUT: libc::c_int = 1;
+pub const SFD_STDERR: libc::c_int = 2;
+pub const SFD_MASTER: libc::c_int = 3;
+pub const SFD_SLAVE: libc::c_int = 4;
+pub const SFD_USERTTY: libc::c_int = 5;
+
+//#define	__S_ISUID	04000	/* Set user ID on execution.  */
+pub const S_ISUID: libc::c_int = 0o4000;
+
+pub const SI_USER: libc::c_int = 0;
+pub const SIG2STR_MAX: libc::c_int = 32;
+pub const SIGCONT_FG: libc::c_int = -2;
+pub const SIGCONT_BG: libc::c_int = -3;
+
+/* Adjustments and additions to the signal number constants for
+most Linux systems.  */
+// #define	SIGUSR1		10
+// #define	SIGUSR2		12
+// #define	SIGCHLD		17
+// #define	SIGCONT		18
+// #define	SIGSTOP		19
+
+pub const SIGUSR1: libc::c_int = 10;
+pub const SIGUSR2: libc::c_int = 12;
+pub const SIGCHLD: libc::c_int = 17;
+pub const SIGCONT: libc::c_int = 18;
+pub const SIGSTOP: libc::c_int = 19;
+
+pub const __SIGRTMAX: libc::c_int = 64;
+pub const NSIG: libc::c_int = __SIGRTMAX + 1;
+
+/* Nonstandard signals found in all modern POSIX systems
+(including both BSD and Linux).  */
+pub const SIGWINCH: libc::c_int = 28; /* Window size change (4.3 BSD, Sun).  */
+
+/* 0x54 is just a magic number to make these relatively unique ('T') */
+pub const TIOCGWINSZ: libc::c_int = 0x5413;
+pub const TIOCSWINSZ: libc::c_int = 0x5414;
+
+/* Status passed between parent and child via socketpair */
+// #define CMD_INVALID	0
+// #define CMD_ERRNO	1
+// #define CMD_WSTATUS	2
+// #define CMD_SIGNO	3
+// #define CMD_PID		4
+// #define CMD_TTYWINCH	5
+pub const CMD_INVALID: libc::c_int = 0;
+pub const CMD_ERRNO: libc::c_int = 1;
+pub const CMD_WSTATUS: libc::c_int = 2;
+pub const CMD_SIGNO: libc::c_int = 3;
+pub const CMD_PID: libc::c_int = 4;
+pub const CMD_TTYWINCH: libc::c_int = 5;
+
+// /* Bits in the third argument to `waitpid'.  */
+// #define	WNOHANG		1	/* Don't block waiting.  */
+// #define	WUNTRACED	2	/* Report status of stopped children.  */
+pub const WNOHANG: libc::c_int = 1;
+pub const WUNTRACED: libc::c_int = 2;
+
+//#define	EINTR		 4	/* Interrupted system call */
+//#define	EIO		 5	/* I/O error */
+//#define	ENXIO		 6	/* No such device or address */
+//#define	EBADF		 9	/* Bad file number */
+//#define	ECHILD		10	/* No child processes */
+//#define	EAGAIN		11	/* Try again */
+//#define	EISDIR		21	/* Is a directory */
+//#define	EINVAL		22	/* Invalid argument */
+//#define	EPIPE		32	/* Broken pipe */
+pub const EINTR: libc::c_int = 4;
+pub const EIO: libc::c_int = 5;
+pub const ENXIO: libc::c_int = 6;
+pub const EBADF: libc::c_int = 9;
+pub const ECHILD: libc::c_int = 10;
+pub const EAGAIN: libc::c_int = 11;
+pub const EISDIR: libc::c_int = 21;
+pub const EINVAL: libc::c_int = 22;
+pub const EPIPE: libc::c_int = 32;
+
+/*
+ * This error code is special: arch syscall entry code will return
+ * -ENOSYS if users try to call a syscall that doesn't exist.  To keep
+ * failures of syscalls that really do exist distinguishable from
+ * failures due to attempts to use a nonexistent syscall, syscall
+ * implementations should refrain from returning -ENOSYS.
+ */
+//#define	ECONNRESET	104	/* Connection reset by peer */
+pub const ECONNRESET: libc::c_int = 104;
+
+// #define CD_SET_UID		0x000001
+// #define CD_SET_EUID		0x000002
+// #define CD_SET_GID		0x000004
+// #define CD_SET_EGID		0x000008
+// #define CD_PRESERVE_GROUPS	0x000010
+// #define CD_NOEXEC		0x000020
+// #define CD_SET_PRIORITY		0x000040
+// #define CD_SET_UMASK		0x000080
+// #define CD_SET_TIMEOUT		0x000100
+// #define CD_SUDOEDIT		0x000200
+// #define CD_BACKGROUND		0x000400
+// #define CD_RBAC_ENABLED		0x000800
+// #define CD_USE_PTY		0x001000
+// #define CD_SET_UTMP		0x002000
+// #define CD_EXEC_BG		0x004000
+// #define CD_SUDOEDIT_FOLLOW	0x008000
+// #define CD_SUDOEDIT_CHECKDIR	0x010000
+// #define CD_SET_GROUPS		0x020000
+// #define CD_LOGIN_SHELL		0x040000
+// #define CD_OVERRIDE_UMASK	0x080000
+pub const CD_SET_UID: libc::c_int = 0x000001;
+pub const CD_SET_EUID: libc::c_int = 0x000002;
+pub const CD_SET_GID: libc::c_int = 0x000004;
+pub const CD_SET_EGID: libc::c_int = 0x000008;
+pub const CD_PRESERVE_GROUPS: libc::c_int = 0x000010;
+pub const CD_NOEXEC: libc::c_int = 0x000020;
+pub const CD_SET_PRIORITY: libc::c_int = 0x000040;
+pub const CD_SET_UMASK: libc::c_int = 0x000080;
+pub const CD_SET_TIMEOUT: libc::c_int = 0x000100;
+pub const CD_SUDOEDIT: libc::c_int = 0x000200;
+pub const CD_BACKGROUND: libc::c_int = 0x000400;
+pub const CD_RBAC_ENABLED: libc::c_int = 0x000800;
+pub const CD_USE_PTY: libc::c_int = 0x001000;
+pub const CD_SET_UTMP: libc::c_int = 0x002000;
+pub const CD_EXEC_BG: libc::c_int = 0x004000;
+pub const CD_SUDOEDIT_FOLLOW: libc::c_int = 0x008000;
+pub const CD_SUDOEDIT_CHECKDIR: libc::c_int = 0x010000;
+pub const CD_SET_GROUPS: libc::c_int = 0x020000;
+pub const CD_LOGIN_SHELL: libc::c_int = 0x040000;
+pub const CD_OVERRIDE_UMASK: libc::c_int = 0x080000;
+
+/* Event types */
+// #define SUDO_EV_TIMEOUT		0x01	/* fire after timeout */
+// #define SUDO_EV_READ		0x02	/* fire when readable */
+// #define SUDO_EV_WRITE		0x04	/* fire when writable */
+// #define SUDO_EV_PERSIST		0x08	/* persist until deleted */
+// #define SUDO_EV_SIGNAL		0x10	/* fire on signal receipt */
+// #define SUDO_EV_SIGINFO		0x20	/* fire on signal receipt (siginfo) */
+pub const SUDO_EV_TIMEOUT: libc::c_int = 0x01;
+pub const SUDO_EV_READ: libc::c_int = 0x02;
+pub const SUDO_EV_WRITE: libc::c_int = 0x04;
+pub const SUDO_EV_PERSIST: libc::c_int = 0x08;
+pub const SUDO_EV_SIGNAL: libc::c_int = 0x10;
+pub const SUDO_EV_SIGINFO: libc::c_int = 0x20;
+
+/* ISO C99 signals.  */
+// #define	SIGINT		2	/* Interactive attention signal.  */
+pub const SIGINT: libc::c_int = 2;
+pub const SIGTERM: libc::c_int = 15;
+
+/* Historical signals specified by POSIX. */
+// #define	SIGHUP		1	/* Hangup.  */
+// #define	SIGQUIT		3	/* Quit.  */
+// #define	SIGTRAP		5	/* Trace/breakpoint trap.  */
+// #define	SIGKILL		9	/* Killed.  */
+// #define SIGBUS		10	/* Bus error.  */
+// #define	SIGSYS		12	/* Bad system call.  */
+// #define	SIGPIPE		13	/* Broken pipe.  */
+// #define	SIGALRM		14	/* Alarm clock.  */
+pub const SIGHUP: libc::c_int = 1;
+pub const SIGQUIT: libc::c_int = 3;
+pub const SIGTRAP: libc::c_int = 5;
+pub const SIGKILL: libc::c_int = 9;
+pub const SIGBUS: libc::c_int = 10;
+pub const SIGSYS: libc::c_int = 12;
+pub const SIGPIPE: libc::c_int = 13;
+pub const SIGALRM: libc::c_int = 14;
+
+/* New(er) POSIX signals (1003.1-2008, 1003.1-2013).  */
+//#define	SIGTSTP		18	/* Keyboard stop.  */
+// #define	SIGTTIN		21	/* Background read from control terminal.  */
+// #define	SIGTTOU		22	/* Background write to control terminal.  */
+pub const SIGTSTP: libc::c_int = 18;
+pub const SIGTTIN: libc::c_int = 21;
+pub const SIGTTOU: libc::c_int = 22;
+
+//#define SA_NOCLDSTOP	0x00000001u
+pub const SA_RESTART: libc::c_int = 0x10000000;
+
+//# define O_CLOEXEC	0x80000000
+pub const O_CLOEXEC: libc::c_int = 0o2000000;
+
+// MSG_WAITALL		= 0x100, /* Wait for a full request.  */
+// #define MSG_WAITALL	MSG_WAITALL
+pub const MSG_WAITALL: libc::c_int = 0x100;
+
+//#define	SIG_SETMASK   2		 /* Set the set of blocked signals.  */
+pub const SIG_SETMASK: libc::c_int = 2;
+
+//#define	ENOENT		 2	/* No such file or directory */
+//#define	EACCES		13	/* Permission denied */
+pub const ENOENT: libc::c_int = 2;
+pub const EACCES: libc::c_int = 13;
+
+//#define O_RDWR  02
+pub const O_RDWR: libc::c_int = 0o2;
+
+// /* Values for the HOW argument to `sigprocmask'.  */
+// #define	SIG_BLOCK     0		 /* Block signals.  */
+// #define	SIG_UNBLOCK   1		 /* Unblock signals.  */
+// #define	SIG_SETMASK   2		 /* Set the set of blocked signals.  */
+pub const SIG_BLOCK: libc::c_int = 0;
+pub const SIG_UNBLOCK: libc::c_int = 1;
+pub const SIG_SETMAS: libc::c_int = 2;
+
+/* Values for the second argument to `fcntl'.  */
+// #define F_DUPFD		0	/* Duplicate file descriptor.  */
+// #define F_GETFD		1	/* Get file descriptor flags.  */
+// #define F_SETFD		2	/* Set file descriptor flags.  */
+// #define F_GETFL		3	/* Get file status flags.  */
+// #define F_SETFL		4	/* Set file status flags.  */
+pub const F_DUPFD: libc::c_int = 0;
+pub const F_GETFD: libc::c_int = 1;
+pub const F_SETFD: libc::c_int = 2;
+pub const F_GETFL: libc::c_int = 3;
+pub const F_SETFL: libc::c_int = 4;
+
+// #define	LC_ALL		  __LC_ALL
+// #define __LC_ALL		 6
+pub const LC_ALL: libc::c_int = 6;
+
+// # define ROOT_UID	0
+pub const ROOT_UID: libc::c_int = 0;
+
+//#define O_NOFOLLOW	00400000	/* don't follow links */
+pub const O_NOFOLLOW: libc::c_int = 0o0400000;
+
+//#define O_RDONLY	     00
+pub const O_RDONLY: libc::c_int = 0o0;
+
+//# define O_NONBLOCK	  04000
+pub const O_NONBLOCK: libc::c_int = 0o4000;
+
+pub type __off_t = libc::c_long;
+pub type off_t = __off_t;
+pub type __off64_t = libc::c_long;
+pub type size_t = libc::c_ulong;
+pub type __mode_t = libc::c_uint;
+pub type mode_t = __mode_t;
+pub type __time_t = libc::c_long;
+pub type __syscall_slong_t = libc::c_long;
+pub type __sig_atomic_t = libc::c_int;
+pub type sig_atomic_t = __sig_atomic_t;
+pub type __pid_t = libc::c_int;
+pub type pid_t = __pid_t;
+pub type __clock_t = libc::c_long;
+pub type __uint32_t = libc::c_uint;
+pub type __uid_t = libc::c_uint;
+pub type uid_t = __uid_t;
+pub type __gid_t = libc::c_uint;
+pub type gid_t = __gid_t;
+pub type __ssize_t = libc::c_long;
+pub type ssize_t = __ssize_t;
+pub type __blkcnt_t = libc::c_long;
+#[cfg(target_arch = "x86_64")]
+pub type __blksize_t = libc::c_long;
+#[cfg(not(target_arch = "x86_64"))]
+pub type __blksize_t = libc::c_int;
+pub type __dev_t = libc::c_ulong;
+pub type dev_t = __dev_t;
+pub type __ino_t = libc::c_ulong;
+#[cfg(target_arch = "x86_64")]
+pub type __nlink_t = libc::c_ulong;
+#[cfg(not(target_arch = "x86_64"))]
+pub type __nlink_t = libc::c_uint;
+pub type __id_t = libc::c_uint;
+pub type id_t = __id_t;
