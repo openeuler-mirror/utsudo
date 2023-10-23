@@ -335,4 +335,142 @@ unsafe extern "C" fn sudo_needs_pty(mut details: *mut command_details) -> bool {
     return false;
 }
 
+/*
+ * Execute a command, potentially in a pty with I/O loggging, and
+ * wait for it to finish.
+ * This is a little bit tricky due to how POSIX job control works and
+ * we fact that we have two different controlling terminals to deal with.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn sudo_execute(
+    mut details: *mut command_details,
+    mut cstat: *mut command_status,
+) -> libc::c_int {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /* If running in background mode, fork and exit.*/
+    if ISSET!((*details).flags, CD_BACKGROUND) != 0 {
+        match sudo_debug_fork_v1() {
+            -1 => {
+                (*cstat).type_0 = CMD_ERRNO;
+                (*cstat).val = *__errno_location();
+                debug_return_int!(-(1 as libc::c_int));
+            }
+            0 => {
+                /* child continues without controlling terminal */
+                setpgid(0 as pid_t, 0 as pid_t);
+            }
+            _ => {
+                /* parent exits (but does not flush buffers) */
+                sudo_debug_exit_int_v1(
+                    (*::std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"sudo_execute\0"))
+                        .as_ptr(),
+                    b"exec.c\0" as *const u8 as *const libc::c_char,
+                    line!() as libc::c_int,
+                    sudo_debug_subsys,
+                    0,
+                );
+                _exit(0);
+            }
+        }
+    }
+    /*
+     * Restore resource limits before running.
+     * We must do this *before* calling the PAM session module.
+     */
+    restore_limits();
+    'done: loop {
+        /*
+         * Run the command in a new pty if there is an I/O plugin or the policy
+         * has requested a pty.  If /dev/tty is unavailable and no I/O plugin
+         * is configured, this returns false and we run the command without a pty.
+         */
+        if sudo_needs_pty(details) {
+            if exec_pty(details, cstat) {
+                break 'done;
+            }
+        }
+        /*
+         * If we are not running the command in a pty, we were not invoked
+         * as sudoedit, there is no command timeout and there is no close
+         * function, just exec directly.  Only returns on error.
+         */
+        if ISSET!((*details).flags, CD_SET_TIMEOUT | CD_SUDOEDIT) != 0
+            && ((*policy_plugin.u.policy).close).is_none()
+        {
+            if sudo_terminated(cstat) {
+                exec_cmnd(details, -1);
+                (*cstat).type_0 = CMD_ERRNO;
+                (*cstat).val = *__errno_location();
+            }
+            break 'done;
+        }
+        /*
+         * Run the command in the existing tty (if any) and wait for it to finish.
+         */
+        exec_nopty(details, cstat);
+        break 'done;
+    }
+    /* The caller will run any plugin close functions. */
+    if (*cstat).type_0 == CMD_ERRNO {
+        debug_return_int!(-(1 as libc::c_int))
+    } else {
+        debug_return_int!(0)
+    }
+}
 
+/*
+ * Kill command with increasing urgency.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn terminate_command(mut pid: pid_t, mut use_pgrp: bool) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+    /* Avoid killing more than a single process or process group. */
+    if pid <= 0 {
+        debug_return!();
+    }
+    /*
+     * Note that SIGCHLD will interrupt the sleep()
+     */
+    if use_pgrp {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"killpg %d SIGHUP\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        killpg(pid, SIGHUP);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"killpg %d SIGTERM\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        killpg(pid, SIGTERM);
+        sleep(2 as libc::c_uint);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"killpg %d SIGKILL\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        killpg(pid, SIGKILL);
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"kill %d SIGHUP\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        kill(pid, SIGHUP);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"kill %d SIGTERM\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        kill(pid, SIGTERM);
+        sleep(2 as libc::c_uint);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"kill %d SIGKILL\0" as *const u8 as *const libc::c_char,
+            pid
+        );
+        kill(pid, SIGKILL);
+    }
+    debug_return!();
+}

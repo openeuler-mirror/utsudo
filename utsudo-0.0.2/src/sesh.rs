@@ -430,6 +430,209 @@ pub fn main() {
     }
 }
 
+#[inline]
+unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
+        #[cfg(target_arch = "x86_64")]
+        return __fxstat(1 as libc::c_int, __fd, __statbuf);
+        #[cfg(not(target_arch = "x86_64"))]
+        return __fxstat(0 as libc::c_int, __fd, __statbuf);
+}
 
-
-
+unsafe fn main_0(
+    mut argc: libc::c_int,
+    mut argv: *mut *mut libc::c_char,
+    mut envp: *mut *mut libc::c_char,
+) -> libc::c_int {
+    let mut ret: libc::c_int = 0;
+    sudo_debug_enter_v1(
+        (*::core::mem::transmute::<&[u8; 5], &[libc::c_char; 5]>(b"main\0")).as_ptr(),
+        b"sesh.c\0" as *const u8 as *const libc::c_char,
+        70 as libc::c_int,
+        sudo_debug_subsys,
+    );
+    initprogname(if argc > 0 as libc::c_int {
+        *argv.offset(0 as libc::c_int as isize)
+    } else {
+        b"sesh\0" as *const u8 as *const libc::c_char
+    });
+    setlocale(6 as libc::c_int, b"\0" as *const u8 as *const libc::c_char);
+    bindtextdomain(
+        b"sudo\0" as *const u8 as *const libc::c_char,
+        b"/usr/share/locale\0" as *const u8 as *const libc::c_char,
+    );
+    textdomain(b"sudo\0" as *const u8 as *const libc::c_char);
+    if argc < 2 as libc::c_int {
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 5], &[libc::c_char; 5]>(b"main\0")).as_ptr(),
+            b"sesh.c\0" as *const u8 as *const libc::c_char,
+            79 as libc::c_int,
+            2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys,
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"requires at least one argument\0" as *const u8 as *const libc::c_char,
+            ),
+        );
+        sudo_fatalx_nodebug_v1(sudo_warn_gettext_v1(
+            0 as *const libc::c_char,
+            b"requires at least one argument\0" as *const u8 as *const libc::c_char,
+        ));
+    }
+    if sudo_conf_read_v1(0 as *const libc::c_char, 0x1 as libc::c_int) == -(1 as libc::c_int) {
+        exit(1 as libc::c_int);
+    }
+    sudo_debug_register_v1(
+        sudo_getprogname(),
+        0 as *const *const libc::c_char,
+        0 as *mut libc::c_uint,
+        sudo_conf_debug_files_v1(sudo_getprogname()),
+    );
+    if strcmp(
+        *argv.offset(1 as libc::c_int as isize),
+        b"-e\0" as *const u8 as *const libc::c_char,
+    ) == 0 as libc::c_int
+    {
+        ret = sesh_sudoedit(argc, argv);
+    } else {
+        let mut login_shell: bool = false;
+        let mut noexec: bool = 0 as libc::c_int != 0;
+        let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+        let mut cmnd: *mut libc::c_char = 0 as *mut libc::c_char;
+        let mut fd: libc::c_int = -(1 as libc::c_int);
+        login_shell = *(*argv.offset(0 as libc::c_int as isize)).offset(0 as libc::c_int as isize)
+            as libc::c_int
+            == '-' as i32;
+        cp = strrchr(*argv.offset(0 as libc::c_int as isize), '-' as i32);
+        if !cp.is_null() && cp != *argv.offset(0 as libc::c_int as isize) {
+            noexec =
+                strcmp(cp, b"-noexec\0" as *const u8 as *const libc::c_char) == 0 as libc::c_int;
+        }
+        if strncmp(
+            *argv.offset(1 as libc::c_int as isize),
+            b"--execfd=\0" as *const u8 as *const libc::c_char,
+            9 as libc::c_int as libc::c_ulong,
+        ) == 0 as libc::c_int
+        {
+            let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+            cp = (*argv.offset(1 as libc::c_int as isize)).offset(9 as libc::c_int as isize);
+            fd = sudo_strtonum(
+                cp,
+                0 as libc::c_int as libc::c_longlong,
+                2147483647 as libc::c_int as libc::c_longlong,
+                &mut errstr,
+            ) as libc::c_int;
+            if !errstr.is_null() {
+                sudo_debug_printf2_v1(
+                    (*::core::mem::transmute::<&[u8; 5], &[libc::c_char; 5]>(b"main\0")).as_ptr(),
+                    b"sesh.c\0" as *const u8 as *const libc::c_char,
+                    108 as libc::c_int,
+                    2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"invalid file descriptor number: %s\0" as *const u8 as *const libc::c_char,
+                    ),
+                    cp,
+                );
+                sudo_fatalx_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"invalid file descriptor number: %s\0" as *const u8 as *const libc::c_char,
+                    ),
+                    cp,
+                );
+            }
+            argv = argv.offset(1);
+            argc -= 1;
+        }
+        argv = argv.offset(1);
+        argc -= 1;
+        cmnd = strdup(*argv.offset(0 as libc::c_int as isize));
+        if cmnd.is_null() {
+            sudo_debug_printf2_v1(
+                (*::core::mem::transmute::<&[u8; 5], &[libc::c_char; 5]>(b"main\0")).as_ptr(),
+                b"sesh.c\0" as *const u8 as *const libc::c_char,
+                117 as libc::c_int,
+                2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                ),
+                (*::core::mem::transmute::<&[u8; 5], &[libc::c_char; 5]>(b"main\0")).as_ptr(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                ),
+            );
+            sudo_fatalx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                ),
+                (*::core::mem::transmute::<&[u8; 5], &[libc::c_char; 5]>(b"main\0")).as_ptr(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                ),
+            );
+        }
+        if login_shell {
+            cp = strrchr(*argv.offset(0 as libc::c_int as isize), '/' as i32);
+            if cp.is_null() {
+                sudo_debug_printf2_v1(
+                    (*::core::mem::transmute::<&[u8; 5], &[libc::c_char; 5]>(b"main\0")).as_ptr(),
+                    b"sesh.c\0" as *const u8 as *const libc::c_char,
+                    122 as libc::c_int,
+                    2 as libc::c_int
+                        | (1 as libc::c_int) << 5 as libc::c_int
+                        | (1 as libc::c_int) << 4 as libc::c_int
+                        | sudo_debug_subsys,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to run %s as a login shell\0" as *const u8 as *const libc::c_char,
+                    ),
+                    *argv.offset(0 as libc::c_int as isize),
+                );
+                sudo_fatal_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to run %s as a login shell\0" as *const u8 as *const libc::c_char,
+                    ),
+                    *argv.offset(0 as libc::c_int as isize),
+                );
+            }
+            *cp = '-' as i32 as libc::c_char;
+            let ref mut fresh0 = *argv.offset(0 as libc::c_int as isize);
+            *fresh0 = cp;
+        }
+        sudo_execve(fd, cmnd, argv as *const *mut libc::c_char, envp, noexec);
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 5], &[libc::c_char; 5]>(b"main\0")).as_ptr(),
+            b"sesh.c\0" as *const u8 as *const libc::c_char,
+            127 as libc::c_int,
+            3 as libc::c_int
+                | (1 as libc::c_int) << 5 as libc::c_int
+                | (1 as libc::c_int) << 4 as libc::c_int
+                | sudo_debug_subsys,
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to execute %s\0" as *const u8 as *const libc::c_char,
+            ),
+            cmnd,
+        );
+        sudo_warn_nodebug_v1(
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to execute %s\0" as *const u8 as *const libc::c_char,
+            ),
+            cmnd,
+        );
+        ret = 1 as libc::c_int;
+    }
+    sudo_debug_exit_int_v1(
+        (*::core::mem::transmute::<&[u8; 5], &[libc::c_char; 5]>(b"main\0")).as_ptr(),
+        b"sesh.c\0" as *const u8 as *const libc::c_char,
+        130 as libc::c_int,
+        sudo_debug_subsys,
+        ret,
+    );
+    _exit(ret);
+}
