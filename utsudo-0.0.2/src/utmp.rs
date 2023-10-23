@@ -135,6 +135,59 @@ pub unsafe extern "C" fn utmp_settime(ut: *mut sudo_utmp_t) {
     }
     debug_return!();
 }
+/*
+ * Fill in a utmp entry, using an old entry as a template if there is one.
+ */
+pub unsafe extern "C" fn utmp_fill(
+    mut line: *const libc::c_char,
+    mut user: *const libc::c_char,
+    mut ut_old: *mut sudo_utmp_t,
+    mut ut_new: *mut sudo_utmp_t,
+) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTMP);
+
+    if ut_old.is_null() {
+        memset(
+            ut_new as *mut libc::c_void,
+            0,
+            ::std::mem::size_of::<sudo_utmp_t>() as libc::c_ulong,
+        );
+
+        if user.is_null() {
+            strncpy(
+                ((*ut_new).ut_user).as_mut_ptr(),
+                user_details.username,
+                ::std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+            );
+        }
+    } else if ut_old != ut_new {
+        memcpy(
+            ut_new as *mut libc::c_void,
+            ut_old as *const libc::c_void,
+            ::std::mem::size_of::<sudo_utmp_t>() as libc::c_ulong,
+        );
+    }
+    if !user.is_null() {
+        strncpy(
+            ((*ut_new).ut_user).as_mut_ptr(),
+            user,
+            ::std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+        );
+    }
+    strncpy(
+        ((*ut_new).ut_line).as_mut_ptr(),
+        line,
+        ::std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+    );
+
+    utmp_setid(ut_old, ut_new);
+    (*ut_new).ut_pid = getpid();
+    utmp_settime(ut_new);
+    (*ut_new).ut_type = 7 as libc::c_int as libc::c_short;
+
+    debug_return!();
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn utmp_logout(
     mut line: *const libc::c_char,

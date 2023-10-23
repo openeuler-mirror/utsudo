@@ -1,0 +1,259 @@
+#
+# SPDX-License-Identifier: ISC
+#
+# Copyright (c) 2010-2018 Todd C. Miller <Todd.Miller@sudo.ws>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+# @configure_input@
+#
+
+#### Start of system configuration section. ####
+
+srcdir = @srcdir@
+devdir = @devdir@
+top_builddir = @top_builddir@
+top_srcdir = @top_srcdir@
+incdir = $(top_srcdir)/include
+rundir = @rundir@
+cross_compiling = @CROSS_COMPILING@
+
+# Compiler & tools to use
+CC = @CC@
+LIBTOOL = @LIBTOOL@
+SED = @SED@
+
+# Our install program supports extra flags...
+INSTALL = $(SHELL) $(top_srcdir)/install-sh -c
+INSTALL_OWNER = -o $(install_uid) -g $(install_gid)
+INSTALL_BACKUP = @INSTALL_BACKUP@
+
+# Libraries
+LT_LIBS = $(top_builddir)/lib/util/libutsudo_util.la 
+LIBS = @LIBS@ @SUDO_LIBS@ @GETGROUPS_LIB@ @NET_LIBS@ $(LT_LIBS)
+
+# C preprocessor defines
+CPPDEFS = -D_PATH_SUDO_CONF=\"$(sysconfdir)/utsudo.conf\" \
+	  -DLOCALEDIR=\"$(localedir)\"
+
+# C preprocessor flags
+CPPFLAGS = -I$(incdir) -I$(top_builddir) -I. -I$(srcdir) -I$(top_srcdir) \
+	   $(CPPDEFS) @CPPFLAGS@
+
+# Usually -O and/or -g
+CFLAGS = @CFLAGS@
+
+# Flags to pass to the link stage
+LDFLAGS = @LDFLAGS@
+SUDO_LDFLAGS = $(LDFLAGS) @SUDO_LDFLAGS@
+LT_LDFLAGS = @LT_LDFLAGS@
+
+# Flags to pass to libtool
+LTFLAGS = --tag=disable-static
+
+# Address sanitizer flags
+ASAN_CFLAGS = @ASAN_CFLAGS@
+ASAN_LDFLAGS = @ASAN_LDFLAGS@
+
+# PIE flags
+PIE_CFLAGS = @PIE_CFLAGS@
+PIE_LDFLAGS = @PIE_LDFLAGS@
+
+# Stack smashing protection flags
+SSP_CFLAGS = @SSP_CFLAGS@
+SSP_LDFLAGS = @SSP_LDFLAGS@
+
+# cppcheck options, usually set in the top-level Makefile
+CPPCHECK_OPTS = -q --force --enable=warning,performance,portability --suppress=constStatement --error-exitcode=1 --inline-suppr -Dva_copy=va_copy -U__cplusplus -UQUAD_MAX -UQUAD_MIN -UUQUAD_MAX -U_POSIX_HOST_NAME_MAX -U_POSIX_PATH_MAX -U__NBBY -DNSIG=64
+
+# splint options, usually set in the top-level Makefile
+SPLINT_OPTS = -D__restrict= -checks
+
+# PVS-studio options
+PVS_CFG = $(top_srcdir)/PVS-Studio.cfg
+PVS_IGNORE = 'V707,V011,V002,V536'
+PVS_LOG_OPTS = -a 'GA:1,2' -e -t errorfile -d $(PVS_IGNORE)
+
+# Where to install things...
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+sbindir = @sbindir@
+sysconfdir = @sysconfdir@
+libexecdir = @libexecdir@
+datarootdir = @datarootdir@
+localedir = @localedir@
+localstatedir = @localstatedir@
+noexecfile = @NOEXECFILE@
+noexecdir = @NOEXECDIR@
+tmpfiles_d = @TMPFILES_D@
+
+# User and group ids the installed files should be "owned" by
+install_uid = 0
+install_gid = 0
+
+# File mode to use for shared libraries
+shlib_mode = @SHLIB_MODE@
+
+# Optional init script and rc.d link
+INIT_DIR=@INIT_DIR@
+INIT_SCRIPT=@INIT_SCRIPT@
+RC_LINK=@RC_LINK@
+
+TEST_PROGS = check_ttyname @CHECK_NOEXEC@
+TEST_LIBS = @LIBS@ $(LT_LIBS)
+TEST_LDFLAGS = @LDFLAGS@
+
+#### End of system configuration section. ####
+
+SHELL = @SHELL@
+
+PROGS = 
+
+OBJS = 
+
+IOBJS = $(OBJS:.o=.i) sesh.i
+
+POBJS = $(IOBJS:.i=.plog)
+
+SESH_OBJS = copy_file.o exec_common.o sesh.o 
+
+CHECK_NOEXEC_OBJS = check_noexec.o exec_common.o 
+
+CHECK_TTYNAME_OBJS = check_ttyname.o ttyname.o 
+
+LIBOBJDIR = $(top_builddir)/@ac_config_libobj_dir@/
+
+VERSION = @PACKAGE_VERSION@
+
+# all: $(PROGS)
+all:
+	make clean
+	cargo build
+	cargo build --lib
+	mkdir .libs
+	cp ../target/debug/utsudo ./
+	cp ../target/debug/utsudo .libs/
+	cp ../target/debug/sesh ./
+	cp ../target/debug/sesh .libs/
+	cp ../target/debug/libutsudo_noexec.so ./
+	cp ../target/debug/libutsudo_noexec.so .libs/
+	cp ../target/debug/libutsudo_noexec.so ./utsudo_noexec.so
+	cp ../target/debug/libutsudo_noexec.so .libs/utsudo_noexec.so
+
+depend:
+	$(top_srcdir)/mkdep.pl --srcdir=$(top_srcdir) \
+	    --builddir=`pwd`/$(top_builddir) src/Makefile.in
+	cd $(top_builddir) && ./config.status --file src/Makefile
+
+Makefile: $(srcdir)/Makefile.in
+	cd $(top_builddir) && ./config.status --file src/Makefile
+
+./sudo_usage.h: $(srcdir)/sudo_usage.h.in
+	cd $(top_builddir) && ./config.status --file src/sudo_usage.h
+
+pre-install:
+
+install: install-binaries install-rc
+
+install-dirs:
+	# We only create the rc.d dir when installing to the actual system dir
+	$(SHELL) $(top_srcdir)/mkinstalldirs $(DESTDIR)$(bindir) \
+	    $(DESTDIR)$(libexecdir)/utsudo $(DESTDIR)$(noexecdir)
+	if test -n "$(INIT_SCRIPT)"; then \
+	    $(SHELL) $(top_srcdir)/mkinstalldirs $(DESTDIR)$(INIT_DIR); \
+	    if test -z "$(DESTDIR)"; then \
+		$(SHELL) $(top_srcdir)/mkinstalldirs \
+		    `echo $(RC_LINK) | $(SED) 's,/[^/]*$$,,'`; \
+	    fi; \
+	elif test -n "$(tmpfiles_d)"; then \
+	    $(SHELL) $(top_srcdir)/mkinstalldirs $(DESTDIR)$(tmpfiles_d); \
+	fi
+
+install-rc: install-dirs
+	# We only create the rc.d link when installing to the actual system dir
+	if [ -n "$(INIT_SCRIPT)" ]; then \
+	    $(INSTALL) $(INSTALL_OWNER) -m 0755 $(top_builddir)/init.d/$(INIT_SCRIPT) $(DESTDIR)$(INIT_DIR)/utsudo; \
+	    if test -z "$(DESTDIR)"; then \
+		rm -f $(RC_LINK); \
+		ln -s $(INIT_DIR)/utsudo $(RC_LINK); \
+	    fi; \
+	elif test -n "$(tmpfiles_d)"; then \
+	    $(INSTALL) $(INSTALL_OWNER) -m 0644 $(top_builddir)/init.d/utsudo.conf $(DESTDIR)$(tmpfiles_d)/utsudo.conf; \
+	fi
+
+install-binaries: install-dirs $(PROGS)
+	INSTALL_BACKUP='$(INSTALL_BACKUP)' $(LIBTOOL) $(LTFLAGS) --mode=install $(INSTALL) $(INSTALL_OWNER) -m 04755 utsudo $(DESTDIR)$(bindir)/utsudo
+	rm -f $(DESTDIR)$(bindir)/utsudoedit
+	ln -s utsudo $(DESTDIR)$(bindir)/utsudoedit
+	if [ -f sesh ]; then \
+	    INSTALL_BACKUP='$(INSTALL_BACKUP)' $(LIBTOOL) $(LTFLAGS) --mode=install $(INSTALL) $(INSTALL_OWNER) -m 0755 sesh $(DESTDIR)$(libexecdir)/utsudo/sesh; \
+	fi
+	if [ -f utsudo_noexec.so ]; then \
+	    INSTALL_BACKUP='$(INSTALL_BACKUP)' $(LIBTOOL) $(LTFLAGS) --mode=install $(INSTALL) $(INSTALL_OWNER) -m 0644 utsudo_noexec.so $(DESTDIR)$(libexecdir)/utsudo/utsudo_noexec.so; \
+	fi
+
+install-doc:
+
+install-includes:
+
+install-plugin:
+
+uninstall:
+	-$(LIBTOOL) $(LTFLAGS) --mode=uninstall rm -f $(DESTDIR)$(noexecdir)/sudo_noexec.la
+	-rm -f	$(DESTDIR)$(bindir)/utsudo \
+		$(DESTDIR)$(bindir)/utsudoedit \
+		$(DESTDIR)$(libexecdir)/utsudo/sesh \
+		$(DESTDIR)/usr/lib/tmpfiles.d/utsudo.conf
+	-test -z "$(INSTALL_BACKUP)" || \
+	    rm -f $(DESTDIR)$(bindir)/utsudo$(INSTALL_BACKUP) \
+		  $(DESTDIR)$(libexecdir)/utsudo/sesh$(INSTALL_BACKUP) 
+	-test -z "$(INIT_SCRIPT)" || \
+	    rm -f $(DESTDIR)$(RC_LINK) $(DESTDIR)$(INIT_DIR)/utsudo
+
+splint:
+	splint $(SPLINT_OPTS) -I$(incdir) -I$(top_builddir) -I. -I$(srcdir) -I$(top_srcdir) $(srcdir)/*.c
+
+cppcheck:
+	cppcheck $(CPPCHECK_OPTS) -I$(incdir) -I$(top_builddir) -I. -I$(srcdir) -I$(top_srcdir) $(srcdir)/*.c
+
+pvs-log-files: $(POBJS)
+
+pvs-studio: $(POBJS)
+	plog-converter $(PVS_LOG_OPTS) $(POBJS)
+
+check: $(TEST_PROGS)
+	@if test X"$(cross_compiling)" != X"yes"; then \
+	    MALLOC_OPTIONS=S; export MALLOC_OPTIONS; \
+	    MALLOC_CONF="abort:true,junk:true"; export MALLOC_CONF; \
+	    ./check_ttyname; \
+	    if test X"@CHECK_NOEXEC@" != X""; then \
+		./check_noexec .libs/$(noexecfile); \
+	    fi; \
+	fi
+
+clean:
+	-$(LIBTOOL) $(LTFLAGS) --mode=clean rm -f $(PROGS) $(TEST_PROGS) \
+	    *.lo *.o *.la *.a *.i *.plog stamp-* core *.core core.* nohup.out
+
+mostlyclean: clean
+
+distclean: clean
+	-rm -rf Makefile .libs sudo_usage.h
+
+clobber: distclean
+
+realclean: distclean
+	rm -f TAGS tags
+
+cleandir: realclean
