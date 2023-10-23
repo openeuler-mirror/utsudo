@@ -296,3 +296,21 @@ unsafe extern "C" fn sudo_check_plugin(
     );
     return sudo_debug_ret;
 } //end of func
+
+unsafe extern "C" fn free_plugin_info(mut info: *mut plugin_info) {
+    free((*info).path as *mut libc::c_void);
+    free((*info).symbol_name as *mut libc::c_void);
+    if !((*info).options).is_null() {
+        let mut i: libc::c_int = 0 as libc::c_int;
+        while !(*((*info).options).offset(i as isize)).is_null() {
+            free(*((*info).options).offset(i as isize) as *mut libc::c_void);
+            i = i + 1;
+        }
+        free((*info).options as *mut libc::c_void);
+    }
+    free(info as *mut libc::c_void);
+} //end of func
+
+
+
+
