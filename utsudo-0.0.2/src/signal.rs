@@ -453,3 +453,44 @@ pub unsafe extern "C" fn init_signals() {
     //end of define;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_sigaction(
+    signo: libc::c_int,
+    sa: *mut sigaction,
+    osa: *mut sigaction,
+) -> libc::c_int {
+    let mut ss: *mut signal_state = 0 as *mut signal_state;
+    let mut ret: libc::c_int = 0 as libc::c_int;
+    //define debug_decl(sudo_sigaction,SUDO_DEBUG_MAIN);
+    debug_decl!(sudo_sigaction, SUDO_DEBUG_MAIN);
+    //end of define
+    ss = saved_signals.as_mut_ptr();
+    while (*ss).signo > 0 {
+        if (*ss).signo == signo {
+            if (*ss).sa.__sigaction_handler.sa_handler
+                == ::std::mem::transmute::<libc::intptr_t, __sighandler_t>(
+                    1 as libc::c_int as libc::intptr_t,
+                )
+                || (*sa).__sigaction_handler.sa_handler
+                    == ::std::mem::transmute::<libc::intptr_t, __sighandler_t>(
+                        1 as libc::c_int as libc::intptr_t,
+                    )
+            {
+                //define sudo_debug_printf(SUDO_DEBUG_INFO,"will restore signal %d on exec",signo);
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"will restore signal %d on exec\0" as *const u8 as *const libc::c_char,
+                    signo
+                );
+                //end of define
+                (*ss).restore = 1;
+            }
+            break;
+        }
+        ss = ss.offset(1);
+    }
+    ret = sigaction(signo, sa, osa);
+    //define debug_return_int(ret);
+    debug_return_int!(ret);
+    //end of define
+}
