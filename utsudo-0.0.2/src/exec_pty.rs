@@ -619,3 +619,165 @@ unsafe extern "C" fn check_foreground(mut ec: *mut exec_closure_pty) {
 
     debug_return!();
 }
+
+
+/*
+ * Suspend sudo if the underlying command is suspended.
+ * Returns SIGCONT_FG if the command should be resumed in the
+ * foreground or SIGCONT_BG if it is a background process.
+ */
+unsafe extern "C" fn suspend_sudo(
+    mut ec: *mut exec_closure_pty,
+    mut signo: libc::c_int,
+) -> libc::c_int {
+    let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+    let mut sa: sigaction = sigaction {
+        __sigaction_handler: Signal_handler { sa_handler: None },
+        sa_mask: sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
+    };
+    let mut osa: sigaction = sigaction {
+        __sigaction_handler: Signal_handler { sa_handler: None },
+        sa_mask: sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
+    };
+    let mut ret: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    loop {
+        match signo {
+            SIGTTOU | SIGTTIN | SIGSTOP | SIGTSTP => {
+                if signo == SIGTTOU || signo == SIGTTIN {
+                    /*
+                     * If sudo is already the foreground process, just resume the command
+                     * in the foreground.  If not, we'll suspend sudo and resume later.
+                     */
+                    if !foreground {
+                        check_foreground(ec);
+                    }
+                    if foreground {
+                        if ttymode != TERM_RAW {
+                            if sudo_term_raw_v1(io_fds[SFD_USERTTY as usize], 0) {
+                                ttymode = TERM_RAW;
+                            }
+                        }
+                        ret = SIGCONT_FG; /* resume command in foreground */
+                        break;
+                    }
+                    /* FALLTHROUGH */
+                    /* Flush any remaining output and deschedule I/O events. */
+                    del_io_events(true);
+
+                    /* Restore original tty mode before suspending. */
+                    if ttymode != TERM_COOKED {
+                        sudo_term_restore_v1(io_fds[SFD_USERTTY as usize], false);
+                    }
+
+                    /* Log the suspend event. */
+                    log_suspend(signo);
+
+                    if sudo_sig2str(signo, signame.as_mut_ptr()) == -(1 as libc::c_int) {
+                        snprintf(
+                            signame.as_mut_ptr(),
+                            std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                            b"%d\0" as *const u8 as *const libc::c_char,
+                            signo,
+                        );
+                    }
+
+                    /* Suspend self and continue command when we resume. */
+                    if signo != SIGSTOP {
+                        memset(
+                            &mut sa as *mut sigaction as *mut libc::c_void,
+                            0,
+                            std::mem::size_of::<sigaction>() as libc::c_ulong,
+                        );
+                        sigemptyset(&mut sa.sa_mask);
+                        sa.sa_flags = SA_RESTART;
+                        sa.__sigaction_handler.sa_handler = None;
+                        if sudo_sigaction(signo, &mut sa, &mut osa) != 0 {
+                            sudo_warn!(
+                                b"unable to set handler for signal %d\0" as *const u8
+                                    as *const libc::c_char,
+                                signo
+                            );
+                        }
+                    }
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_INFO,
+                        b"kill parent SIG%s\0" as *const u8 as *const libc::c_char,
+                        signame.as_mut_ptr()
+                    );
+                    if killpg((*ec).ppgrp, signo) != 0 {
+                        sudo_warn!(
+                            b"killpg(%d, SIG%s)\0" as *const u8 as *const libc::c_char,
+                            (*ec).ppgrp,
+                            signame.as_mut_ptr()
+                        );
+                    }
+
+                    /* Log the resume event. */
+                    log_suspend(SIGCONT);
+
+                    /* Check foreground/background status on resume. */
+                    check_foreground(ec);
+
+                    /*
+                     * We always resume the command in the foreground if sudo itself
+                     * is the foreground process.  This helps work around poorly behaved
+                     * programs that catch SIGTTOU/SIGTTIN but suspend themselves with
+                     * SIGSTOP.  At worst, sudo will go into the background but upon
+                     * resume the command will be runnable.  Otherwise, we can get into
+                     * a situation where the command will immediately suspend itself.
+                     */
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_INFO,
+                        b"parent is in %s, ttymode %d -> %d\0" as *const u8 as *const libc::c_char,
+                        if foreground as libc::c_int != 0 {
+                            b"foreground\0" as *const u8 as *const libc::c_char
+                        } else {
+                            b"background\0" as *const u8 as *const libc::c_char
+                        },
+                        ttymode,
+                        if foreground as libc::c_int != 0 {
+                            TERM_RAW
+                        } else {
+                            TERM_COOKED
+                        }
+                    );
+                    if foreground {
+                        /* Foreground process, set tty to raw mode. */
+                        if sudo_term_raw_v1(io_fds[SFD_USERTTY as usize], 0) {
+                            ttymode = TERM_RAW;
+                        }
+                    } else {
+                        /* Background process, no access to tty. */
+                        ttymode = TERM_COOKED;
+                    }
+
+                    if signo != SIGSTOP {
+                        if sudo_sigaction(signo, &mut osa, 0 as *mut sigaction) != 0 {
+                            sudo_warn!(
+                                b"unable to restore handler for signal %d\0" as *const u8
+                                    as *const libc::c_char,
+                                signo
+                            );
+                        }
+                    }
+
+                    ret = if ttymode == TERM_RAW {
+                        SIGCONT_FG
+                    } else {
+                        SIGCONT_BG
+                    };
+                }
+            }
+            _ => {}
+        }
+        break;
+    }
+
+    debug_return_int!(ret);
+}
