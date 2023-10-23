@@ -536,6 +536,7 @@ extern "C" {
         io_plugins_0: *mut plugin_container_list,
     ) -> bool;
 }
+
 pub type sudo_gc_types = libc::c_uint;
 pub const GC_PTR: sudo_gc_types = 2;
 pub const GC_VECTOR: sudo_gc_types = 1;
@@ -664,6 +665,210 @@ unsafe extern "C" fn stat(
         #[cfg(not(target_arch = "x86_64"))]
         return __xstat(0 as libc::c_int, __path, __statbuf); 
 }
+
+unsafe extern "C" fn iolog_open(
+    mut plugin: *mut plugin_container,
+    mut settings: *mut sudo_settings,
+    mut user_info: *const *mut libc::c_char,
+    mut command_info: *const *mut libc::c_char,
+    mut argc: libc::c_int,
+    mut argv: *const *mut libc::c_char,
+    mut user_env: *const *mut libc::c_char,
+) -> libc::c_int {
+    let mut plugin_settings: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut ret: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    /* Convert struct sudo_settings to plugin_settings[] */
+    plugin_settings = format_plugin_settings(plugin, settings);
+    if plugin_settings.is_null() {
+        sudo_warnx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        debug_return_int!(-(1 as libc::c_int));
+    }
+
+    /*
+     * Backwards compatibility for older API versions
+     */
+    sudo_debug_set_active_instance_v1((*plugin).debug_instance);
+    match (*(*plugin).u.generic).version {
+        sudo_api_mkversion_1_0 => {
+            ret = ((*(*plugin).u.io_1_0).open).expect("non-null function pointer")(
+                (*(*plugin).u.io_1_0).version,
+                Some(
+                    sudo_conversation_1_7
+                        as unsafe extern "C" fn(
+                            libc::c_int,
+                            *const sudo_conv_message,
+                            *mut sudo_conv_reply,
+                        ) -> libc::c_int,
+                ),
+                Some(
+                    sudo_conversation_printf
+                        as unsafe extern "C" fn(
+                            libc::c_int,
+                            *const libc::c_char,
+                            ...
+                        ) -> libc::c_int,
+                ),
+                plugin_settings as *const *mut libc::c_char,
+                user_info,
+                argc,
+                argv,
+                user_env,
+            );
+        }
+        sudo_api_mkversion_1_1 => {
+            ret = ((*(*plugin).u.io_1_1).open).expect("non-null function pointer")(
+                (*(*plugin).u.io_1_1).version,
+                Some(
+                    sudo_conversation_1_7
+                        as unsafe extern "C" fn(
+                            libc::c_int,
+                            *const sudo_conv_message,
+                            *mut sudo_conv_reply,
+                        ) -> libc::c_int,
+                ),
+                Some(
+                    sudo_conversation_printf
+                        as unsafe extern "C" fn(
+                            libc::c_int,
+                            *const libc::c_char,
+                            ...
+                        ) -> libc::c_int,
+                ),
+                plugin_settings as *const *mut libc::c_char,
+                user_info,
+                command_info,
+                argc,
+                argv,
+                user_env,
+            );
+        }
+        _ => {
+            ret = ((*(*plugin).u.io).open).expect("non-null function pointer")(
+                SUDO_API_VERSION!() as libc::c_uint,
+                Some(
+                    sudo_conversation
+                        as unsafe extern "C" fn(
+                            libc::c_int,
+                            *const sudo_conv_message,
+                            *mut sudo_conv_reply,
+                            *mut sudo_conv_callback,
+                        ) -> libc::c_int,
+                ),
+                Some(
+                    sudo_conversation_printf
+                        as unsafe extern "C" fn(
+                            libc::c_int,
+                            *const libc::c_char,
+                            ...
+                        ) -> libc::c_int,
+                ),
+                plugin_settings as *const *mut libc::c_char,
+                user_info,
+                command_info,
+                argc,
+                argv,
+                user_env,
+                (*plugin).options as *const *mut libc::c_char,
+            );
+        }
+    } // !  match (*(*plugin).u.generic).version
+
+    /* Stash plugin debug instance ID if set in open() function. */
+    (*plugin).debug_instance = sudo_debug_get_active_instance_v1();
+    sudo_debug_set_active_instance_v1(sudo_debug_instance);
+
+    debug_return_int!(ret);
+}
+unsafe extern "C" fn iolog_close(
+    mut plugin: *mut plugin_container,
+    mut exit_status: libc::c_int,
+    mut error_code: libc::c_int,
+) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    if ((*(*plugin).u.io).close).is_some() {
+        sudo_debug_set_active_instance_v1((*plugin).debug_instance);
+        ((*(*plugin).u.io).close).expect("non-null function pointer")(exit_status, error_code);
+        sudo_debug_set_active_instance_v1(sudo_debug_instance);
+    }
+    debug_return!();
+}
+
+unsafe extern "C" fn iolog_show_version(
+    mut plugin: *mut plugin_container,
+    mut verbose: libc::c_int,
+) -> libc::c_int {
+    let mut ret: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    if ((*(*plugin).u.io).show_version).is_none() {
+        debug_return_int!(true as libc::c_int);
+    }
+    sudo_debug_set_active_instance_v1((*plugin).debug_instance);
+    ret = ((*(*plugin).u.io).show_version).expect("non-null function pointer")(verbose);
+    sudo_debug_set_active_instance_v1(sudo_debug_instance);
+
+    debug_return_int!(ret);
+}
+
+/*
+ * Remove the specified I/O logging plugin from the io_plugins list.
+ * Deregisters any hooks before unlinking, then frees the container.
+ */
+unsafe extern "C" fn iolog_unlink(mut plugin: *mut plugin_container) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    /* Deregister hooks, if any. */
+    if (*(*plugin).u.io).version >= SUDO_API_MKVERSION!(1, 2) as libc::c_uint {
+        if ((*(*plugin).u.io).deregister_hooks).is_some() {
+            sudo_debug_set_active_instance_v1((*plugin).debug_instance);
+            ((*(*plugin).u.io).deregister_hooks).expect("non-null function pointer")(
+                SUDO_HOOK_VERSION!(),
+                Some(deregister_hook as unsafe extern "C" fn(*mut sudo_hook) -> libc::c_int),
+            );
+            sudo_debug_set_active_instance_v1(sudo_debug_instance);
+        }
+    }
+
+    /* Remove from io_plugins list and free. */
+    if !((*plugin).entries.tqe_next).is_null() {
+        (*(*plugin).entries.tqe_next).entries.tqe_prev = (*plugin).entries.tqe_prev;
+    } else {
+        io_plugins.tqh_last = (*plugin).entries.tqe_prev;
+    }
+    *(*plugin).entries.tqe_prev = (*plugin).entries.tqe_next;
+    free_plugin_container(plugin, 1 as libc::c_int != 0);
+
+    debug_return!();
+}
+
+unsafe extern "C" fn free_plugin_container(mut plugin: *mut plugin_container, mut ioplugin: bool) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PLUGIN);
+    free((*plugin).path as *mut libc::c_void);
+    free((*plugin).name as *mut libc::c_void);
+    if !((*plugin).options).is_null() {
+        let mut i: libc::c_int = 0 as libc::c_int;
+        while !(*((*plugin).options).offset(i as isize)).is_null() {
+            let fresh11 = i;
+            i = i + 1;
+            free(*((*plugin).options).offset(fresh11 as isize) as *mut libc::c_void);
+        }
+        free((*plugin).options as *mut libc::c_void);
+    }
+
+    if ioplugin {
+        free(plugin as *mut libc::c_void);
+    }
+
+    debug_return!();
+}
+
 
 unsafe extern "C" fn gc_init() {}
 
