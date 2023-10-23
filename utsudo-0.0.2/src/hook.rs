@@ -1,3 +1,19 @@
+/*
+ * SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
+ *
+ * SPDX-License-Identifier: MulanPSL-2.0
+ */
+
+#![allow(unused_variables)]
+
+use crate::struct_macro::*;
+
+extern "C" {
+    fn calloc(__nmemb: size_t, __size: size_t) -> *mut libc::c_void;
+    fn __errno_location() -> *mut libc::c_int;
+    fn free(__ptr: *mut libc::c_void);
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_hook_entry {
