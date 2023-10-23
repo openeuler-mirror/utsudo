@@ -1,3 +1,27 @@
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_hook_entry {
+    pub entries: MID_1,
+    pub u: MID_2,
+    pub closure: *mut libc::c_void,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct MID_1 {
+    pub sle_next: *mut sudo_hook_entry,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union MID_2 {
+    pub generic_fn: sudo_hook_fn_t,
+    pub setenv_fn: sudo_hook_fn_setenv_t,
+    pub unsetenv_fn: sudo_hook_fn_unsetenv_t,
+    pub getenv_fn: sudo_hook_fn_getenv_t,
+    pub putenv_fn: sudo_hook_fn_putenv_t,
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn deregister_hook(mut hook: *mut sudo_hook) -> libc::c_int {
     let mut ret: libc::c_int = 0 as libc::c_int;
