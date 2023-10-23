@@ -324,8 +324,52 @@ pub unsafe extern "C" fn closefrom_except(
     //end of define;
 }
 
-
-
-
-
-
+#[no_mangle]
+pub unsafe extern "C" fn parse_preserved_fds(
+    mut pfds: *mut preserved_fd_list,
+    mut fdstr: *const libc::c_char,
+) {
+    let mut cp: *const libc::c_char = fdstr as *const libc::c_char;
+    let mut lval: libc::c_long = 0;
+    let mut ep: *mut libc::c_char = 0 as *mut libc::c_char;
+    //define debug_decl(parse_preserved_fds,SUDO_DEBUG_UTIL)
+    debug_decl!(parse_preserved_fds, SUDO_DEBUG_UTIL);
+    //end of define
+    loop {
+        *__errno_location() = 0;
+        lval = strtol(cp, &mut ep, 10);
+        if (ep == cp as *mut libc::c_char)
+            || (*ep != ',' as libc::c_char && *ep != '\u{0}' as libc::c_char)
+        {
+            //define sudo_debug_printf(SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO,"unable to parse fd string %s",cp);
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to parse fd string %s\0" as *const u8 as *const libc::c_char,
+                cp
+            );
+            //end of define
+            break;
+        }
+        if ((*__errno_location() == 34) && lval == 9223372036854775807)
+            || lval < 0
+            || lval > 2147483647
+        {
+            //define sudo_debug_printf(SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO,"range error parsing fd string %s",cp);
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"range error parsing fd string %s\0" as *const u8 as *const libc::c_char,
+                cp
+            );
+            //end of define;
+        } else {
+            add_preserved_fd(pfds, lval as libc::c_int);
+        }
+        cp = ep.offset(1) as *const libc::c_char;
+        if !(*ep as libc::c_int != '\u{0}' as i32) {
+            break;
+        }
+    }
+    //define debug_return;
+    debug_return!();
+    //end of define;
+}
