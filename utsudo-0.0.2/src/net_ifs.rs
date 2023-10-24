@@ -65,3 +65,30 @@ pub union TMP_T {
 pub struct in6_addr {
     pub __in6_u: TMP_T,
 }
+
+extern "C" {
+    fn sudo_conf_probe_interfaces_v1() -> bool;
+    fn getifaddrs(__ifap: *mut *mut ifaddrs) -> libc::c_int;
+    fn freeifaddrs(__ifa: *mut ifaddrs);
+    fn malloc(__size: size_t) -> *mut libc::c_void;
+    fn inet_ntop(
+        __af: libc::c_int,
+        __cp: *const libc::c_void,
+        __buf: *mut libc::c_char,
+        __len: socklen_t,
+    ) -> *const libc::c_char;
+    fn snprintf(
+        __s: *mut libc::c_char,
+        __maxlen: size_t,
+        __format: *const libc::c_char,
+        _: ...
+    ) -> libc::c_int;
+    fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
+    fn sudo_warn_gettext_v1(
+        domainname: *const libc::c_char,
+        msgid: *const libc::c_char,
+    ) -> *mut libc::c_char;
+}
+
+
+
