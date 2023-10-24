@@ -38,6 +38,28 @@ pub union MID_2 {
     pub putenv_fn: sudo_hook_fn_putenv_t,
 }
 
+pub type sudo_hook_fn_putenv_t =
+    Option<unsafe extern "C" fn(*mut libc::c_char, *mut libc::c_void) -> libc::c_int>;
+
+pub type sudo_hook_fn_setenv_t = Option<
+    unsafe extern "C" fn(
+        *const libc::c_char,
+        *const libc::c_char,
+        libc::c_int,
+        *mut libc::c_void,
+    ) -> libc::c_int,
+>;
+pub type sudo_hook_fn_getenv_t = Option<
+    unsafe extern "C" fn(
+        *const libc::c_char,
+        *mut *mut libc::c_char,
+        *mut libc::c_void,
+    ) -> libc::c_int,
+>;
+pub type sudo_hook_fn_unsetenv_t =
+    Option<unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> libc::c_int>;
+
+    
 #[no_mangle]
 pub unsafe extern "C" fn deregister_hook(mut hook: *mut sudo_hook) -> libc::c_int {
     let mut ret: libc::c_int = 0 as libc::c_int;
