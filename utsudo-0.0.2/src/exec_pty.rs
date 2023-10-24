@@ -782,6 +782,15 @@ unsafe extern "C" fn suspend_sudo(
 }
 
 /*
+ * SIGTTIN signal handler for read_callback that just sets a flag.
+ */
+static mut got_sigttin: sig_atomic_t = 0;
+
+unsafe extern "C" fn sigttin(mut signo: libc::c_int) {
+    std::ptr::write_volatile(&mut got_sigttin as *mut sig_atomic_t, 1);
+}
+
+/*
  * Read an iobuf that is ready.
  */
 unsafe extern "C" fn read_callback(
@@ -912,4 +921,13 @@ unsafe extern "C" fn read_callback(
         }
         break;
     }
+}
+
+/*
+ * SIGTTOU signal handler for write_callback that just sets a flag.
+ */
+static mut got_sigttou: sig_atomic_t = 0;
+
+unsafe extern "C" fn sigttou(mut signo: libc::c_int) {
+    std::ptr::write_volatile(&mut got_sigttou as *mut sig_atomic_t, 1);
 }
