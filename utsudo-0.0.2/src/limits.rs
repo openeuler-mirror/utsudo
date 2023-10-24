@@ -125,3 +125,39 @@ static mut saved_limits: [saved_limit; 8] = [
         init
     },
 ];
+
+#[no_mangle]
+unsafe extern "C" fn restore_limits() {
+    let mut idx: libc::c_uint = 0;
+    //define debug_decl(restore_limits,SUDO_DEBUG_UTIL)
+    debug_decl!(restore_limits, SUDO_DEBUG_UTIL);
+    //end of define
+    //sizeof使用方法，第二行ptr,offset函数加在那里的原因，第三行中结构体前为何要＊，
+    while (idx as libc::c_ulong)
+        < (::std::mem::size_of::<[saved_limit; 8]>() as libc::c_ulong)
+            .wrapping_div(::std::mem::size_of::<saved_limit>() as libc::c_ulong)
+    {
+        let mut lim: *mut saved_limit = &mut *saved_limits.as_mut_ptr().offset(idx as isize);
+        if (*lim).saved {
+            if setrlimit((*lim).resource, &mut (*lim).limit) == -1 {
+                //define sudo_warn("setrlimit(%d)",lim.resource);
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    b"setrlimit(%d)\0" as *const u8 as *const libc::c_char,
+                    (*lim).resource
+                );
+                sudo_warn_nodebug_v1(
+                    b"setrlimit(%d)\0" as *const u8 as *const libc::c_char,
+                    (*lim).resource,
+                );
+                //end of define
+            }
+        }
+        idx += 1;
+    }
+    restore_coredump();
+    //define debug_return;
+    debug_return!();
+    //end of define;
+}
+
