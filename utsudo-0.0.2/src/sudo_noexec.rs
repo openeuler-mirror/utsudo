@@ -16,8 +16,27 @@ extern "C" {
     fn dlsym(__handle: *mut libc::c_void, __name: *const libc::c_char) -> *mut libc::c_void;
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sched_param {
+    pub sched_priority: libc::c_int,
+}
+
+pub type sudo_fn_wordexp_t =
+    Option<unsafe extern "C" fn(*const libc::c_char, *mut wordexp_t, libc::c_int) -> libc::c_int>;
+
+
 #[no_mangle]
 pub unsafe extern "C" fn execv(
+    mut _a1: *const libc::c_char,
+    mut _a2: *const *mut libc::c_char,
+) -> libc::c_int {
+    *__errno_location() = EACCES as libc::c_int;
+    return -(1 as libc::c_int);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn execvp(
     mut _a1: *const libc::c_char,
     mut _a2: *const *mut libc::c_char,
 ) -> libc::c_int {
