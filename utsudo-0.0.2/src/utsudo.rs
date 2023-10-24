@@ -666,6 +666,277 @@ unsafe extern "C" fn stat(
         return __xstat(0 as libc::c_int, __path, __statbuf); 
 }
 
+unsafe extern "C" fn policy_open(
+    mut plugin: *mut plugin_container,
+    mut settings: *mut sudo_settings,
+    mut user_info: *const *mut libc::c_char,
+    mut user_env: *const *mut libc::c_char,
+) -> libc::c_int {
+    let mut plugin_settings: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut ret: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    /* Convert struct sudo_settings to plugin_settings[] */
+    plugin_settings = format_plugin_settings(plugin, settings);
+    if plugin_settings.is_null() {
+        sudo_warnx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        debug_return_int!(-1);
+    }
+
+    /*
+     * Backwards compatibility for older API versions
+     */
+
+    sudo_debug_set_active_instance_v1(SUDO_DEBUG_INSTANCE_INITIALIZER);
+    match (*(*plugin).u.generic).version {
+        sudo_api_mkversion_1_0 | sudo_api_mkversion_1_1 => {
+            ret = ((*(*plugin).u.policy_1_0).open).expect("non-null function pointer")(
+                (*(*plugin).u.io_1_0).version,
+                Some(
+                    sudo_conversation_1_7
+                        as unsafe extern "C" fn(
+                            libc::c_int,
+                            *const sudo_conv_message,
+                            *mut sudo_conv_reply,
+                        ) -> libc::c_int,
+                ),
+                Some(
+                    sudo_conversation_printf
+                        as unsafe extern "C" fn(
+                            libc::c_int,
+                            *const libc::c_char,
+                            ...
+                        ) -> libc::c_int,
+                ),
+                plugin_settings as *const *mut libc::c_char,
+                user_info,
+                user_env,
+            );
+        }
+        _ => {
+            ret = ((*(*plugin).u.policy).open).expect("non-null function pointer")(
+                SUDO_API_VERSION!() as libc::c_uint,
+                Some(
+                    sudo_conversation
+                        as unsafe extern "C" fn(
+                            libc::c_int,
+                            *const sudo_conv_message,
+                            *mut sudo_conv_reply,
+                            *mut sudo_conv_callback,
+                        ) -> libc::c_int,
+                ),
+                Some(
+                    sudo_conversation_printf
+                        as unsafe extern "C" fn(
+                            libc::c_int,
+                            *const libc::c_char,
+                            ...
+                        ) -> libc::c_int,
+                ),
+                plugin_settings as *const *mut libc::c_char,
+                user_info,
+                user_env,
+                (*plugin).options as *const *mut libc::c_char,
+            );
+        }
+    } // ! match
+
+    /* Stash plugin debug instance ID if set in open() function. */
+    (*plugin).debug_instance = sudo_debug_get_active_instance_v1();
+    sudo_debug_set_active_instance_v1(sudo_debug_instance);
+
+    debug_return_int!(ret);
+}
+
+unsafe extern "C" fn policy_close(
+    mut plugin: *mut plugin_container,
+    mut exit_status: libc::c_int,
+    mut error_code: libc::c_int,
+) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    if ((*(*plugin).u.policy).close).is_some() {
+        sudo_debug_set_active_instance_v1((*plugin).debug_instance);
+        ((*(*plugin).u.policy).close).expect("non-null function pointer")(exit_status, error_code);
+        sudo_debug_set_active_instance_v1(sudo_debug_instance);
+    } else if error_code != 0 {
+        *__errno_location() = error_code;
+        sudo_warn!(
+            b"unable to execute %s\0" as *const u8 as *const libc::c_char,
+            command_details.command
+        );
+    }
+    debug_return!();
+}
+
+unsafe extern "C" fn policy_show_version(
+    mut plugin: *mut plugin_container,
+    mut verbose: libc::c_int,
+) -> libc::c_int {
+    let mut ret: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    if ((*(*plugin).u.policy).show_version).is_none() {
+        debug_return_int!(true as libc::c_int);
+    }
+    sudo_debug_set_active_instance_v1((*plugin).debug_instance);
+    ret = ((*(*plugin).u.policy).show_version).expect("non-null function pointer")(verbose);
+    sudo_debug_set_active_instance_v1(sudo_debug_instance);
+
+    debug_return_int!(ret);
+}
+
+unsafe extern "C" fn policy_check(
+    mut plugin: *mut plugin_container,
+    mut argc: libc::c_int,
+    mut argv: *const *mut libc::c_char,
+    mut env_add: *mut *mut libc::c_char,
+    mut command_info: *mut *mut *mut libc::c_char,
+    mut argv_out: *mut *mut *mut libc::c_char,
+    mut user_env_out: *mut *mut *mut libc::c_char,
+) -> libc::c_int {
+    let mut ret: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    if ((*(*plugin).u.policy).check_policy).is_none() {
+        sudo_fatalx!(
+            b"policy plugin %s is missing the `check_policy' method\0" as *const u8
+                as *const libc::c_char,
+            (*plugin).name,
+        );
+    }
+    sudo_debug_set_active_instance_v1((*plugin).debug_instance);
+    ret = ((*(*plugin).u.policy).check_policy).expect("non-null function pointer")(
+        argc,
+        argv,
+        env_add,
+        command_info,
+        argv_out,
+        user_env_out,
+    );
+    sudo_debug_set_active_instance_v1(sudo_debug_instance);
+    debug_return_int!(ret);
+}
+
+unsafe extern "C" fn policy_list(
+    mut plugin: *mut plugin_container,
+    mut argc: libc::c_int,
+    mut argv: *const *mut libc::c_char,
+    mut verbose: libc::c_int,
+    mut list_user_0: *const libc::c_char,
+) -> libc::c_int {
+    let mut ret: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    if ((*(*plugin).u.policy).list).is_none() {
+        sudo_warnx!(
+            b"policy plugin %s does not support listing privileges\0" as *const u8
+                as *const libc::c_char,
+            (*plugin).name,
+        );
+        debug_return_int!(false as libc::c_int);
+    }
+    sudo_debug_set_active_instance_v1((*plugin).debug_instance);
+    ret = ((*(*plugin).u.policy).list).expect("non-null function pointer")(
+        argc,
+        argv,
+        verbose,
+        list_user_0,
+    );
+    sudo_debug_set_active_instance_v1(sudo_debug_instance);
+
+    debug_return_int!(ret);
+}
+
+unsafe extern "C" fn policy_validate(mut plugin: *mut plugin_container) -> libc::c_int {
+    let mut ret: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    if ((*(*plugin).u.policy).validate).is_none() {
+        sudo_warnx!(
+            b"policy plugin %s does not support the -v option\0" as *const u8
+                as *const libc::c_char,
+            (*plugin).name
+        );
+        debug_return_int!(false as libc::c_int);
+    }
+    sudo_debug_set_active_instance_v1((*plugin).debug_instance);
+    ret = ((*(*plugin).u.policy).validate).expect("non-null function pointer")();
+    sudo_debug_set_active_instance_v1(sudo_debug_instance);
+
+    debug_return_int!(ret);
+}
+unsafe extern "C" fn policy_invalidate(mut plugin: *mut plugin_container, mut remove: libc::c_int) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+    if ((*(*plugin).u.policy).invalidate).is_none() {
+        sudo_fatalx!(
+            b"policy plugin %s does not support the -k/-K options\0" as *const u8
+                as *const libc::c_char,
+            (*plugin).name
+        );
+    }
+    sudo_debug_set_active_instance_v1((*plugin).debug_instance);
+    ((*(*plugin).u.policy).invalidate).expect("non-null function pointer")(remove);
+    sudo_debug_set_active_instance_v1(sudo_debug_instance);
+
+    debug_return!();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn policy_init_session(mut details: *mut command_details) -> libc::c_int {
+    let mut ret: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    'done: loop {
+        /*
+         * We set groups, including supplementary group vector,
+         * as part of the session setup.  This allows for dynamic
+         * groups to be set via pam_group(8) in pam_setcred(3).
+         */
+        if ISSET!((*details).flags, CD_SET_GROUPS) != 0 {
+            /* set_user_groups() prints error message on failure. */
+            if !set_user_groups(details) {
+                break 'done;
+            }
+        }
+        /* Session setup may override sudoers umask so set it first. */
+        if ISSET!((*details).flags, CD_SET_UMASK) != 0 {
+            umask((*details).umask);
+        }
+
+        if ((*policy_plugin.u.policy).init_session).is_some() {
+            /*
+             * Backwards compatibility for older API versions
+             */
+            sudo_debug_set_active_instance_v1(policy_plugin.debug_instance);
+
+            match (*policy_plugin.u.generic).version {
+                sudo_api_mkversion_1_0 | sudo_api_mkversion_1_1 => {
+                    ret = ((*policy_plugin.u.policy_1_0).init_session)
+                        .expect("non-null function pointer")(
+                        (*details).pw
+                    );
+                }
+                _ => {
+                    ret = ((*policy_plugin.u.policy).init_session)
+                        .expect("non-null function pointer")(
+                        (*details).pw, &mut (*details).envp
+                    );
+                }
+            }
+            sudo_debug_set_active_instance_v1(sudo_debug_instance);
+        }
+        break 'done;
+    } // 'done loop
+
+    // done:
+    debug_return_int!(ret);
+}
+
 unsafe extern "C" fn iolog_open(
     mut plugin: *mut plugin_container,
     mut settings: *mut sudo_settings,
@@ -869,6 +1140,10 @@ unsafe extern "C" fn free_plugin_container(mut plugin: *mut plugin_container, mu
     debug_return!();
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn gc_add(mut _type_0: sudo_gc_types, mut _v: *mut libc::c_void) -> bool {
+    return 1 as libc::c_int != 0;
+}
 
 unsafe extern "C" fn gc_init() {}
 

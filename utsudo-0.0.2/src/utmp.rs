@@ -135,6 +135,7 @@ pub unsafe extern "C" fn utmp_settime(ut: *mut sudo_utmp_t) {
     }
     debug_return!();
 }
+
 /*
  * Fill in a utmp entry, using an old entry as a template if there is one.
  */
@@ -186,6 +187,95 @@ pub unsafe extern "C" fn utmp_fill(
     (*ut_new).ut_type = 7 as libc::c_int as libc::c_short;
 
     debug_return!();
+}
+
+/*
+ * There are two basic utmp file types:
+ *
+ *  POSIX:  sequential access with new entries appended to the end.
+ *	    Manipulated via {get,put}[sx]?utent()
+ *
+ *  Legacy: sparse file indexed by ttyslot() * sizeof(struct utmp)
+ */
+#[no_mangle]
+pub unsafe extern "C" fn utmp_login(
+    mut from_line: *const libc::c_char,
+    mut to_line: *const libc::c_char,
+    mut _ttyfd: libc::c_int,
+    mut user: *const libc::c_char,
+) -> bool {
+    let mut utbuf: sudo_utmp_t = sudo_utmp_t {
+        ut_type: 0,
+        ut_pid: 0,
+        ut_line: [0; 32],
+        ut_id: [0; 4],
+        ut_user: [0; 32],
+        ut_host: [0; 256],
+        ut_exit: __exit_status {
+            e_termination: 0,
+            e_exit: 0,
+        },
+        ut_session: 0,
+        ut_tv: C2RustUnnamed {
+            tv_sec: 0,
+            tv_usec: 0,
+        },
+        ut_addr_v6: [0; 4],
+        __glibc_reserved: [0; 20],
+    };
+    let mut ut_old: *mut sudo_utmp_t = 0 as *mut sudo_utmp_t;
+    let mut ret: bool = false;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTMP);
+
+    /* Strip off /dev/ prefix from line as needed. */
+    if strncmp(
+        to_line,
+        b"/dev/\0" as *const u8 as *const libc::c_char,
+        (::std::mem::size_of::<[libc::c_char; 6]>() as libc::c_ulong).wrapping_sub(1),
+    ) == 0
+    {
+        to_line = to_line.offset(
+            (::std::mem::size_of::<[libc::c_char; 6]>() as libc::c_ulong).wrapping_sub(1) as isize,
+        );
+    }
+    setutxent();
+
+    if from_line.is_null() {
+        if strncmp(
+            from_line,
+            b"/dev/\0" as *const u8 as *const libc::c_char,
+            (::std::mem::size_of::<[libc::c_char; 6]>() as libc::c_ulong).wrapping_sub(1),
+        ) == 0
+        {
+            from_line = from_line.offset(
+                (::std::mem::size_of::<[libc::c_char; 6]>() as libc::c_ulong).wrapping_sub(1)
+                    as isize,
+            );
+        }
+
+        /* Lookup old line. */
+        memset(
+            &mut utbuf as *mut sudo_utmp_t as *mut libc::c_void,
+            0,
+            ::std::mem::size_of::<sudo_utmp_t>() as libc::c_ulong,
+        );
+
+        strncpy(
+            (utbuf.ut_line).as_mut_ptr(),
+            from_line,
+            ::std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+        );
+
+        ut_old = getutxline(&mut utbuf);
+        setutxent();
+    }
+    utmp_fill(to_line, user, ut_old, &mut utbuf);
+    if !(pututxline(&mut utbuf)).is_null() {
+        ret = true;
+    }
+    endutxent();
+
+    debug_return_bool!(ret)
 }
 
 #[no_mangle]
