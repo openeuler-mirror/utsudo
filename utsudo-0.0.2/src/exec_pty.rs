@@ -620,7 +620,6 @@ unsafe extern "C" fn check_foreground(mut ec: *mut exec_closure_pty) {
     debug_return!();
 }
 
-
 /*
  * Suspend sudo if the underlying command is suspended.
  * Returns SIGCONT_FG if the command should be resumed in the
@@ -780,4 +779,137 @@ unsafe extern "C" fn suspend_sudo(
     }
 
     debug_return_int!(ret);
+}
+
+/*
+ * Read an iobuf that is ready.
+ */
+unsafe extern "C" fn read_callback(
+    mut fd: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut iob: *mut io_buffer = v as *mut io_buffer;
+    let mut evbase: *mut sudo_event_base = sudo_ev_get_base!((*iob).revent);
+    let mut sa: sigaction = sigaction {
+        __sigaction_handler: Signal_handler { sa_handler: None },
+        sa_mask: sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
+    };
+    let mut osa: sigaction = sigaction {
+        __sigaction_handler: Signal_handler { sa_handler: None },
+        sa_mask: sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
+    };
+    let mut saved_errno: libc::c_int = 0;
+    let mut n: ssize_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    /*
+     * We ignore SIGTTIN by default but we need to handle it when reading
+     * from the terminal.  A signal event won't work here because the
+     * read() would be restarted, preventing the callback from running.
+     */
+    memset(
+        &mut sa as *mut sigaction as *mut libc::c_void,
+        0,
+        std::mem::size_of::<sigaction>() as libc::c_ulong,
+    );
+    sigemptyset(&mut sa.sa_mask);
+    sa.__sigaction_handler.sa_handler = Some(sigttin as unsafe extern "C" fn(libc::c_int) -> ());
+    std::ptr::write_volatile(&mut got_sigttin as *mut sig_atomic_t, 0);
+    sigaction(SIGTTIN, &mut sa, &mut osa);
+    n = read(
+        fd,
+        ((*iob).buf).as_mut_ptr().offset((*iob).len as isize) as *mut libc::c_void,
+        (std::mem::size_of::<[libc::c_char; 65536]>() as libc::c_ulong)
+            .wrapping_sub((*iob).len as libc::c_ulong),
+    );
+    saved_errno = errno!();
+    sigaction(SIGTTIN, &mut osa, 0 as *mut sigaction);
+    errno!() = saved_errno;
+
+    loop {
+        match n {
+            -1 | 0 => {
+                if n == -1 {
+                    if got_sigttin != 0 {
+                        /* Schedule SIGTTIN to be forwared to the command. */
+                        schedule_signal((*iob).ec, SIGTTIN);
+                    }
+                    if errno!() == EAGAIN || errno!() == EINTR {
+                        break;
+                    }
+                    /* treat read error as fatal and close the fd */
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_ERROR,
+                        b"error reading fd %d: %s\0" as *const u8 as *const libc::c_char,
+                        fd,
+                        strerror(errno!())
+                    );
+                }
+                /* FALLTHROUGH */
+                /* got EOF or pty has gone away */
+                if n == 0 {
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_INFO,
+                        b"read EOF from fd %d\0" as *const u8 as *const libc::c_char,
+                        fd
+                    );
+                    safe_close(fd);
+                    ev_free_by_fd(evbase, fd);
+                    /* If writer already consumed the buffer, close it too. */
+                    if !((*iob).wevent).is_null() && (*iob).off == (*iob).len {
+                        safe_close(sudo_ev_get_fd!((*iob).wevent));
+                        ev_free_by_fd(evbase, sudo_ev_get_fd!((*iob).wevent));
+                        (*iob).len = 0;
+                        (*iob).off = (*iob).len;
+                    }
+                }
+            }
+            _ => {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"read %zd bytes from fd %d\0" as *const u8 as *const libc::c_char,
+                    n,
+                    fd
+                );
+                if !((*iob).action).expect("non-null function pointer")(
+                    ((*iob).buf).as_mut_ptr().offset((*iob).len as isize),
+                    n as libc::c_uint,
+                    iob,
+                ) {
+                    terminate_command((*(*iob).ec).cmnd_pid, true);
+                    (*(*iob).ec).cmnd_pid = -(1 as libc::c_int);
+                }
+                let ref mut len0 = (*iob).len;
+                *len0 = (*len0 as libc::c_long + n) as libc::c_int;
+                /* Enable writer now that there is data in the buffer. */
+                if !((*iob).wevent).is_null() {
+                    if sudo_ev_add_v2(evbase, (*iob).wevent, 0 as *mut timespec, false)
+                        == -(1 as libc::c_int)
+                    {
+                        sudo_fatal!(
+                            b"unable to add event to queue\0" as *const u8 as *const libc::c_char,
+                        );
+                    }
+                }
+                /* Re-enable reader if buffer is not full. */
+                if (*iob).len as libc::c_ulong
+                    != std::mem::size_of::<[libc::c_char; 65536]>() as libc::c_ulong
+                {
+                    if sudo_ev_add_v2(evbase, (*iob).revent, 0 as *mut timespec, false)
+                        == -(1 as libc::c_int)
+                    {
+                        sudo_fatal!(
+                            b"unable to add event to queue\0" as *const u8 as *const libc::c_char,
+                        );
+                    }
+                }
+            }
+        }
+        break;
+    }
 }
