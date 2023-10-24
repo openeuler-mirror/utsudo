@@ -32,3 +32,96 @@ pub const RLIMIT_CORE: libc::c_int = 4;
 pub const PR_GET_DUMPABLE: libc::c_int = 3;
 pub const PR_SET_DUMPABLE: libc::c_int = 4;
 pub const RLIM_INFINITY: libc::c_int = -1;
+
+//#[derive(Copy,Clone)]
+//#[repr(C)]
+static mut saved_limits: [saved_limit; 8] = [
+    {
+        let mut init = saved_limit {
+            resource: RLIMIT_AS,
+            saved: false,
+            limit: rlimit {
+                rlim_cur: 0,
+                rlim_max: 0,
+            },
+        };
+        init
+    },
+    {
+        let mut init = saved_limit {
+            resource: RLIMIT_CPU,
+            saved: false,
+            limit: rlimit {
+                rlim_cur: 0,
+                rlim_max: 0,
+            },
+        };
+        init
+    },
+    {
+        let mut init = saved_limit {
+            resource: RLIMIT_DATA,
+            saved: false,
+            limit: rlimit {
+                rlim_cur: 0,
+                rlim_max: 0,
+            },
+        };
+        init
+    },
+    {
+        let mut init = saved_limit {
+            resource: RLIMIT_FSIZE,
+            saved: false,
+            limit: rlimit {
+                rlim_cur: 0,
+                rlim_max: 0,
+            },
+        };
+        init
+    },
+    {
+        let mut init = saved_limit {
+            resource: RLIMIT_NOFILE,
+            saved: false,
+            limit: rlimit {
+                rlim_cur: 0,
+                rlim_max: 0,
+            },
+        };
+        init
+    },
+    {
+        let mut init = saved_limit {
+            resource: RLIMIT_NPROC,
+            saved: false,
+            limit: rlimit {
+                rlim_cur: 0,
+                rlim_max: 0,
+            },
+        };
+        init
+    },
+    {
+        let mut init = saved_limit {
+            resource: RLIMIT_RSS,
+            saved: false,
+            limit: rlimit {
+                rlim_cur: 0,
+                rlim_max: 0,
+            },
+        };
+        init
+    },
+    {
+        let mut init = saved_limit {
+            resource: RLIMIT_STACK,
+            saved: false,
+            limit: rlimit {
+                rlim_cur: 0,
+                rlim_max: 0,
+            },
+        };
+        init
+    },
+];
