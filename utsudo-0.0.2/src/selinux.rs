@@ -91,3 +91,162 @@ extern "C" {
     ) -> *mut libc::c_char;
     fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
 }
+
+
+#[no_mangle]
+pub unsafe extern "C" fn selinux_execve(
+    mut fd: libc::c_int,
+    mut path: *const libc::c_char,
+    mut argv: *const *mut libc::c_char,
+    mut envp: *mut *mut libc::c_char,
+    mut noexec: bool,
+) {
+    let mut nargv: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut sesh: *const libc::c_char = 0 as *const libc::c_char;
+    let mut argc: libc::c_int = 0 as libc::c_int;
+    let mut nargc: libc::c_int = 0 as libc::c_int;
+    let mut serrno: libc::c_int = 0 as libc::c_int;
+
+    //define debug_decl(selinux_execve,SUDO_DEBUG_SELINUX)
+    debug_decl!(selinux_execve, SUDO_DEBUG_SELINUX);
+    //end of define
+
+    sesh = sudo_conf_sesh_path_v1();
+    if sesh.is_null() {
+        //define sudo_warnx("internal error:sesh path not set");
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+            b"internal error:sesh path not set\0" as *const u8 as *const libc::c_char
+        );
+        sudo_warn_nodebug_v1(
+            b"internal error:sesh path not set\0" as *const u8 as *const libc::c_char,
+        );
+        //end of define
+        *__errno_location() = EINVAL;
+        //define debug_return;
+        debug_return!();
+        //end of define;
+    }
+
+    if selinux_setcon() == -1 {
+        //define debug_return;
+        debug_return!();
+        //end of define;
+    }
+
+    argc = 0 as libc::c_int;
+    while !(*argv.offset(argc as isize)).is_null() {
+        argc += 1;
+    }
+
+    nargv = reallocarray(
+        0 as *mut libc::c_void,
+        (argc + 3 as libc::c_int) as size_t,
+        ::std::mem::size_of::<*mut libc::c_char>() as size_t,
+    ) as *mut *mut libc::c_char;
+
+    if nargv.is_null() {
+        //define sudo_warnx(U_("%s:%s"),__func__,U_("unable to allocate memory"));
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"%s : %s\0" as *const u8 as *const libc::c_char
+            ),
+            function_name!(),
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            )
+        );
+        sudo_warn_nodebug_v1(
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"%s :%s\0" as *const u8 as *const libc::c_char,
+            ),
+            function_name!(),
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+            ),
+        );
+        //end of define
+
+        //define debug_return;
+        debug_return!();
+        //end of define
+    }
+
+    if noexec {
+        *nargv.offset(0 as isize) = (if **argv.offset(0 as isize) as libc::c_int == '-' as i32 {
+            b"-sesh-noexec\0" as *const u8 as *const libc::c_char
+        } else {
+            b"sesh-noexec\0" as *const u8 as *const libc::c_char
+        }) as *mut libc::c_char
+    } else {
+        *nargv.offset(0 as isize) = (if **argv.offset(0 as isize) as libc::c_int == '-' as i32 {
+            b"-sesh\0" as *const u8 as *const libc::c_char
+        } else {
+            b"sesh\0" as *const u8 as *const libc::c_char
+        }) as *mut libc::c_char
+    }
+
+    nargc = 1;
+
+    if fd != -1 && {
+        let tmp = nargc;
+        nargc += 1;
+        asprintf(
+            &mut *nargv.offset(tmp as isize) as *mut *mut libc::c_char,
+            b"--execfd=%d\0" as *const u8 as *const libc::c_char,
+            fd,
+        ) == -1
+    } {
+        //sudo_warnx(U_("%s:%s"),__func__,U_("unable to allocate memory"));
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"%s : %s\0" as *const u8 as *const libc::c_char
+            ),
+            function_name!(),
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            )
+        );
+        sudo_warn_nodebug_v1(
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"%s :%s\0" as *const u8 as *const libc::c_char,
+            ),
+            function_name!(),
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+            ),
+        );
+        //end of define
+
+        //debug_return;
+        debug_return!();
+        //end of define
+    }
+
+    *nargv.offset(nargc as isize) = path as *mut libc::c_char;
+    nargc += 1;
+
+    memcpy(
+        &mut *nargv.offset(nargc as isize) as *mut *mut libc::c_char as *mut libc::c_void,
+        &*argv.offset(1 as isize) as *const *mut libc::c_char as *const libc::c_void,
+        argc.wrapping_mul(::std::mem::size_of::<*mut libc::c_char>() as i32) as size_t,
+    );
+
+    sudo_execve(-1, sesh, nargv as *const *mut libc::c_char, envp, false);
+    serrno = *__errno_location();
+    free(nargv as *mut libc::c_void);
+    *__errno_location() = serrno;
+    //define  debug_return;
+    debug_return!();
+    //end of define
+} //end file

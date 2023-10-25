@@ -29,10 +29,10 @@ use utsudo_util::*;
 
 #[inline]
 unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
-        #[cfg(target_arch = "x86_64")]
-        return __fxstat(1 as libc::c_int, __fd, __statbuf);
-        #[cfg(not(target_arch = "x86_64"))]
-        return __fxstat(0 as libc::c_int, __fd, __statbuf);
+    #[cfg(target_arch = "x86_64")]
+    return __fxstat(1 as libc::c_int, __fd, __statbuf);
+    #[cfg(not(target_arch = "x86_64"))]
+    return __fxstat(0 as libc::c_int, __fd, __statbuf);
 }
 #[link(name = "utsudo_variadic")]
 
@@ -123,8 +123,6 @@ extern "C" {
     );
     fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
 }
-
-
 
 unsafe extern "C" fn sesh_sudoedit(
     mut argc: libc::c_int,
@@ -367,7 +365,7 @@ unsafe extern "C" fn sesh_sudoedit(
                 }
                 i += 2;
             } //end of loop ,same as for
-            //line 294
+              //line 294
             ret = 0;
             if post != 0 {
                 i = 0 as libc::c_int;
@@ -432,10 +430,10 @@ pub fn main() {
 
 #[inline]
 unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
-        #[cfg(target_arch = "x86_64")]
-        return __fxstat(1 as libc::c_int, __fd, __statbuf);
-        #[cfg(not(target_arch = "x86_64"))]
-        return __fxstat(0 as libc::c_int, __fd, __statbuf);
+    #[cfg(target_arch = "x86_64")]
+    return __fxstat(1 as libc::c_int, __fd, __statbuf);
+    #[cfg(not(target_arch = "x86_64"))]
+    return __fxstat(0 as libc::c_int, __fd, __statbuf);
 }
 
 unsafe fn main_0(

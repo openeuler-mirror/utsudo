@@ -665,6 +665,73 @@ unsafe extern "C" fn stat(
         #[cfg(not(target_arch = "x86_64"))]
         return __xstat(0 as libc::c_int, __path, __statbuf); 
 }
+/*
+ * Run the command and wait for it to complete.
+ * Returns wait status suitable for use with the wait(2) macros.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn run_command(mut details: *mut command_details) -> libc::c_int {
+    let mut plugin: *mut plugin_container = 0 as *mut plugin_container;
+    let mut cstat: command_status = command_status { type_0: 0, val: 0 };
+    let mut status: libc::c_int = W_EXITCODE!(1, 0);
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    cstat.type_0 = 0 as libc::c_int;
+    cstat.val = 0 as libc::c_int;
+    sudo_execute(details, &mut cstat);
+
+    match cstat.type_0 {
+        CMD_ERRNO => {
+            /* exec_setup() or execve() returned an error. */
+            sudo_debug_printf!(
+                SUDO_DEBUG_DEBUG,
+                b"calling policy close with errno %d\0" as *const u8 as *const libc::c_char,
+                cstat.val
+            );
+
+            policy_close(&mut policy_plugin, 0 as libc::c_int, cstat.val);
+            plugin = io_plugins.tqh_first;
+            while !plugin.is_null() {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_DEBUG,
+                    b"calling I/O close with errno %d\0" as *const u8 as *const libc::c_char,
+                    cstat.val
+                );
+
+                iolog_close(plugin, 0 as libc::c_int, cstat.val);
+                plugin = (*plugin).entries.tqe_next;
+            }
+        }
+        CMD_WSTATUS => {
+            /* Command ran, exited or was killed. */
+            status = cstat.val;
+            sudo_debug_printf!(
+                SUDO_DEBUG_DEBUG,
+                b"calling policy close with wait status %d\0" as *const u8 as *const libc::c_char,
+                status
+            );
+            policy_close(&mut policy_plugin, status, 0 as libc::c_int);
+            plugin = io_plugins.tqh_first;
+            while !plugin.is_null() {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_DEBUG,
+                    b"calling I/O close with wait status %d\0" as *const u8 as *const libc::c_char,
+                    status
+                );
+                iolog_close(plugin, status, 0 as libc::c_int);
+                plugin = (*plugin).entries.tqe_next;
+            }
+        }
+        _ => {
+            sudo_warnx!(
+                b"unexpected child termination condition: %d\0" as *const u8 as *const libc::c_char,
+                cstat.type_0
+            );
+        }
+    } // match cstat.type_0
+
+    debug_return_int!(status);
+}
 
 unsafe extern "C" fn policy_open(
     mut plugin: *mut plugin_container,
