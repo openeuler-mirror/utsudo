@@ -60,6 +60,36 @@ pub type sudo_hook_fn_unsetenv_t =
     Option<unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> libc::c_int>;
 
     
+unsafe extern "C" fn deregister_hook_internal(
+    mut head: *mut sudo_hook_list,
+    mut hook_fn: Option<unsafe extern "C" fn() -> libc::c_int>,
+    mut closure: *mut libc::c_void,
+) {
+    let mut hook: *mut sudo_hook_entry = 0 as *mut sudo_hook_entry;
+    let mut prev: *mut sudo_hook_entry = 0 as *mut sudo_hook_entry;
+    //define debug_decl(deregister_hook_internal,SUDO_DEBUG_HOOKS)
+    debug_decl!(deregister_hook_internal, SUDO_DEBUG_HOOKS);
+    //end of define;
+
+    hook = (*head).slh_first;
+    while !hook.is_null() {
+        if (*hook).u.generic_fn == hook_fn && (*hook).closure == closure {
+            if prev.is_null() {
+                (*head).slh_first = (*(*head).slh_first).entries.sle_next;
+            } else {
+                (*prev).entries.sle_next = (*(*prev).entries.sle_next).entries.sle_next;
+            }
+            free(hook as *mut libc::c_void);
+            break;
+        }
+        prev = hook;
+        hook = (*hook).entries.sle_next;
+    }
+    //define debug_return;
+    debug_return!();
+    //end of define;
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn deregister_hook(mut hook: *mut sudo_hook) -> libc::c_int {
     let mut ret: libc::c_int = 0 as libc::c_int;
