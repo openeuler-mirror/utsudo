@@ -90,5 +90,19 @@ extern "C" {
     ) -> *mut libc::c_char;
 }
 
+pub const SUDO_DEBUG_NETIF: libc::c_int = 8 << 6;
+use crate::sudo_debug_printf2_v1;
+use stdext::function_name;
+use utsudo_util::debug_decl;
+use utsudo_util::debug_decl_vars;
+use utsudo_util::debug_return_int;
+use utsudo_util::sudo_debug::sudo_debug_enter_v1;
+use utsudo_util::sudo_debug::sudo_debug_exit_int_v1;
+use utsudo_util::sudo_debug_macro::sudo_debug_subsys;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_LINENO;
+use utsudo_util::sudo_debug_printf;
+//use utsudo_util::sudo_debug_macro::SUDO_DEBUG_ERRNO;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_ERROR;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_WARN;
 
 
