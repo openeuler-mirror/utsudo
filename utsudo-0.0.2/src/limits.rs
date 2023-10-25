@@ -195,3 +195,47 @@ use utsudo_util::sudo_debug_macro::SUDO_DEBUG_WARN;
 use utsudo_util::sudo_debug_printf;
 //use utsudo_util::debug_return_int;
 use utsudo_util::sudo_debug::sudo_debug_exit_v1;
+
+#[no_mangle]
+pub unsafe extern "C" fn disable_coredump() {
+    let mut rl: rlimit = {
+        let mut init = rlimit {
+            rlim_cur: 0,
+            rlim_max: 0,
+        };
+        init
+    };
+    //define debug_decl(disable_coredump,SUDO_DEBUG_UTIL)
+    debug_decl!(disable_coredump, SUDO_DEBUG_UTIL);
+    //end of define
+    //c(&) == rust(&mut)?
+    if getrlimit(RLIMIT_CORE, &mut corelimit) == -1 {
+        //define sudo_warn("getrlimit(RLIMIT_CORE)");
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+            b"getrlimit(RLIMIT_CORE)\0" as *const u8 as *const libc::c_char
+        );
+        sudo_warn_nodebug_v1(b"getrlimit(RLIMIT_CORE)\0" as *const u8 as *const libc::c_char);
+        //end of define;
+    }
+    if setrlimit(RLIMIT_CORE, &mut rl) == -1 {
+        //define sudo_warn("setrlimit(RLIMIT_CORE)");
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+            b"setrlimit(RLIMIT_CORE)\0" as *const u8 as *const libc::c_char
+        );
+        sudo_warn_nodebug_v1(b"setrlimit(RLIMIT_CORE)\0" as *const u8 as *const libc::c_char);
+        //end of define
+    }
+    dumpflag = prctl(PR_GET_DUMPABLE, 0, 0, 0, 0);
+    if dumpflag == -1 {
+        dumpflag = 0;
+    }
+    prctl(PR_GET_DUMPABLE, 0, 0, 0, 0);
+    //c:coredump_disabled = true; 为何!=0?
+    coredump_disabled = 1 as libc::c_int != 0;
+    //coredump_disabled = true;
+    //define debug_return;
+    debug_return!();
+    //end of define;
+}
