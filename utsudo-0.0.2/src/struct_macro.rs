@@ -568,3 +568,225 @@ pub struct timespec {
     pub tv_sec: __time_t,
     pub tv_nsec: __syscall_slong_t,
 }
+
+
+
+// #define	_PATH_TTY	"/dev/tty"
+#[macro_export]
+macro_rules! _PATH_TTY {
+    () => {
+        b"/dev/tty\0" as *const u8 as *const libc::c_char
+    };
+}
+
+#[macro_export]
+macro_rules! SET {
+    ($t:expr,$f:expr) => {
+        $t |= $f
+    };
+}
+
+#[macro_export]
+macro_rules! ISSET {
+    ($t:expr,$f:expr) => {
+        $t & $f
+    };
+}
+
+// #define	_PATH_BSHELL	"/bin/sh"
+// #  define _PATH_SUDO_BSHELL _PATH_BSHELL
+#[macro_export]
+macro_rules! _PATH_SUDO_BSHELL {
+    () => {
+        b"/bin/sh\0" as *const u8 as *const libc::c_char
+    };
+}
+
+#[macro_export]
+macro_rules! USER_SIGNALED {
+    ($_info:expr) => {
+        (!($_info).is_null() && (*($_info)).si_code == crate::struct_macro::SI_USER)
+    };
+}
+
+#[macro_export]
+macro_rules! WIFSTOPPED {
+    ($status:expr) => {
+        ($status & 0xff == 0x7f)
+    };
+}
+#[macro_export]
+macro_rules! WIFSIGNALED {
+    ($status:expr) => {
+        (((($status & 0x7f) + 1) >> 1) > 0)
+    };
+}
+
+#[macro_export]
+macro_rules! WEXITSTATUS {
+    ($status:expr) => {
+        ((($status) & 0xff00) >> 8)
+    };
+}
+
+#[macro_export]
+macro_rules! S_IRUSR {
+    () => {
+        0o400
+    };
+}
+
+// #define  __S_IWRITE  0200    /* Write by owner.  */
+// #define  S_IWUSR __S_IWRITE  /* Write by owner.  */
+#[macro_export]
+macro_rules! S_IWUSR {
+    () => {
+        0o200
+    };
+}
+
+// # define S_IRGRP    (S_IRUSR >> 3)  /* Read by group.  */
+#[macro_export]
+macro_rules! S_IRGRP {
+    () => {
+        (S_IRUSR!() >> 3)
+    };
+}
+
+// # define S_IROTH    (S_IRGRP >> 3)  /* Read by others.  */
+#[macro_export]
+macro_rules! S_IROTH {
+    () => {
+        (S_IRGRP!() >> 3)
+    };
+}
+
+// # define W_EXITCODE(ret, sig)	__W_EXITCODE (ret, sig)
+/* Macros for constructing status values.  */
+// #define	__W_EXITCODE(ret, sig)	((ret) << 8 | (sig))
+#[macro_export]
+macro_rules! W_EXITCODE {
+    ($ret:expr, $sig:expr) => {{
+        (($ret) << 8 | ($sig))
+    }};
+}
+
+// #define S_IFMT  00170000
+#[macro_export]
+macro_rules! S_IFMT {
+    () => {
+        0o0170000
+    };
+}
+
+// #define S_IFDIR  0040000
+#[macro_export]
+macro_rules! S_IFDIR {
+    () => {
+        0o040000
+    };
+}
+
+// #define __S_ISTYPE(mode, mask)  (((mode) & __S_IFMT) == (mask))
+#[macro_export]
+macro_rules! __S_ISTYPE {
+    ($mode:expr, $mask:expr) => {
+        ((($mode) & crate::S_IFMT!()) == ($mask))
+    };
+}
+
+// #define S_ISDIR(mode)    __S_ISTYPE((mode), __S_IFDIR)
+//# define S_ISDIR(m)		(((m) & _S_IFMT) == _S_IFDIR)
+#[macro_export]
+macro_rules! S_ISDIR {
+    ($m:expr) => {
+        ((($m) & crate::__S_IFMT!()) == crate::S_IFDIR!())
+    };
+}
+
+#[macro_export]
+macro_rules! INT_MAX {
+    () => {
+        2147483647
+    };
+}
+
+#[macro_export]
+macro_rules! INT_MIN {
+    () => {
+        (-(INT_MAX!()) - 1)
+    };
+}
+
+#[macro_export]
+macro_rules! WSTOPSIG {
+    ($status:expr) => {
+        ((($status) & 0xff00) >> 8)
+    };
+}
+
+#[macro_export]
+macro_rules! WTERMSIG {
+    ($status:expr) => {
+        ($status & 0x7f)
+    };
+}
+#[macro_export]
+macro_rules! WIFEXITED {
+    ($status: expr) => {
+        (WTERMSIG!($status) == 0)
+    };
+}
+
+// #define	__S_IFMT	0170000	/* These bits determine file type.  */
+#[macro_export]
+macro_rules! __S_IFMT {
+    () => {{
+        0o170000
+    }};
+}
+
+// #define	__S_IFREG	0100000	/* Regular file.  */
+#[macro_export]
+macro_rules! __S_IFREG {
+    () => {{
+        0o100000
+    }};
+}
+
+// #define	S_ISREG(mode)	 __S_ISTYPE((mode), __S_IFREG)
+// #define	__S_ISTYPE(mode, mask)	(((mode) & __S_IFMT) == (mask))
+#[macro_export]
+macro_rules! S_ISREG {
+    ($mode:expr) => {{
+        ((($mode) & crate::__S_IFMT!()) == (crate::__S_IFREG!()))
+    }};
+}
+
+#[macro_export]
+macro_rules! errno {
+    () => {
+        (*__errno_location())
+    };
+}
+
+#[macro_export]
+macro_rules! SIG_IGN {
+    () => {
+        std::mem::transmute::<libc::intptr_t, __sighandler_t>(1 as libc::intptr_t)
+    };
+}
+
+#[macro_export]
+macro_rules! CLR {
+    ($t: expr, $f: expr) => {
+        (($t) &= !($f))
+    };
+}
+
+#[macro_export]
+macro_rules! SUDO_API_MKVERSION {
+    ($x: expr, $y: expr) => {
+        ((($x) << 16) | ($y))
+    };
+}
