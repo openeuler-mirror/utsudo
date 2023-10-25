@@ -931,3 +931,135 @@ static mut got_sigttou: sig_atomic_t = 0;
 unsafe extern "C" fn sigttou(mut signo: libc::c_int) {
     std::ptr::write_volatile(&mut got_sigttou as *mut sig_atomic_t, 1);
 }
+
+/*
+ * Write an iobuf that is ready.
+ */
+unsafe extern "C" fn write_callback(
+    mut fd: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut iob: *mut io_buffer = v as *mut io_buffer;
+    let mut evbase: *mut sudo_event_base = sudo_ev_get_base!((*iob).wevent);
+    let mut sa: sigaction = sigaction {
+        __sigaction_handler: Signal_handler { sa_handler: None },
+        sa_mask: sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
+    };
+    let mut osa: sigaction = sigaction {
+        __sigaction_handler: Signal_handler { sa_handler: None },
+        sa_mask: sigset_t { __val: [0; 16] },
+        sa_flags: 0,
+        sa_restorer: None,
+    };
+    let mut saved_errno: libc::c_int = 0;
+    let mut n: ssize_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    /*
+     * We ignore SIGTTOU by default but we need to handle it when writing
+     * to the terminal.  A signal event won't work here because the
+     * write() would be restarted, preventing the callback from running.
+     */
+    memset(
+        &mut sa as *mut sigaction as *mut libc::c_void,
+        0,
+        std::mem::size_of::<sigaction>() as libc::c_ulong,
+    );
+    sigemptyset(&mut sa.sa_mask);
+    sa.__sigaction_handler.sa_handler = Some(sigttou as unsafe extern "C" fn(libc::c_int) -> ());
+    std::ptr::write_volatile(&mut got_sigttou as *mut sig_atomic_t, 0);
+    sigaction(SIGTTOU, &mut sa, &mut osa);
+    n = write(
+        fd,
+        ((*iob).buf).as_mut_ptr().offset((*iob).off as isize) as *const libc::c_void,
+        ((*iob).len - (*iob).off) as size_t,
+    );
+    saved_errno = errno!();
+    sigaction(SIGTTOU, &mut osa, 0 as *mut sigaction);
+    errno!() = saved_errno;
+
+    if n == -(1 as libc::c_int) as libc::c_long {
+        match errno!() {
+            EPIPE | ENXIO | EIO | EBADF => {
+                /* other end of pipe closed or pty revoked */
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"unable to write %d bytes to fd %d\0" as *const u8 as *const libc::c_char,
+                    (*iob).len - (*iob).off,
+                    fd
+                );
+                /* Close reader if there is one. */
+                if !((*iob).revent).is_null() {
+                    safe_close(sudo_ev_get_fd!((*iob).revent));
+                    ev_free_by_fd(evbase, sudo_ev_get_fd!((*iob).revent));
+                }
+                safe_close(fd);
+                ev_free_by_fd(evbase, fd);
+            }
+            EINTR => {
+                if got_sigttou != 0 {
+                    /* Schedule SIGTTOU to be forwared to the command. */
+                    schedule_signal((*iob).ec, SIGTTOU);
+                }
+            }
+            EAGAIN => { /* not an error */ }
+            _ => {
+                /* XXX - need a way to distinguish non-exec error. */
+                (*(*(*iob).ec).cstat).type_0 = CMD_ERRNO;
+                (*(*(*iob).ec).cstat).val = errno!();
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR,
+                    b"error writing fd %d: %s\0" as *const u8 as *const libc::c_char,
+                    fd,
+                    strerror(errno!())
+                );
+                sudo_ev_loopbreak_v1(evbase);
+            }
+        }
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR,
+            b"SUDO_DEBUG_INFO\0" as *const u8 as *const libc::c_char,
+            n,
+            fd
+        );
+        let ref mut n0 = (*iob).off;
+        *n0 = (*n0 as libc::c_long + n) as libc::c_int;
+        /* Reset buffer if fully consumed. */
+        if (*iob).off == (*iob).len {
+            let ref mut len0 = (*iob).len;
+            *len0 = 0;
+            (*iob).off = *len0;
+            /* Forward the EOF from reader to writer. */
+            if ((*iob).revent).is_null() {
+                safe_close(fd);
+                ev_free_by_fd(evbase, fd);
+            }
+        }
+        /* Re-enable writer if buffer is not empty. */
+        if (*iob).len > (*iob).off {
+            if sudo_ev_add_v2(evbase, (*iob).wevent, 0 as *mut timespec, false)
+                == -(1 as libc::c_int)
+            {
+                sudo_fatal!(b"unable to add event to queue\0" as *const u8 as *const libc::c_char,);
+            }
+        }
+        /* Enable reader if buffer is not full.*/
+        if !((*iob).revent).is_null() && (ttymode == TERM_RAW || !(USERTTY_EVENT!((*iob).revent))) {
+            if (*iob).len as libc::c_ulong
+                != ::std::mem::size_of::<[libc::c_char; 65536]>() as libc::c_ulong
+            {
+                if sudo_ev_add_v2(evbase, (*iob).revent, 0 as *mut timespec, false)
+                    == -(1 as libc::c_int)
+                {
+                    sudo_fatal!(
+                        b"unable to add event to queue\0" as *const u8 as *const libc::c_char,
+                    );
+                }
+            }
+        }
+    }
+}
