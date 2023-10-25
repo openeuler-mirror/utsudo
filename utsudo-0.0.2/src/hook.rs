@@ -56,10 +56,59 @@ pub type sudo_hook_fn_getenv_t = Option<
         *mut libc::c_void,
     ) -> libc::c_int,
 >;
-pub type sudo_hook_fn_unsetenv_t =
-    Option<unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> libc::c_int>;
+pub type sudo_hook_fn_unsetenv_t = Option<unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> libc::c_int>;
 
-    
+#[no_mangle]
+pub unsafe extern "C" fn register_hook(mut hook: *mut sudo_hook) -> libc::c_int {
+    let mut ret: libc::c_int = 0 as libc::c_int;
+    //define debug_decl(register_hook,SUDO_DEBUG_HOOKS);
+    debug_decl!(register_hook, SUDO_DEBUG_HOOKS);
+    //end of define;
+
+    if (*hook).hook_version >> 16 != 1 {
+        *__errno_location() = 22;
+        ret = -1;
+    } else {
+        match (*hook).hook_type {
+            4 => {
+                ret = register_hook_internal(
+                    &mut sudo_hook_getenv_list,
+                    (*hook).hook_fn,
+                    (*hook).closure,
+                );
+            }
+            3 => {
+                ret = register_hook_internal(
+                    &mut sudo_hook_putenv_list,
+                    (*hook).hook_fn,
+                    (*hook).closure,
+                );
+            }
+            1 => {
+                ret = register_hook_internal(
+                    &mut sudo_hook_setenv_list,
+                    (*hook).hook_fn,
+                    (*hook).closure,
+                );
+            }
+            2 => {
+                ret = register_hook_internal(
+                    &mut sudo_hook_unsetenv_list,
+                    (*hook).hook_fn,
+                    (*hook).closure,
+                );
+            }
+            _ => {
+                *__errno_location() = 95;
+                ret = 1;
+            }
+        }
+    }
+    //define debug_return_int(ret);
+    debug_return_int!(ret);
+    //end of define;
+}
+   
 unsafe extern "C" fn deregister_hook_internal(
     mut head: *mut sudo_hook_list,
     mut hook_fn: Option<unsafe extern "C" fn() -> libc::c_int>,
