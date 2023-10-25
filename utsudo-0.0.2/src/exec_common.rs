@@ -5,10 +5,10 @@
  */
 #![allow(unused_imports, clashing_extern_declarations)]
 use crate::struct_macro::*;
+use crate::_PATH_SUDO_BSHELL;
 use utsudo_util::sudo_debug::*;
 use utsudo_util::sudo_debug_macro::*;
 use utsudo_util::*;
-use crate::_PATH_SUDO_BSHELL;
 extern "C" {
     fn sudo_debug_printf2_v1(
         func: *const libc::c_char,
@@ -61,7 +61,6 @@ extern "C" {
 pub const RTLD_PRELOAD_VAR: &str = "LD_PRELOAD";
 pub const RTLD_PRELOAD_DELIM: &str = ":";
 pub const ENOEXEC: libc::c_int = 8;
-
 
 #[inline]
 unsafe extern "C" fn preload_dso(
@@ -117,9 +116,7 @@ unsafe extern "C" fn preload_dso(
         }
         env_len += 1;
     }
-    
-    
-    
+
     if preload_idx == -1 || !enabled {
         let env_size: libc::c_int = env_len
             + 1

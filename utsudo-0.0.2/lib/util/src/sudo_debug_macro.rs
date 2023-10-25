@@ -22,7 +22,6 @@ use crate::sudo_debug::*;
 
 pub static mut sudo_debug_subsys: libc::c_int = 0 as libc::c_int;
 
-
 // extern "C" {
 //     fn sudo_debug_printf2_v1(
 //         func: *const libc::c_char,
@@ -134,7 +133,6 @@ macro_rules! debug_decl {
     };
 }
 
-
 macro_rules! debug_return_int {
     ($ret:expr) => {{
         sudo_debug_exit_int_v1(
@@ -235,7 +233,6 @@ macro_rules! debug_return_bool {
     }};
 }
 
-
 macro_rules! debug_return_str {
     ($ret:expr) => {{
         sudo_debug_exit_str_v1(
@@ -248,7 +245,6 @@ macro_rules! debug_return_str {
         return $ret;
     }};
 }
-
 
 macro_rules! debug_return_const_str {
     ($ret:expr) => {
