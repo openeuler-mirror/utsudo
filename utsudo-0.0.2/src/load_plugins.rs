@@ -311,6 +311,393 @@ unsafe extern "C" fn free_plugin_info(mut info: *mut plugin_info) {
     free(info as *mut libc::c_void);
 } //end of func
 
-
-
+unsafe extern "C" fn sudo_load_plugin(
+    mut policy_plugin: *mut plugin_container,
+    mut io_plugins: *mut plugin_container_list,
+    mut info: *mut plugin_info,
+) -> bool {
+    let mut current_block: u64;
+    let mut container: *mut plugin_container = 0 as *mut plugin_container;
+    let mut plugin: *mut generic_plugin = 0 as *mut generic_plugin;
+    let mut path: [libc::c_char; 4096] = [0; 4096];
+    let mut handle: *mut libc::c_void = 0 as *mut libc::c_void;
+    debug_decl!(sudo_load_plugin, SUDO_DEBUG_PLUGIN);
+    'bad: loop {
+        if !sudo_check_plugin(
+            info,
+            path.as_mut_ptr(),
+            ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+        ) {
+            break 'bad;
+        }
+        handle = sudo_dso_load_v1(path.as_mut_ptr(), 0x1 as libc::c_int | 0x4 as libc::c_int);
+        if handle.is_null() {
+            let mut errstr: *const libc::c_char = sudo_dso_strerror_v1();
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"error in %s, line %d while loading plugin \"%s\"\0" as *const u8
+                        as *const libc::c_char
+                ),
+                b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                (*info).lineno,
+                (*info).symbol_name
+            );
+            sudo_warnx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"error in %s, line %d while loading plugin \"%s\"\0" as *const u8
+                        as *const libc::c_char,
+                ),
+                b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                (*info).lineno,
+                (*info).symbol_name,
+            );
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to load %s: %s\0" as *const u8 as *const libc::c_char
+                ),
+                path,
+                if !errstr.is_null() {
+                    errstr
+                } else {
+                    b"unknown error\0" as *const u8 as *const libc::c_char
+                }
+            );
+            sudo_warnx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to load %s: %s\0" as *const u8 as *const libc::c_char,
+                ),
+                path,
+                if !errstr.is_null() {
+                    errstr
+                } else {
+                    b"unknown error\0" as *const u8 as *const libc::c_char
+                },
+            );
+            break 'bad;
+        }
+        plugin = sudo_dso_findsym_v1(handle, (*info).symbol_name) as *mut generic_plugin;
+        if plugin.is_null() {
+            //sudo_warnx(U_("error in %s, line %d while loading plugin \"%s\""),_PATH_SUDO_CONF, info->lineno, info->symbol_name);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"error in %s,line %d while loading plugin \"%s\"\0" as *const u8
+                        as *const libc::c_char
+                ),
+                b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                (*info).lineno,
+                (*info).symbol_name
+            );
+            sudo_warnx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"error in %s,line %d while loading plugin \"%s\"\0" as *const u8
+                        as *const libc::c_char,
+                ),
+                b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                (*info).lineno,
+                (*info).symbol_name,
+            );
+            //sudo_warnx(U_("unable to find symbol \"%s\" in %s"), info->symbol_name, path);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to find symbol \"%s\" in %s\0" as *const u8 as *const libc::c_char
+                ),
+                (*info).symbol_name,
+                path
+            );
+            sudo_warnx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to find symbol \"%s\" in %s\0" as *const u8 as *const libc::c_char,
+                ),
+                (*info).symbol_name,
+                path,
+            );
+            break 'bad;
+        }
+        if (*plugin).type_0 != 1 as libc::c_int as libc::c_uint
+            && (*plugin).type_0 != 2 as libc::c_int as libc::c_uint
+        {
+            //sudo_warnx(U_("error in %s, line %d while loading plugin \"%s\""),_PATH_SUDO_CONF, info->lineno, info->symbol_name);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"error in %s,line %d while loading plugin \"%s\"\0" as *const u8
+                        as *const libc::c_char
+                ),
+                b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                (*info).lineno,
+                (*info).symbol_name
+            );
+            sudo_warnx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"error in %s,line %d while loading plugin \"%s\"\0" as *const u8
+                        as *const libc::c_char,
+                ),
+                b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                (*info).lineno,
+                (*info).symbol_name,
+            );
+            //sudo_warnx(U_("unknown policy type %d found in %s"), plugin->type, path);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unknown policy type %d found in %s\0" as *const u8 as *const libc::c_char
+                ),
+                (*plugin).type_0,
+                path
+            );
+            sudo_warnx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to find symbol \"%s\" in %s\0" as *const u8 as *const libc::c_char,
+                ),
+                (*plugin).type_0,
+                path,
+            );
+            break 'bad;
+        }
+        if (*plugin).version >> 16 as libc::c_int != 1 as libc::c_int as libc::c_uint {
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"error in %s,line %d while loading plugin \"%s\"\0" as *const u8
+                        as *const libc::c_char
+                ),
+                b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                (*info).lineno,
+                (*info).symbol_name
+            );
+            sudo_warnx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"error in %s,line %d while loading plugin \"%s\"\0" as *const u8
+                        as *const libc::c_char,
+                ),
+                b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                (*info).lineno,
+                (*info).symbol_name,
+            );
+            //sudo_warnx(U_("incompatible plugin major version %d (expected %d) found in %s"),SUDO_API_VERSION_GET_MAJOR(plugin->version),SUDO_API_VERSION_MAJOR, path);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"incompatible plugin major version %d (expected %d) found in %s\0" as *const u8
+                        as *const libc::c_char
+                ),
+                (*plugin).version >> 16 as libc::c_int,
+                1,
+                path
+            );
+            sudo_warnx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"incompatible plugin major version %d (expected %d) found in %s\0" as *const u8
+                        as *const libc::c_char,
+                ),
+                (*plugin).version >> 16 as libc::c_int,
+                1,
+                path,
+            );
+            break 'bad;
+        }
+        if (*plugin).type_0 == 1 as libc::c_int as libc::c_uint {
+            if !((*policy_plugin).handle).is_null() {
+                if strcmp((*policy_plugin).name, (*info).symbol_name) != 0 as libc::c_int {
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"ignoring policy plugin \"%d\0" as *const u8 as *const libc::c_char
+                        ),
+                        (*info).symbol_name,
+                        b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                        (*info).lineno
+                    );
+                    sudo_warnx_nodebug_v1(
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"error in %s,line %d while loading plugin \"%s\"\0" as *const u8
+                                as *const libc::c_char,
+                        ),
+                        (*info).symbol_name,
+                        b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                        (*info).lineno,
+                    );
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"only a single policy plugin may be specified\0" as *const u8
+                                as *const libc::c_char
+                        )
+                    );
+                    sudo_warnx_nodebug_v1(sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"only a single policy plugin may be specified\0" as *const u8
+                            as *const libc::c_char,
+                    ));
+                    break 'bad;
+                }
+                //sudo_warnx(U_("ignoring duplicate policy plugin \"%s\" in %s, line %d"),info->symbol_name, _PATH_SUDO_CONF, info->lineno);
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"ignoring duplicate policy plugin \"%s\" in %s, line %d\0" as *const u8
+                            as *const libc::c_char
+                    ),
+                    (*info).symbol_name,
+                    b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                    (*info).lineno
+                );
+                sudo_warnx_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"ignoring duplicate policy plugin \"%s\" in %s, line %d\0" as *const u8
+                            as *const libc::c_char,
+                    ),
+                    (*info).symbol_name,
+                    b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                    (*info).lineno,
+                );
+                break 'bad;
+            }
+            (*policy_plugin).handle = handle;
+            (*policy_plugin).path = strdup(path.as_mut_ptr());
+            if ((*policy_plugin).path).is_null() {
+                //define sudo_warnx(U_("%s:%s"),__func__,U_("unable to allocate memory"));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s : %s\0" as *const u8 as *const libc::c_char
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                    )
+                );
+                sudo_warnx_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s :%s\0" as *const u8 as *const libc::c_char,
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                    ),
+                );
+                //end of define
+                break 'bad;
+            }
+            (*policy_plugin).name = (*info).symbol_name;
+            (*policy_plugin).options = (*info).options;
+            (*policy_plugin).debug_instance = -(1 as libc::c_int);
+            (*policy_plugin).u.generic = plugin;
+            (*policy_plugin).debug_files = sudo_conf_debug_files_v1(path.as_mut_ptr());
+        } else if (*plugin).type_0 == 2 as libc::c_int as libc::c_uint {
+            container = (*io_plugins).tqh_first;
+            while !container.is_null() {
+                if strcmp((*container).name, (*info).symbol_name) == 0 as libc::c_int {
+                    //sudo_warnx(U_("ignoring duplicate I/O plugin \"%s\" in %s, line %d"),info->symbol_name, _PATH_SUDO_CONF, info->lineno);
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"ignoring duplicate policy plugin \"%s\" in %s, line %d\0" as *const u8
+                                as *const libc::c_char
+                        ),
+                        (*info).symbol_name,
+                        b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                        (*info).lineno
+                    );
+                    sudo_warnx_nodebug_v1(
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"ignoring duplicate I/O plugin \"%s\" in %s, line %d\0" as *const u8
+                                as *const libc::c_char,
+                        ),
+                        (*info).symbol_name,
+                        b"/etc/utsudo.conf\0" as *const u8 as *const libc::c_char,
+                        (*info).lineno,
+                    );
+                    sudo_dso_unload_v1(handle);
+                    handle = 0 as *mut libc::c_void;
+                    break;
+                } else {
+                    container = (*container).entries.tqe_next;
+                }
+            }
+            container = calloc(
+                1 as libc::c_int as libc::c_ulong,
+                ::std::mem::size_of::<plugin_container>() as libc::c_ulong,
+            ) as *mut plugin_container;
+            (*container).path = strdup(path.as_mut_ptr());
+            if container.is_null() || ((*container).path).is_null() {
+                //define sudo_warnx(U_("%s: %s"),__func__,U_("unable to allocate memory"));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s: %s\0" as *const u8 as *const libc::c_char
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                    )
+                );
+                sudo_warnx_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                    ),
+                );
+                break 'bad;
+            }
+            (*container).handle = handle;
+            (*container).name = (*info).symbol_name;
+            (*container).options = (*info).options;
+            (*container).debug_instance = -(1 as libc::c_int);
+            (*container).u.generic = plugin;
+            (*container).debug_files = sudo_conf_debug_files_v1(path.as_mut_ptr());
+            (*container).entries.tqe_next = 0 as *mut plugin_container;
+            (*container).entries.tqe_prev = (*io_plugins).tqh_last;
+            *(*io_plugins).tqh_last = container;
+            (*io_plugins).tqh_last = &mut (*container).entries.tqe_next;
+        } //end of else if
+        (*info).symbol_name = 0 as *mut libc::c_char;
+        (*info).options = 0 as *mut *mut libc::c_char;
+        debug_return_bool!(true);
+        break 'bad;
+    } //end of goto bad
+    free(container as *mut libc::c_void);
+    if !handle.is_null() {
+        sudo_dso_unload_v1(handle);
+    }
+    debug_return_bool!(false)
+} //end of func
 
