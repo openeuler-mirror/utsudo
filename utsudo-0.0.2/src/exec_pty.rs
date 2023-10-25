@@ -1063,3 +1063,73 @@ unsafe extern "C" fn write_callback(
         }
     }
 }
+
+unsafe extern "C" fn io_buf_new(
+    mut rfd: libc::c_int,
+    mut wfd: libc::c_int,
+    mut action: Option<
+        unsafe extern "C" fn(*const libc::c_char, libc::c_uint, *mut io_buffer) -> bool,
+    >,
+    mut ec: *mut exec_closure_pty,
+    mut head: *mut io_buffer_list,
+) {
+    let mut n: libc::c_int = 0;
+    let mut iob: *mut io_buffer = 0 as *mut io_buffer;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    /* Set non-blocking mode. */
+    n = fcntl(rfd, F_GETFL, 0);
+    if n != -1 && ISSET!(n, O_NONBLOCK) == 0 {
+        fcntl(rfd, F_SETFL, n | O_NONBLOCK);
+    }
+    n = fcntl(wfd, F_GETFL, 0);
+    if n != -1 && ISSET!(n, O_NONBLOCK) == 0 {
+        fcntl(wfd, F_SETFL, n | O_NONBLOCK);
+    }
+
+    /* Allocate and add to head of list. */
+    iob = malloc(std::mem::size_of::<io_buffer>() as libc::c_ulong) as *mut io_buffer;
+    if iob.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    (*iob).ec = ec;
+    let ref mut revent0 = (*iob).revent;
+    *revent0 = sudo_ev_alloc_v1(
+        rfd,
+        SUDO_EV_READ as libc::c_short,
+        Some(
+            read_callback
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        iob as *mut libc::c_void,
+    );
+    let ref mut wevent0 = (*iob).wevent;
+    *wevent0 = sudo_ev_alloc_v1(
+        wfd,
+        SUDO_EV_WRITE as libc::c_short,
+        Some(
+            write_callback
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        iob as *mut libc::c_void,
+    );
+    (*iob).len = 0;
+    (*iob).off = 0;
+    (*iob).action = action;
+    (*iob).buf[0 as usize] = '\u{0}' as i32 as libc::c_char;
+    if ((*iob).revent).is_null() || ((*iob).wevent).is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    (*iob).entries.sle_next = (*head).slh_first;
+    (*head).slh_first = iob;
+
+    debug_return!();
+}
