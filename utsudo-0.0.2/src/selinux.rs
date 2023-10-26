@@ -92,6 +92,108 @@ extern "C" {
     fn sudo_warn_nodebug_v1(fmt: *const libc::c_char, _: ...);
 }
 
+//#define	EPROTONOSUPPORT	93	/* Protocol not supported */
+//#define	EAFNOSUPPORT	97	/* Address family not supported by protocol */
+pub const EPROTONOSUPPORT: libc::c_int = 93;
+pub const EAFNOSUPPORT: libc::c_int = 97;
+
+pub type security_class_t = libc::c_ushort;
+pub type context_t = *mut context_s_t;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct context_s_t {
+    pub ptr: *mut libc::c_void,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct selinux_state {
+    pub old_context: security_context_t,
+    pub new_context: security_context_t,
+    pub tty_context: security_context_t,
+    pub new_tty_context: security_context_t,
+    pub ttyn: *const libc::c_char,
+    pub ttyfd: libc::c_int,
+    pub enforcing: libc::c_int,
+}
+
+pub type security_context_t = *mut libc::c_char;
+
+static mut se_state: selinux_state = selinux_state {
+    old_context: 0 as security_context_t,
+    new_context: 0 as security_context_t,
+    tty_context: 0 as security_context_t,
+    new_tty_context: 0 as security_context_t,
+    ttyn: 0 as *const libc::c_char,
+    ttyfd: 0 as libc::c_int,
+    enforcing: 0 as libc::c_int,
+};
+
+use crate::sudo_debug_printf2_v1;
+use stdext::function_name;
+
+
+#[no_mangle]
+pub unsafe extern "C" fn selinux_setcon() -> libc::c_int {
+    //define debug_decl(selinux_setcon,SUDO_DEBUG_SELINUX);
+    debug_decl!(selinux_setcon, SUDO_DEBUG_SELINUX);
+    //end of define
+
+    if setexeccon(se_state.new_context) != 0 {
+        //define sudo_warn(U_("unable to set exec context to %s"),se_state.new_context,);
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to set exec context to %s\0" as *const u8 as *const libc::c_char
+            ),
+            se_state.new_context
+        );
+        sudo_warn_nodebug_v1(
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to set exec context to %s\0" as *const u8 as *const libc::c_char,
+            ),
+            se_state.new_context,
+        );
+        //end of define
+        if se_state.enforcing != 0 {
+            //define  debug_return_int(-1);
+            debug_return_int!(-1);
+            //end of define;
+        }
+    }
+
+    if setkeycreatecon(se_state.new_context) != 0 {
+        //sudo_warn(U_("unable to set key creation context to %s"),se_state.new_context);
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to set key creation context to %s\0" as *const u8 as *const libc::c_char
+            ),
+            se_state.new_context
+        );
+        sudo_warn_nodebug_v1(
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to set key creation context to %s\0" as *const u8 as *const libc::c_char,
+            ),
+            se_state.new_context,
+        );
+        //end of define
+        if se_state.enforcing != 0 {
+            //define debug_return_int(-1);
+            debug_return_int!(-1);
+            //end of define
+        }
+    }
+
+    //define debug_return_int(0);
+    debug_return_int!(0);
+    //end of define
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn selinux_execve(

@@ -568,7 +568,29 @@ pub struct timespec {
     pub tv_sec: __time_t,
     pub tv_nsec: __syscall_slong_t,
 }
-
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sigaction {
+    pub __sigaction_handler: Signal_handler,
+    pub sa_mask: __sigset_t,
+    pub sa_flags: libc::c_int,
+    pub sa_restorer: Option<unsafe extern "C" fn() -> ()>,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union Signal_handler {
+    pub sa_handler: __sighandler_t,
+    pub sa_sigaction:
+        Option<unsafe extern "C" fn(libc::c_int, *mut siginfo_t, *mut libc::c_void) -> ()>,
+}
+pub type __sighandler_t = Option<unsafe extern "C" fn(libc::c_int) -> ()>;
+pub type sudo_fatal_callback_t = Option<unsafe extern "C" fn() -> ()>;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct __sigset_t {
+    pub __val: [libc::c_ulong; 16],
+}
+pub type sigset_t = __sigset_t;
 
 
 // #define	_PATH_TTY	"/dev/tty"
