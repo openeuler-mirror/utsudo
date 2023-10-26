@@ -733,6 +733,137 @@ pub unsafe extern "C" fn run_command(mut details: *mut command_details) -> libc:
     debug_return_int!(status);
 }
 
+/*
+ * Format struct sudo_settings as name=value pairs for the plugin
+ * to consume.  Returns a NULL-terminated plugin-style array of pairs.
+ */
+unsafe extern "C" fn format_plugin_settings(
+    mut plugin: *mut plugin_container,
+    mut sudo_settings: *mut sudo_settings,
+) -> *mut *mut libc::c_char {
+    // let mut current_block: u64;
+    let mut plugin_settings_size: size_t = 0;
+    let mut debug_file: *mut sudo_debug_file = 0 as *mut sudo_debug_file;
+    let mut setting: *mut sudo_settings = 0 as *mut sudo_settings;
+    let mut plugin_settings: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut i: libc::c_uint = 0 as libc::c_int as libc::c_uint;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    /* Determine sudo_settings array size (including plugin_path and NULL) */
+    plugin_settings_size = 2 as libc::c_int as size_t;
+    setting = sudo_settings;
+    while !((*setting).name).is_null() {
+        plugin_settings_size = plugin_settings_size.wrapping_add(1);
+        setting = setting.offset(1);
+    }
+
+    if !((*plugin).debug_files).is_null() {
+        debug_file = (*(*plugin).debug_files).tqh_first;
+        while !debug_file.is_null() {
+            plugin_settings_size = plugin_settings_size.wrapping_add(1);
+            debug_file = (*debug_file).entries.tqe_next;
+        }
+    }
+
+    'bad: loop {
+        /* Allocate and fill in. */
+        plugin_settings = reallocarray(
+            0 as *mut libc::c_void,
+            plugin_settings_size,
+            ::std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+        ) as *mut *mut libc::c_char;
+
+        if plugin_settings.is_null() {
+            break 'bad;
+        }
+
+        let ref mut fresh7 = *plugin_settings.offset(i as isize);
+        *fresh7 = sudo_new_key_val_v1(
+            b"plugin_path\0" as *const u8 as *const libc::c_char,
+            (*plugin).path,
+        );
+
+        if (*plugin_settings.offset(i as isize)).is_null() {
+            break 'bad;
+        }
+        setting = sudo_settings;
+
+        loop {
+            if ((*setting).name).is_null() {
+                break;
+            }
+
+            if !((*setting).value).is_null() {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"settings: %s=%s\0" as *const u8 as *const libc::c_char,
+                    (*setting).name,
+                    (*setting).value
+                );
+
+                i = i.wrapping_add(1);
+                let ref mut fresh8 = *plugin_settings.offset(i as isize);
+                *fresh8 = sudo_new_key_val_v1((*setting).name, (*setting).value);
+
+                if (*plugin_settings.offset(i as isize)).is_null() {
+                    break 'bad;
+                }
+            }
+            setting = setting.offset(1);
+        } // ! loop
+
+        if !((*plugin).debug_files).is_null() {
+            debug_file = (*(*plugin).debug_files).tqh_first;
+            loop {
+                if debug_file.is_null() {
+                    break;
+                }
+                i = i.wrapping_add(1);
+                /* XXX - quote filename? */
+                if asprintf(
+                    &mut *plugin_settings.offset(i as isize) as *mut *mut libc::c_char,
+                    b"debug_flags=%s %s\0" as *const u8 as *const libc::c_char,
+                    (*debug_file).debug_file,
+                    (*debug_file).debug_flags,
+                ) == -(1 as libc::c_int)
+                {
+                    break 'bad;
+                }
+                debug_file = (*debug_file).entries.tqe_next;
+            } // ! loop
+        }
+
+        i = i.wrapping_add(1);
+        let ref mut fresh9 = *plugin_settings.offset(i as isize);
+        *fresh9 = 0 as *mut libc::c_char;
+
+        /* Add to list of vectors to be garbage collected at exit. */
+        if !gc_add(GC_VECTOR, plugin_settings as *mut libc::c_void) {
+            sudo_fatalx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+        }
+
+        debug_return_ptr!(plugin_settings);
+
+        break 'bad;
+    } // ’bad loop
+
+    // bad:
+    loop {
+        let fresh10 = i;
+        i = i.wrapping_sub(1);
+        if !(fresh10 != 0) {
+            break;
+        }
+        free(*plugin_settings.offset(i as isize) as *mut libc::c_void);
+    }
+    free(plugin_settings as *mut libc::c_void);
+    debug_return_ptr!(0 as *mut *mut libc::c_char);
+}
+
 unsafe extern "C" fn policy_open(
     mut plugin: *mut plugin_container,
     mut settings: *mut sudo_settings,
