@@ -468,6 +468,25 @@ static mut long_opts: [option; 29] = [
     },
 ];
 
+use crate::sudo_debug_printf2_v1;
+pub const SUDO_DEBUG_ARGS: libc::c_int = 1 << 6;
+use stdext::function_name;
+use utsudo_util::debug_decl;
+use utsudo_util::debug_decl_vars;
+use utsudo_util::debug_return;
+use utsudo_util::debug_return_int;
+use utsudo_util::sudo_debug_macro::sudo_debug_subsys;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_ERRNO;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_ERROR;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_INFO;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_LINENO;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_WARN;
+use utsudo_util::sudo_debug_printf;
+//use utsudo_util::debug_return_str;
+use utsudo_util::sudo_debug::sudo_debug_enter_v1;
+use utsudo_util::sudo_debug::sudo_debug_exit_int_v1;
+use utsudo_util::sudo_debug::sudo_debug_exit_str_v1;
+use utsudo_util::sudo_debug::sudo_debug_exit_v1;
 
 //externc
 extern "C" {
@@ -545,3 +564,11 @@ extern "C" {
     ) -> libc::c_longlong;
     static mut optarg: *mut libc::c_char;
 }
+
+pub type sudo_lbuf_output_t = Option<unsafe extern "C" fn(*const libc::c_char) -> libc::c_int>;
+
+static mut short_opts: [libc::c_char; 43] = unsafe {
+    *::std::mem::transmute::<&[u8; 43], &[libc::c_char; 43]>(
+        b"+Aa:BbC:c:D:Eeg:Hh::iKklnPp:r:SsT:t:U:u:Vv\0",
+    )
+};
