@@ -133,6 +133,68 @@ static mut se_state: selinux_state = selinux_state {
 use crate::sudo_debug_printf2_v1;
 use stdext::function_name;
 
+
+#[no_mangle]
+pub unsafe extern "C" fn selinux_setcon() -> libc::c_int {
+    //define debug_decl(selinux_setcon,SUDO_DEBUG_SELINUX);
+    debug_decl!(selinux_setcon, SUDO_DEBUG_SELINUX);
+    //end of define
+
+    if setexeccon(se_state.new_context) != 0 {
+        //define sudo_warn(U_("unable to set exec context to %s"),se_state.new_context,);
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to set exec context to %s\0" as *const u8 as *const libc::c_char
+            ),
+            se_state.new_context
+        );
+        sudo_warn_nodebug_v1(
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to set exec context to %s\0" as *const u8 as *const libc::c_char,
+            ),
+            se_state.new_context,
+        );
+        //end of define
+        if se_state.enforcing != 0 {
+            //define  debug_return_int(-1);
+            debug_return_int!(-1);
+            //end of define;
+        }
+    }
+
+    if setkeycreatecon(se_state.new_context) != 0 {
+        //sudo_warn(U_("unable to set key creation context to %s"),se_state.new_context);
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to set key creation context to %s\0" as *const u8 as *const libc::c_char
+            ),
+            se_state.new_context
+        );
+        sudo_warn_nodebug_v1(
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to set key creation context to %s\0" as *const u8 as *const libc::c_char,
+            ),
+            se_state.new_context,
+        );
+        //end of define
+        if se_state.enforcing != 0 {
+            //define debug_return_int(-1);
+            debug_return_int!(-1);
+            //end of define
+        }
+    }
+
+    //define debug_return_int(0);
+    debug_return_int!(0);
+    //end of define
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn selinux_execve(
     mut fd: libc::c_int,
