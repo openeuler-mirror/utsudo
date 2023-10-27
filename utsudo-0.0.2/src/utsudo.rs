@@ -666,6 +666,350 @@ unsafe extern "C" fn stat(
         return __xstat(0 as libc::c_int, __path, __statbuf); 
 }
 
+/*
+ * Return user information as an array of name=value pairs.
+ * and fill in struct user_details (which shares the same strings).
+ */
+unsafe extern "C" fn get_user_info(mut ud: *mut user_details) -> *mut *mut libc::c_char {
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut user_info: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut path: [libc::c_char; 4096] = [0; 4096];
+    let mut i: libc::c_uint = 0 as libc::c_int as libc::c_uint;
+    let mut mask: mode_t = 0;
+    let mut pw: *mut passwd = 0 as *mut passwd;
+    let mut fd: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    /*
+     * On BSD systems you can set a hint to keep the password and
+     * group databases open instead of having to open and close
+     * them all the time.  Since sudo does a lot of password and
+     * group lookups, keeping the file open can speed things up.
+     */
+    memset(
+        ud as *mut libc::c_void,
+        0 as libc::c_int,
+        ::std::mem::size_of::<user_details>() as libc::c_ulong,
+    );
+
+    'oom: loop {
+        /* XXX - bound check number of entries */
+        user_info = reallocarray(
+            0 as *mut libc::c_void,
+            32 as libc::c_int as size_t,
+            ::std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+        ) as *mut *mut libc::c_char;
+
+        if user_info.is_null() {
+            break 'oom;
+        }
+
+        (*ud).pid = getpid();
+        (*ud).ppid = getppid();
+        (*ud).pgid = getpgid(0 as libc::c_int);
+        (*ud).tcpgid = -(1 as libc::c_int);
+        fd = open(_PATH_TTY!(), O_RDWR);
+        if fd != -(1 as libc::c_int) {
+            (*ud).tcpgid = tcgetpgrp(fd);
+            close(fd);
+        }
+
+        (*ud).sid = getsid(0 as libc::c_int);
+        (*ud).uid = getuid();
+        (*ud).euid = geteuid();
+        (*ud).gid = getgid();
+        (*ud).egid = getegid();
+
+        pw = getpwuid((*ud).uid);
+
+        if pw.is_null() {
+            sudo_fatalx!(
+                b"you do not exist in the %s database\0" as *const u8 as *const libc::c_char,
+                b"passwd\0" as *const u8 as *const libc::c_char
+            );
+        }
+
+        let ref mut fresh0 = *user_info.offset(i as isize);
+        *fresh0 = sudo_new_key_val_v1(b"user\0" as *const u8 as *const libc::c_char, (*pw).pw_name);
+
+        if (*user_info.offset(i as isize)).is_null() {
+            break 'oom;
+        }
+
+        (*ud).username = (*user_info.offset(i as isize))
+            .offset(::std::mem::size_of::<[libc::c_char; 6]>() as libc::c_ulong as isize)
+            .offset(-(1 as libc::c_int as isize));
+
+        /* Stash user's shell for use with the -s flag; don't pass to plugin. */
+        (*ud).shell = getenv(b"SHELL\0" as *const u8 as *const libc::c_char);
+        if ((*ud).shell).is_null()
+            || *((*ud).shell).offset(0 as libc::c_int as isize) as libc::c_int == '\0' as i32
+        {
+            (*ud).shell = if *((*pw).pw_shell).offset(0 as libc::c_int as isize) as libc::c_int != 0
+            {
+                (*pw).pw_shell
+            } else {
+                _PATH_SUDO_BSHELL!()
+            };
+        }
+        (*ud).shell = strdup((*ud).shell);
+        if ((*ud).shell).is_null() {
+            break 'oom;
+        }
+
+        i = i.wrapping_add(1);
+        if asprintf(
+            &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+            b"pid=%d\0" as *const u8 as *const libc::c_char,
+            (*ud).pid,
+        ) == -(1 as libc::c_int)
+        {
+            break 'oom;
+        }
+
+        i = i.wrapping_add(1);
+        if asprintf(
+            &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+            b"ppid=%d\0" as *const u8 as *const libc::c_char,
+            (*ud).ppid,
+        ) == -(1 as libc::c_int)
+        {
+            break 'oom;
+        }
+
+        if (*ud).pgid != -(1 as libc::c_int) {
+            if asprintf(
+                &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+                b"pgid=%d\0" as *const u8 as *const libc::c_char,
+                (*ud).pgid,
+            ) == -(1 as libc::c_int)
+            {
+                break 'oom;
+            }
+        }
+
+        if (*ud).tcpgid != -(1 as libc::c_int) {
+            i = i.wrapping_add(1);
+            if asprintf(
+                &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+                b" =%d\0" as *const u8 as *const libc::c_char,
+                (*ud).tcpgid,
+            ) == -(1 as libc::c_int)
+            {
+                break 'oom;
+            }
+        }
+
+        if (*ud).sid != -(1 as libc::c_int) {
+            i = i.wrapping_add(1);
+            if asprintf(
+                &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+                b"sid=%d\0" as *const u8 as *const libc::c_char,
+                (*ud).sid,
+            ) == -(1 as libc::c_int)
+            {
+                break 'oom;
+            }
+        }
+
+        i = i.wrapping_add(1);
+        if asprintf(
+            &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+            b"uid=%u\0" as *const u8 as *const libc::c_char,
+            (*ud).uid,
+        ) == -(1 as libc::c_int)
+        {
+            break 'oom;
+        }
+
+        i = i.wrapping_add(1);
+        if asprintf(
+            &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+            b"euid=%u\0" as *const u8 as *const libc::c_char,
+            (*ud).euid,
+        ) == -(1 as libc::c_int)
+        {
+            break 'oom;
+        }
+
+        i = i.wrapping_add(1);
+        if asprintf(
+            &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+            b"gid=%u\0" as *const u8 as *const libc::c_char,
+            (*ud).gid,
+        ) == -(1 as libc::c_int)
+        {
+            break 'oom;
+        }
+
+        i = i.wrapping_add(1);
+        if asprintf(
+            &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+            b"egid=%u\0" as *const u8 as *const libc::c_char,
+            (*ud).egid,
+        ) == -(1 as libc::c_int)
+        {
+            break 'oom;
+        }
+        cp = get_user_groups(ud);
+        if cp.is_null() {
+            break 'oom;
+        }
+
+        i = i.wrapping_add(1);
+        let ref mut fresh1 = *user_info.offset(i as isize);
+        *fresh1 = cp;
+
+        mask = umask(0 as libc::c_int as __mode_t);
+        umask(mask);
+
+        i = i.wrapping_add(1);
+        if asprintf(
+            &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+            b"umask=0%o\0" as *const u8 as *const libc::c_char,
+            mask,
+        ) == -(1 as libc::c_int)
+        {
+            break 'oom;
+        }
+
+        if !(getcwd(
+            path.as_mut_ptr(),
+            ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+        ))
+        .is_null()
+        {
+            i = i.wrapping_add(1);
+            let ref mut fresh2 = *user_info.offset(i as isize);
+            *fresh2 = sudo_new_key_val_v1(
+                b"cwd\0" as *const u8 as *const libc::c_char,
+                path.as_mut_ptr(),
+            );
+            if (*user_info.offset(i as isize)).is_null() {
+                break 'oom;
+            }
+
+            (*ud).cwd = (*user_info.offset(i as isize))
+                .offset(::std::mem::size_of::<[libc::c_char; 5]>() as libc::c_ulong as isize)
+                .offset(-(1 as libc::c_int as isize));
+        }
+
+        if !(get_process_ttyname(
+            path.as_mut_ptr(),
+            ::core::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+        ))
+        .is_null()
+        {
+            i = i.wrapping_add(1);
+            let ref mut fresh3 = *user_info.offset(i as isize);
+            *fresh3 = sudo_new_key_val_v1(
+                b"tty\0" as *const u8 as *const libc::c_char,
+                path.as_mut_ptr(),
+            );
+
+            if (*user_info.offset(i as isize)).is_null() {
+                break 'oom;
+            }
+            (*ud).tty = (*user_info.offset(i as isize))
+                .offset(::core::mem::size_of::<[libc::c_char; 5]>() as libc::c_ulong as isize)
+                .offset(-(1 as libc::c_int as isize));
+        } else {
+            /* tty may not always be present */
+            if *__errno_location() != ENOENT {
+                sudo_warn!(b"unable to determine tty\0" as *const u8 as *const libc::c_char,);
+            }
+        }
+
+        cp = sudo_gethostname_v1();
+        i = i.wrapping_add(1);
+        let ref mut fresh4 = *user_info.offset(i as isize);
+        *fresh4 = sudo_new_key_val_v1(
+            b"host\0" as *const u8 as *const libc::c_char,
+            if !cp.is_null() {
+                cp
+            } else {
+                b"localhost\0" as *const u8 as *const libc::c_char
+            },
+        );
+        free(cp as *mut libc::c_void);
+
+        if (*user_info.offset(i as isize)).is_null() {
+            break 'oom;
+        }
+
+        // ud->host = user_info[i] + sizeof("host=") - 1;
+
+        (*ud).host = (*user_info.offset(i as isize))
+            .offset(::core::mem::size_of::<[libc::c_char; 6]>() as libc::c_ulong as isize)
+            .offset(-(1 as libc::c_int as isize));
+
+        sudo_get_ttysize_v1(&mut (*ud).ts_rows, &mut (*ud).ts_cols);
+
+        i = i.wrapping_add(1);
+        if asprintf(
+            &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+            b"lines=%d\0" as *const u8 as *const libc::c_char,
+            (*ud).ts_rows,
+        ) == -(1 as libc::c_int)
+        {
+            break 'oom;
+        }
+
+        i = i.wrapping_add(1);
+        if asprintf(
+            &mut *user_info.offset(i as isize) as *mut *mut libc::c_char,
+            b"cols=%d\0" as *const u8 as *const libc::c_char,
+            (*ud).ts_cols,
+        ) == -(1 as libc::c_int)
+        {
+            break 'oom;
+        }
+
+        // user_info[++i] = NULL;
+        i = i.wrapping_add(1);
+        let ref mut fresh5 = *user_info.offset(i as isize);
+        *fresh5 = 0 as *mut libc::c_char;
+
+        /* Add to list of vectors to be garbage collected at exit. */
+        if !gc_add(GC_VECTOR, user_info as *mut libc::c_void) {
+            // bad:
+            loop {
+                let fresh6 = i;
+                i = i.wrapping_sub(1);
+                if !(fresh6 != 0) {
+                    break;
+                }
+                free(*user_info.offset(i as isize) as *mut libc::c_void);
+            }
+            free(user_info as *mut libc::c_void);
+            debug_return_ptr!(0 as *mut *mut libc::c_char);
+        }
+
+        debug_return_ptr!(user_info as *mut *mut libc::c_char);
+
+        break 'oom;
+    } // ! 'oom loop
+
+    // oom:
+    sudo_warnx!(
+        b"%s: %s\0" as *const u8 as *const libc::c_char,
+        stdext::function_name!().as_ptr(),
+        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+    );
+
+    // bad:
+    loop {
+        let fresh6 = i;
+        i = i.wrapping_sub(1);
+        if !(fresh6 != 0) {
+            break;
+        }
+        free(*user_info.offset(i as isize) as *mut libc::c_void);
+    }
+    free(user_info as *mut libc::c_void);
+    debug_return_ptr!(0 as *mut *mut libc::c_char)
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn set_user_groups(mut details: *mut command_details) -> bool {
     let mut ret: bool = false;
