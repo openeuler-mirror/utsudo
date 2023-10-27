@@ -719,8 +719,20 @@ pub unsafe extern "C" fn sudo_load_plugins(
     'bad: loop {
         info = (*plugins).tqh_first;
 
-
-
+        loop {
+            if !(!info.is_null() && {
+                next = (*info).entries.tqe_next;
+                1 as libc::c_int != 0
+            }) {
+                break;
+            }
+            ret = sudo_load_plugin(policy_plugin, io_plugins, info);
+            if !ret {
+                break 'bad;
+            }
+            free_plugin_info(info);
+            info = next;
+        } //end of loop
 
 
 
