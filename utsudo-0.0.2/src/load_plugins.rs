@@ -896,9 +896,17 @@ pub unsafe extern "C" fn sudo_load_plugins(
             break 'bad;
         }
 
-
-
-
+        sudo_debug_set_active_instance_v1(-(1 as libc::c_int));
+        if (*(*policy_plugin).u.policy).version
+            >= ((1 as libc::c_int) << 16 as libc::c_int | 2 as libc::c_int) as libc::c_uint
+        {
+            if ((*(*policy_plugin).u.policy).register_hooks).is_some() {
+                ((*(*policy_plugin).u.policy).register_hooks).expect("non-null function pointer")(
+                    (1 as libc::c_int) << 16 as libc::c_int | 0 as libc::c_int,
+                    Some(register_hook as unsafe extern "C" fn(*mut sudo_hook) -> libc::c_int),
+                );
+            }
+        }
 
 
 
