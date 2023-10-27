@@ -184,8 +184,13 @@ unsafe extern "C" fn stat(
         return __xstat(0 as libc::c_int, __path, __statbuf);
 }
 
-
-
+#[inline]
+unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
+        #[cfg(target_arch = "x86_64")]
+        return __fxstat(1 as libc::c_int, __fd, __statbuf);
+        #[cfg(not(target_arch = "x86_64"))]
+        return __fxstat(0 as libc::c_int, __fd, __statbuf);
+}
 
 
 
