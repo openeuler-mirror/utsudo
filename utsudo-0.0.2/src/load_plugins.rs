@@ -908,20 +908,23 @@ pub unsafe extern "C" fn sudo_load_plugins(
             }
         }
 
-
-
-
-
-
-
-
-
-
-
+        container = (*io_plugins).tqh_first;
+        while !container.is_null() {
+            if (*(*container).u.io).version
+                >= ((1 as libc::c_int) << 16 as libc::c_int | 2 as libc::c_int) as libc::c_uint
+            {
+                if ((*(*container).u.io).register_hooks).is_some() {
+                    ((*(*container).u.io).register_hooks).expect("non-null function pointer")(
+                        (1 as libc::c_int) << 16 as libc::c_int | 0 as libc::c_int,
+                        Some(register_hook as unsafe extern "C" fn(*mut sudo_hook) -> libc::c_int),
+                    );
+                }
+            }
+            container = (*container).entries.tqe_next;
+        }
+        sudo_debug_set_active_instance_v1(sudo_debug_instance); //before done line;
 
         break 'bad;
     } //end of goto bad;
     debug_return_bool!(ret)
 } //end of func
-
-
