@@ -701,3 +701,33 @@ unsafe extern "C" fn sudo_load_plugin(
     debug_return_bool!(false)
 } //end of func
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_load_plugins(
+    mut policy_plugin: *mut plugin_container,
+    mut io_plugins: *mut plugin_container_list,
+) -> bool {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+} //end of func
+
+
