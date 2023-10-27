@@ -235,3 +235,49 @@ unsafe extern "C" fn switch_user(
     *__errno_location() = serrno;
     debug_return!();
 }
+
+/*
+ * Returns true if the open directory fd is writable by the user.
+ */
+unsafe extern "C" fn dir_is_writable(
+    mut dfd: libc::c_int,
+    mut ud: *mut user_details,
+    mut cd: *mut command_details,
+) -> libc::c_int {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    let mut rc: libc::c_int = 0;
+    /* Change uid/gid/groups to invoking user, usually needs root perms. */
+    if (*cd).euid != ROOT_UID as libc::c_uint {
+        if seteuid(ROOT_UID as __uid_t) != 0 {
+            sudo_fatal!(b"seteuid(ROOT_UID)\0" as *const u8 as *const libc::c_char,);
+        }
+    }
+    switch_user((*ud).uid, (*ud).gid, (*ud).ngroups, (*ud).groups);
+    /* Access checks are done using the euid/egid and group vector. */
+    rc = faccessat(
+        dfd,
+        b".\0" as *const u8 as *const libc::c_char,
+        W_OK,
+        AT_EACCESS,
+    );
+    /* Change uid/gid/groups back to target user, may need root perms. */
+    if (*ud).uid != ROOT_UID as libc::c_uint {
+        if seteuid(ROOT_UID as __uid_t) != 0 {
+            sudo_fatal!(b"seteuid(ROOT_UID)\0" as *const u8 as *const libc::c_char,);
+        }
+    }
+    switch_user((*cd).euid, (*cd).egid, (*cd).ngroups, (*cd).groups);
+    if rc == 0 {
+        debug_return_int!(true as libc::c_int);
+    }
+    if *__errno_location() == EACCES {
+        debug_return_int!(0 as libc::c_int);
+    }
+    debug_return_int!(-1);
+}
+
+
+
+
+
+
