@@ -320,3 +320,48 @@ unsafe extern "C" fn restore_nproc() {
     //end of define;
 }
 
+#[no_mangle]
+unsafe extern "C" fn unlimit_sudo() {
+    let mut inf: rlimit = {
+        let mut init = rlimit {
+            rlim_cur: RLIM_INFINITY as libc::c_ulong,
+            rlim_max: RLIM_INFINITY as libc::c_ulong,
+        };
+        init
+    };
+    let mut idx: libc::c_uint = 0;
+    //define debug_decl(unlimit_sudo,SUDO_DEBUG_UTIL)
+    debug_decl!(unlimit_sudo, SUDO_DEBUG_UTIL);
+    //end of define
+    //div,(*lim),continue反着来的代码流程，sizeof函数。
+    while (idx as libc::c_ulong)
+        < (::std::mem::size_of::<[saved_limit; 8]>() as libc::c_ulong)
+            .wrapping_div(::std::mem::size_of::<saved_limit>() as libc::c_ulong)
+    {
+        let mut lim: *mut saved_limit = &mut *saved_limits.as_mut_ptr().offset(idx as isize);
+        if !getrlimit((*lim).resource, &mut (*lim).limit) == -1 {
+            (*lim).saved = true;
+            if setrlimit((*lim).resource, &mut inf) == -1 {
+                let mut rl: rlimit = (*lim).limit;
+                rl.rlim_cur = rl.rlim_max;
+                if setrlimit((*lim).resource, &mut rl) == -1 {
+                    //define sudo_warn("setrlimit(%d)",lim->resource);
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                        b"setrlimit(%d)\0" as *const u8 as *const libc::c_char,
+                        (*lim).resource
+                    );
+                    sudo_warn_nodebug_v1(
+                        b"setrlimit(%d)\0" as *const u8 as *const libc::c_char,
+                        (*lim).resource,
+                    );
+                    //end of define
+                }
+            }
+        }
+        idx += 1;
+    }
+    //debug_return;
+    debug_return!();
+    //end of define;
+}
