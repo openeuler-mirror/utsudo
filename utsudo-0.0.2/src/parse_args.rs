@@ -572,3 +572,55 @@ static mut short_opts: [libc::c_char; 43] = unsafe {
         b"+Aa:BbC:c:D:Eeg:Hh::iKklnPp:r:SsT:t:U:u:Vv\0",
     )
 };
+
+unsafe extern "C" fn help() {
+    let mut lbuf: sudo_lbuf = sudo_lbuf {
+        output: None,
+        buf: 0 as *mut libc::c_char,
+        continuation: 0 as *const libc::c_char,
+        indent: 0,
+        len: 0,
+        size: 0,
+        cols: 0,
+        error: 0,
+    };
+    let mut indent: libc::c_int = 32;
+    let mut pname: *const libc::c_char = sudo_getprogname();
+    //define debug_decl(help,SUDO_DEBUG_ARGS) 1<<6
+    debug_decl!(help, SUDO_DEBUG_ARGS);
+    //end of define
+
+    sudo_lbuf_init_v1(
+        &mut lbuf,
+        Some(usage_out as unsafe extern "C" fn(*const libc::c_char) -> libc::c_int),
+        indent,
+        0 as *const libc::c_char,
+        user_details.ts_cols,
+    );
+    if strcmp(pname, b"sudoedit\0" as *const u8 as *const libc::c_char) == 0 as libc::c_int {
+        sudo_lbuf_append_v1(
+            &mut lbuf as *mut sudo_lbuf,
+            dcgettext(
+                0 as *const libc::c_char,
+                b"%s - edit files as another user\n\n\0" as *const u8 as *const libc::c_char,
+                5 as libc::c_int,
+            ),
+            pname,
+        );
+    } else {
+        sudo_lbuf_append_v1(
+            &mut lbuf as *mut sudo_lbuf,
+            dcgettext(
+                0 as *const libc::c_char,
+                b"%s - execute a command as another user\n\n\0" as *const u8 as *const libc::c_char,
+                5 as libc::c_int,
+            ),
+            pname,
+        );
+    }
+    sudo_lbuf_print_v1(&mut lbuf);
+    usage(0 as libc::c_int);
+     /* ??????????? */
+
+}
+
