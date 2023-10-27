@@ -135,6 +135,118 @@ use stdext::function_name;
 
 
 #[no_mangle]
+pub unsafe extern "C" fn selinux_setup(
+    mut role: *const libc::c_char,
+    mut types: *const libc::c_char,
+    mut ttyn: *const libc::c_char,
+    mut ptyfd: libc::c_int,
+    mut label_tty: bool,
+) -> libc::c_int {
+    let mut ret: libc::c_int = -1 as libc::c_int;
+    //define debug_decl(selinux_setup,SUDO_DEBUG_SELINUX)
+    debug_decl!(selinux_setup, SUDO_DEBUG_SELINUX);
+    //end of define
+
+    'done: loop {
+        if getprevcon(&mut se_state.old_context) != 0 {
+            //define sudo_warn(U_("failed to get old context"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"failed to get old context\0" as *const u8 as *const libc::c_char
+                )
+            );
+            sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"failed to get old context\0" as *const u8 as *const libc::c_char,
+            ));
+            //end of define
+            break 'done;
+        }
+
+        se_state.enforcing = security_getenforce();
+        if se_state.enforcing == -1 {
+            //define  sudo_warn(U_("unable to determine enforcing mode."));
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to determine enforcing mode.\0" as *const u8 as *const libc::c_char
+                )
+            );
+            sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to determine enforcing mode.\0" as *const u8 as *const libc::c_char,
+            ));
+            //end of define;
+            break 'done;
+        }
+
+        //define sudo_debug_printf(SUDO_DEBUG_INFO,%s: old context %s,__func__,se_state.old_context);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: old context %s\0" as *const u8 as *const libc::c_char,
+            function_name!(),
+            se_state.old_context
+        );
+        //end of define
+        se_state.new_context = get_exec_context(se_state.old_context, role, types);
+        if se_state.new_context.is_null() {
+            //why translate 3 times
+            audit_role_change(
+                se_state.old_context,
+                b"?\0" as *const u8 as *const libc::c_char as security_context_t,
+                se_state.ttyn,
+                0,
+            );
+            break 'done;
+        }
+
+        //define sudo_debug_printf(SUDO_DEBUG_INFO,%s: new context %s,__func__,se_state.new_context);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: new context %s\0" as *const u8 as *const libc::c_char,
+            function_name!(),
+            se_state.new_context
+        );
+        //end of define
+
+        if label_tty == true && relabel_tty(ttyn, ptyfd) == -1 {
+            //dedine sudo_warn(U_("unable to set tty context to %s"),se_state.new_context);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to set tty context to %s\0" as *const u8 as *const libc::c_char
+                ),
+                se_state.new_context
+            );
+            sudo_warn_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to set tty context to %s\0" as *const u8 as *const libc::c_char,
+                ),
+                se_state.new_context,
+            );
+            //end of define
+
+            break 'done;
+        }
+
+        audit_role_change(se_state.old_context, se_state.new_context, se_state.ttyn, 1);
+
+        ret = 0;
+
+        break 'done;
+    } //loop done
+
+    //define: debug_return_int(ret);
+    debug_return_int!(ret);
+    //end of define
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn selinux_setcon() -> libc::c_int {
     //define debug_decl(selinux_setcon,SUDO_DEBUG_SELINUX);
     debug_decl!(selinux_setcon, SUDO_DEBUG_SELINUX);
