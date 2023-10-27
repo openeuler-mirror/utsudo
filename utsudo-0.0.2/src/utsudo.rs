@@ -665,6 +665,50 @@ unsafe extern "C" fn stat(
         #[cfg(not(target_arch = "x86_64"))]
         return __xstat(0 as libc::c_int, __path, __statbuf); 
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn set_user_groups(mut details: *mut command_details) -> bool {
+    let mut ret: bool = false;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    'done: loop {
+        if ISSET!((*details).flags, CD_PRESERVE_GROUPS) == 0 {
+            if (*details).ngroups >= 0 {
+                if sudo_setgroups_v1((*details).ngroups, (*details).groups) < 0 {
+                    sudo_warn!(
+                        b"unable to set supplementary group IDs\0" as *const u8
+                            as *const libc::c_char,
+                    );
+                    break 'done;
+                }
+            }
+        }
+
+        if ISSET!((*details).flags, CD_SET_EGID) != 0 && setegid((*details).egid) != 0 {
+            sudo_warn!(
+                b"unable to set effective gid to runas gid %u\0" as *const u8
+                    as *const libc::c_char,
+                (*details).egid
+            );
+            break 'done;
+        }
+        if ISSET!((*details).flags, CD_SET_GID) != 0 && setgid((*details).gid) != 0 {
+            sudo_warn!(
+                b"unable to set gid to runas gid %u\0" as *const u8 as *const libc::c_char,
+                (*details).gid
+            );
+            break 'done;
+        }
+        ret = true;
+
+        break 'done;
+    } // ! 'done loop
+
+    // done:
+    CLR!((*details).flags, CD_SET_GROUPS);
+    debug_return_bool!(ret)
+}
+
 /*
  * Run the command and wait for it to complete.
  * Returns wait status suitable for use with the wait(2) macros.
