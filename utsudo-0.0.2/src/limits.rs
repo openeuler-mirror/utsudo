@@ -301,4 +301,22 @@ unsafe extern "C" fn unlimit_nproc() {
     //end of define;
 }
 
+#[no_mangle]
+unsafe extern "C" fn restore_nproc() {
+    //define debug_decl(restore_nproc,SUDO_DEBUG_UTIL)
+    debug_decl!(restore_nproc, SUDO_DEBUG_UTIL);
+    //end of define
+    if setrlimit(RLIMIT_NPROC, &mut nproclimit) != 0 {
+        //define sudo_warn("setrlimit(RLIMIT_NPROC)");
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+            b"setrlimit(RLIMIT_NPROC)\0" as *const u8 as *const libc::c_char
+        );
+        sudo_warn_nodebug_v1(b"setrlimit(RLIMIT_NPROC)\0" as *const u8 as *const libc::c_char);
+        //end of define
+    }
+    //define debug_return;
+    debug_return!();
+    //end of define;
+}
 
