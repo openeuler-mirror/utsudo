@@ -164,3 +164,25 @@ extern "C" {
     ) -> bool;
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct tempfile {
+    pub tfile: *mut libc::c_char,
+    pub ofile: *mut libc::c_char,
+    pub osize: off_t,
+    pub omtim: timespec,
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
