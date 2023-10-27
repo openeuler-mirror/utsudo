@@ -706,11 +706,15 @@ pub unsafe extern "C" fn sudo_load_plugins(
     mut policy_plugin: *mut plugin_container,
     mut io_plugins: *mut plugin_container_list,
 ) -> bool {
-
-
-
-
-
+    let mut container: *mut plugin_container = 0 as *mut plugin_container;
+    let mut plugins: *mut plugin_info_list = 0 as *mut plugin_info_list;
+    let mut info: *mut plugin_info = 0 as *mut plugin_info;
+    let mut next: *mut plugin_info = 0 as *mut plugin_info;
+    let mut ret: bool = 0 as libc::c_int != 0;
+    //define debug_decl(function_name,SUDO_DEBUG_PLUGIN);
+    debug_decl!(sudo_load_plugins, SUDO_DEBUG_PLUGIN);
+    //end of define
+    plugins = sudo_conf_plugins_v1();
 
 
 
