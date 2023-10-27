@@ -873,8 +873,28 @@ pub unsafe extern "C" fn sudo_load_plugins(
             }
         } //end of (*policy_plugin).handle
 
-
-
+        if ((*(*policy_plugin).u.policy).check_policy).is_none() {
+            //sudo_warnx(U_("policy plugin %s does not include a check_policy method"),policy_plugin->name);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"policy plugin %s does not include a check_policy method\0" as *const u8
+                        as *const libc::c_char
+                ),
+                (*policy_plugin).name
+            );
+            sudo_warnx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"policy plugin %s does not include a check_policy method\0" as *const u8
+                        as *const libc::c_char,
+                ),
+                (*policy_plugin).name,
+            );
+            ret = 0 as libc::c_int != 0;
+            break 'bad;
+        }
 
 
 
