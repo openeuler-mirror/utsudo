@@ -592,6 +592,71 @@ pub struct __sigset_t {
 }
 pub type sigset_t = __sigset_t;
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct winsize {
+    pub ws_row: libc::c_ushort,
+    pub ws_col: libc::c_ushort,
+    pub ws_xpixel: libc::c_ushort,
+    pub ws_ypixel: libc::c_ushort,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_ev_siginfo_container {
+    pub closure: *mut libc::c_void,
+    pub siginfo: *mut siginfo_t,
+    pub si_buf: [libc::c_char; 1],
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct command_details {
+    pub uid: uid_t,
+    pub euid: uid_t,
+    pub gid: gid_t,
+    pub egid: gid_t,
+    pub umask: mode_t,
+    pub priority: libc::c_int,
+    pub timeout: libc::c_int,
+    pub ngroups: libc::c_int,
+    pub closefrom: libc::c_int,
+    pub flags: libc::c_int,
+    pub execfd: libc::c_int,
+    pub preserved_fds: preserved_fd_list,
+    pub pw: *mut passwd,
+    pub groups: *mut gid_t,
+    pub command: *const libc::c_char,
+    pub cwd: *const libc::c_char,
+    pub login_class: *const libc::c_char,
+    pub chroot: *const libc::c_char,
+    pub selinux_role: *const libc::c_char,
+    pub selinux_type: *const libc::c_char,
+    pub utmp_user: *const libc::c_char,
+    pub tty: *const libc::c_char,
+    pub argv: *mut *mut libc::c_char,
+    pub envp: *mut *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct preserved_fd_list {
+    pub tqh_first: *mut preserved_fd,
+    pub tqh_last: *mut *mut preserved_fd,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct preserved_fd {
+    pub entries: TAILQ_ENTRY_preserved_fd,
+    pub lowfd: libc::c_int,
+    pub highfd: libc::c_int,
+    pub flags: libc::c_int,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct TAILQ_ENTRY_preserved_fd {
+    pub tqe_next: *mut preserved_fd,
+    pub tqe_prev: *mut *mut preserved_fd,
+}
 
 // #define	_PATH_TTY	"/dev/tty"
 #[macro_export]
