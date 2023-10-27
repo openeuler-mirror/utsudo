@@ -192,8 +192,7 @@ unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> l
         return __fxstat(0 as libc::c_int, __fd, __statbuf);
 }
 
-
-
+static mut edit_tmpdir: [libc::c_char; 10] = [0; 10];
 
 
 
