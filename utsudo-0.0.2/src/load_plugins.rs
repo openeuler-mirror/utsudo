@@ -716,6 +716,8 @@ pub unsafe extern "C" fn sudo_load_plugins(
     //end of define
     plugins = sudo_conf_plugins_v1();
 
+    'bad: loop {
+        info = (*plugins).tqh_first;
 
 
 
@@ -727,11 +729,9 @@ pub unsafe extern "C" fn sudo_load_plugins(
 
 
 
-
-
-
-
-
+        break 'bad;
+    } //end of goto bad;
+    debug_return_bool!(ret)
 } //end of func
 
 
