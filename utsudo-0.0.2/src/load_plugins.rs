@@ -734,6 +734,156 @@ pub unsafe extern "C" fn sudo_load_plugins(
             info = next;
         } //end of loop
 
+        (*plugins).tqh_first = 0 as *mut plugin_info;
+        (*plugins).tqh_last = &mut (*plugins).tqh_first;
+        if ((*policy_plugin).handle).is_null() {
+            info = calloc(
+                1 as libc::c_int as libc::c_ulong,
+                ::std::mem::size_of::<plugin_info>() as libc::c_ulong,
+            ) as *mut plugin_info;
+            if info.is_null() {
+                //define sudo_warnx(U_("%s: %s"),__func__,U_("unable to allocate memory"));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s: %s\0" as *const u8 as *const libc::c_char
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                    )
+                );
+                sudo_warnx_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                    ),
+                );
+                break 'bad;
+            }
+            (*info).symbol_name = strdup(b"sudoers_policy\0" as *const u8 as *const libc::c_char);
+            (*info).path = strdup(b"sudoers.so\0" as *const u8 as *const libc::c_char);
+            if ((*info).symbol_name).is_null() || ((*info).path).is_null() {
+                //define sudo_warnx(U_("%s: %s"),__func__,U_("unable to allocate memory"));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s: %s\0" as *const u8 as *const libc::c_char
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                    )
+                );
+                sudo_warnx_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                    ),
+                );
+                free_plugin_info(info);
+                break 'bad;
+            }
+            ret = sudo_load_plugin(policy_plugin, io_plugins, info);
+            free_plugin_info(info);
+            if !ret {
+                break 'bad;
+            }
+            if ((*io_plugins).tqh_first).is_null() {
+                info = calloc(
+                    1 as libc::c_int as libc::c_ulong,
+                    ::std::mem::size_of::<plugin_info>() as libc::c_ulong,
+                ) as *mut plugin_info;
+                if info.is_null() {
+                    //define sudo_warnx(U_("%s: %s"),__func__,U_("unable to allocate memory"));
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"%s: %s\0" as *const u8 as *const libc::c_char
+                        ),
+                        function_name!(),
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                        )
+                    );
+                    sudo_warnx_nodebug_v1(
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"%s: %s\0" as *const u8 as *const libc::c_char,
+                        ),
+                        function_name!(),
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                        ),
+                    );
+                    break 'bad;
+                }
+                (*info).symbol_name = strdup(b"sudoers_io\0" as *const u8 as *const libc::c_char);
+                (*info).path = strdup(b"sudoers.so\0" as *const u8 as *const libc::c_char);
+                if ((*info).symbol_name).is_null() || ((*info).path).is_null() {
+                    //define sudo_warnx(U_("%s: %s"),__func__,U_("unable to allocate memory"));
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"%s: %s\0" as *const u8 as *const libc::c_char
+                        ),
+                        function_name!(),
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                        )
+                    );
+                    sudo_warnx_nodebug_v1(
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"%s: %s\0" as *const u8 as *const libc::c_char,
+                        ),
+                        function_name!(),
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                        ),
+                    );
+                    free_plugin_info(info);
+                    break 'bad;
+                }
+                ret = sudo_load_plugin(policy_plugin, io_plugins, info);
+                free_plugin_info(info);
+                if !ret {
+                    break 'bad;
+                }
+            }
+        } //end of (*policy_plugin).handle
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
