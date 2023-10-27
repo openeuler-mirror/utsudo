@@ -261,5 +261,44 @@ unsafe extern "C" fn restore_coredump() {
     //end of define;
 }
 
+#[no_mangle]
+unsafe extern "C" fn unlimit_nproc() {
+    let mut rl: rlimit = {
+        let mut init = rlimit {
+            rlim_cur: RLIM_INFINITY as libc::c_ulong,
+            rlim_max: RLIM_INFINITY as libc::c_ulong,
+        };
+        init
+    };
+    //define debug_decl(unlimit_nproc,SUDO_DEBUG_UTIL)
+    debug_decl!(unlimit_nproc, SUDO_DEBUG_UTIL);
+    //end of define
+    if getrlimit(RLIMIT_NPROC, &mut nproclimit) != 0 {
+        //define sudo_warn("getrlimit(RLIMIT_NPROC)");
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+            b"getrlimit(RLIMIT_NPROC)\0" as *const u8 as *const libc::c_char
+        );
+        sudo_warn_nodebug_v1(b"getrlimit(RLIMIT_NPROC)\0" as *const u8 as *const libc::c_char);
+        //end of define;
+    }
+    if setrlimit(RLIMIT_NPROC, &mut rl) == -1 {
+        //两种方式有何区别？　rl.rlim_cur = rl.rlim_max = nproclimit.rlim_max;
+        rl.rlim_max = nproclimit.rlim_max;
+        rl.rlim_cur = rl.rlim_max;
+        if setrlimit(RLIMIT_NPROC, &mut rl) != 0 {
+            //define sudo_warn("setrlimit(RLIMIT_NPROC)");
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                b"setrlimit(RLIMIT_NPROC)\0" as *const u8 as *const libc::c_char
+            );
+            sudo_warn_nodebug_v1(b"setrlimit(RLIMIT_NPROC)\0" as *const u8 as *const libc::c_char);
+            //end of define
+        }
+    }
+    //define debug_return;
+    debug_return!();
+    //end of define;
+}
 
 
