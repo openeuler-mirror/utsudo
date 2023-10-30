@@ -330,5 +330,68 @@ unsafe extern "C" fn set_tmpdir(mut command_details: *mut command_details) -> bo
     debug_return_bool!(true)
 }
 
+/*
+ * Construct a temporary file name for file and return an
+ * open file descriptor.  The temporary file name is stored
+ * in tfile which the caller is responsible for freeing.
+ */
+unsafe extern "C" fn sudo_edit_mktemp(
+    mut ofile: *const libc::c_char,
+    mut tfile: *mut *mut libc::c_char,
+) -> libc::c_int {
+    let mut cp: *const libc::c_char = 0 as *const libc::c_char;
+    let mut suff: *const libc::c_char = 0 as *const libc::c_char;
+    let mut len: libc::c_int = 0;
+    let mut tfd: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    cp = strrchr(ofile, '/' as i32);
+    if !cp.is_null() {
+        cp = cp.offset(1);
+    } else {
+        cp = ofile;
+    }
+    suff = strrchr(cp, '.' as i32);
+    if !suff.is_null() {
+        len = asprintf(
+            tfile,
+            b"%s/%.*sXXXXXXXX%s\0" as *const u8 as *const libc::c_char,
+            edit_tmpdir.as_mut_ptr(),
+            suff.offset_from(cp) as libc::c_long as size_t as libc::c_int,
+            cp,
+            suff,
+        );
+    } else {
+        len = asprintf(
+            tfile,
+            b"%s/%s.XXXXXXXX\0" as *const u8 as *const libc::c_char,
+            edit_tmpdir.as_mut_ptr(),
+            cp,
+        );
+    }
+    if len == -(1 as libc::c_int) {
+        sudo_warnx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        debug_return_int!(-(1 as libc::c_int));
+    }
+    tfd = mkstemps(
+        *tfile,
+        (if !suff.is_null() {
+            strlen(suff)
+        } else {
+            0 as libc::c_int as libc::c_ulong
+        }) as libc::c_int,
+    );
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+        b"%s -> %s, fd %d\0" as *const u8 as *const libc::c_char,
+        ofile,
+        *tfile,
+        tfd
+    );
+    debug_return_int!(tfd);
+}
 
 
