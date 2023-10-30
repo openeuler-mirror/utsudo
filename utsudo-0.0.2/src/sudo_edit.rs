@@ -772,4 +772,192 @@ unsafe extern "C" fn sudo_edit_create_tfiles(
     debug_return_int!(j);
 }
 
+/*
+ * Copy the temporary files specified in tf to the originals.
+ * Returns the number of copy errors or 0 if completely successful.
+ */
+unsafe extern "C" fn sudo_edit_copy_tfiles(
+    mut command_details: *mut command_details,
+    mut tf: *mut tempfile,
+    mut nfiles: libc::c_int,
+    mut times: *mut timespec,
+) -> libc::c_int {
+    let mut i: libc::c_int = 0;
+    let mut tfd: libc::c_int = 0;
+    let mut ofd: libc::c_int = 0;
+    let mut errors: libc::c_int = 0 as libc::c_int;
+    let mut ts: timespec = timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        #[cfg(target_arch = "x86_64")]
+        st_nlink: 0,
+        st_mode: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        st_nlink: 0,
+        st_uid: 0,
+        st_gid: 0,
+        #[cfg(target_arch = "x86_64")]
+        __pad0: 0,
+        st_rdev: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad1: 0,
+        st_size: 0,
+        st_blksize: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad2: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        #[cfg(target_arch = "x86_64")]
+        __glibc_reserved: [0; 3],
+        #[cfg(not(target_arch = "x86_64"))]
+        __glibc_reserved: [0; 2],
+    };
+    let mut oldmask: mode_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    /* Copy contents of temp files to real ones. */
+    while i < nfiles {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+            b"seteuid(%u)\0" as *const u8 as *const libc::c_char,
+            user_details.uid
+        );
+        if seteuid(user_details.uid) != 0 as libc::c_int {
+            sudo_fatal!(
+                b"seteuid(%u)\0" as *const u8 as *const libc::c_char,
+                user_details.uid,
+            );
+        }
+        tfd = sudo_edit_open(
+            (*tf.offset(i as isize)).tfile,
+            O_RDONLY,
+            S_IRUSR!() | S_IWUSR!() | S_IRGRP!() | S_IROTH!(),
+            0 as *mut command_details,
+        );
+        if seteuid(ROOT_UID as __uid_t) != 0 as libc::c_int {
+            sudo_fatal!(b"seteuid(ROOT_UID)\0" as *const u8 as *const libc::c_char,);
+        }
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+            b"seteuid(%u)\0" as *const u8 as *const libc::c_char,
+            ROOT_UID
+        );
+        if tfd == -(1 as libc::c_int)
+            || !sudo_check_temp_file(
+                tfd,
+                (*tf.offset(i as isize)).tfile,
+                user_details.uid,
+                &mut sb,
+            )
+        {
+            sudo_warnx!(
+                b"%s left unmodified\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).ofile
+            );
+            if tfd != -(1 as libc::c_int) {
+                close(tfd);
+            }
+            errors += 1;
+            i += 1;
+            continue;
+        }
+        ts.tv_sec = sb.st_mtim.tv_sec;
+        ts.tv_nsec = sb.st_mtim.tv_nsec;
+        if (*tf.offset(i as isize)).osize == sb.st_size
+            && sudo_timespeccmp!(&((*(tf.offset(i as isize))).omtim), &ts, ==) != 0
+        {
+            /*
+             * If mtime and size match but the user spent no measurable
+             * time in the editor we can't tell if the file was changed.
+             */
+            if sudo_timespeccmp!(times.offset(0 as libc::c_int as isize), times.offset(1 as libc::c_int as isize), !=)
+                != 0
+            {
+                sudo_warnx!(
+                    b"%s unchanged\0" as *const u8 as *const libc::c_char,
+                    (*tf.offset(i as isize)).ofile
+                );
+                unlink((*tf.offset(i as isize)).tfile);
+                close(tfd);
+                i += 1;
+                continue;
+            }
+        }
+        switch_user(
+            (*command_details).euid,
+            (*command_details).egid,
+            (*command_details).ngroups,
+            (*command_details).groups,
+        );
+        oldmask = umask((*command_details).umask);
+        ofd = sudo_edit_open(
+            (*tf.offset(i as isize)).ofile,
+            O_WRONLY | O_CREAT,
+            (S_IRUSR!() | S_IWUSR!() | S_IRGRP!() | S_IROTH!()) as mode_t,
+            command_details,
+        );
+        umask(oldmask);
+        switch_user(
+            ROOT_UID as uid_t,
+            user_details.egid,
+            user_details.ngroups,
+            user_details.groups,
+        );
+        if ofd == -(1 as libc::c_int) {
+            sudo_warn!(
+                b"unable to write to %s\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).ofile
+            );
+            // goto bad;
+            sudo_warnx!(
+                b"contents of edit session left in %s\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).tfile
+            );
+            errors += 1;
+            if ofd != -(1 as libc::c_int) {
+                close(ofd);
+            }
+            close(tfd);
+            i += 1;
+            continue;
+        }
+        /* Overwrite the old file with the new contents. */
+        if sudo_copy_file(
+            (*tf.offset(i as isize)).tfile,
+            tfd,
+            sb.st_size,
+            (*tf.offset(i as isize)).ofile,
+            ofd,
+            (*tf.offset(i as isize)).osize,
+        ) == -(1 as libc::c_int)
+        {
+            sudo_warnx!(
+                b"contents of edit session left in %s\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).tfile
+            );
+            errors += 1;
+        }
+        if ofd != -(1 as libc::c_int) {
+            close(ofd);
+        }
+        close(tfd);
+        i += 1;
+    } // ! while i < nfiles
+    debug_return_int!(errors);
+}
+
 
