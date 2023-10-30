@@ -394,4 +394,14 @@ unsafe extern "C" fn sudo_edit_mktemp(
     debug_return_int!(tfd);
 }
 
+unsafe extern "C" fn sudo_edit_openat_nofollow(
+    mut dfd: libc::c_int,
+    mut path: *mut libc::c_char,
+    mut oflags: libc::c_int,
+    mut mode: mode_t,
+) -> libc::c_int {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    debug_return_int!(openat(dfd, path, oflags | O_NOFOLLOW, mode));
+}
+
 
