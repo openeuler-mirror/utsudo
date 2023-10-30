@@ -701,3 +701,230 @@ unsafe extern "C" fn sudo_load_plugin(
     debug_return_bool!(false)
 } //end of func
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_load_plugins(
+    mut policy_plugin: *mut plugin_container,
+    mut io_plugins: *mut plugin_container_list,
+) -> bool {
+    let mut container: *mut plugin_container = 0 as *mut plugin_container;
+    let mut plugins: *mut plugin_info_list = 0 as *mut plugin_info_list;
+    let mut info: *mut plugin_info = 0 as *mut plugin_info;
+    let mut next: *mut plugin_info = 0 as *mut plugin_info;
+    let mut ret: bool = 0 as libc::c_int != 0;
+    //define debug_decl(function_name,SUDO_DEBUG_PLUGIN);
+    debug_decl!(sudo_load_plugins, SUDO_DEBUG_PLUGIN);
+    //end of define
+    plugins = sudo_conf_plugins_v1();
+
+    'bad: loop {
+        info = (*plugins).tqh_first;
+
+        loop {
+            if !(!info.is_null() && {
+                next = (*info).entries.tqe_next;
+                1 as libc::c_int != 0
+            }) {
+                break;
+            }
+            ret = sudo_load_plugin(policy_plugin, io_plugins, info);
+            if !ret {
+                break 'bad;
+            }
+            free_plugin_info(info);
+            info = next;
+        } //end of loop
+
+        (*plugins).tqh_first = 0 as *mut plugin_info;
+        (*plugins).tqh_last = &mut (*plugins).tqh_first;
+        if ((*policy_plugin).handle).is_null() {
+            info = calloc(
+                1 as libc::c_int as libc::c_ulong,
+                ::std::mem::size_of::<plugin_info>() as libc::c_ulong,
+            ) as *mut plugin_info;
+            if info.is_null() {
+                //define sudo_warnx(U_("%s: %s"),__func__,U_("unable to allocate memory"));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s: %s\0" as *const u8 as *const libc::c_char
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                    )
+                );
+                sudo_warnx_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                    ),
+                );
+                break 'bad;
+            }
+            (*info).symbol_name = strdup(b"sudoers_policy\0" as *const u8 as *const libc::c_char);
+            (*info).path = strdup(b"sudoers.so\0" as *const u8 as *const libc::c_char);
+            if ((*info).symbol_name).is_null() || ((*info).path).is_null() {
+                //define sudo_warnx(U_("%s: %s"),__func__,U_("unable to allocate memory"));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s: %s\0" as *const u8 as *const libc::c_char
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                    )
+                );
+                sudo_warnx_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                    ),
+                );
+                free_plugin_info(info);
+                break 'bad;
+            }
+            ret = sudo_load_plugin(policy_plugin, io_plugins, info);
+            free_plugin_info(info);
+            if !ret {
+                break 'bad;
+            }
+            if ((*io_plugins).tqh_first).is_null() {
+                info = calloc(
+                    1 as libc::c_int as libc::c_ulong,
+                    ::std::mem::size_of::<plugin_info>() as libc::c_ulong,
+                ) as *mut plugin_info;
+                if info.is_null() {
+                    //define sudo_warnx(U_("%s: %s"),__func__,U_("unable to allocate memory"));
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"%s: %s\0" as *const u8 as *const libc::c_char
+                        ),
+                        function_name!(),
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                        )
+                    );
+                    sudo_warnx_nodebug_v1(
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"%s: %s\0" as *const u8 as *const libc::c_char,
+                        ),
+                        function_name!(),
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                        ),
+                    );
+                    break 'bad;
+                }
+                (*info).symbol_name = strdup(b"sudoers_io\0" as *const u8 as *const libc::c_char);
+                (*info).path = strdup(b"sudoers.so\0" as *const u8 as *const libc::c_char);
+                if ((*info).symbol_name).is_null() || ((*info).path).is_null() {
+                    //define sudo_warnx(U_("%s: %s"),__func__,U_("unable to allocate memory"));
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"%s: %s\0" as *const u8 as *const libc::c_char
+                        ),
+                        function_name!(),
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                        )
+                    );
+                    sudo_warnx_nodebug_v1(
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"%s: %s\0" as *const u8 as *const libc::c_char,
+                        ),
+                        function_name!(),
+                        sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                        ),
+                    );
+                    free_plugin_info(info);
+                    break 'bad;
+                }
+                ret = sudo_load_plugin(policy_plugin, io_plugins, info);
+                free_plugin_info(info);
+                if !ret {
+                    break 'bad;
+                }
+            }
+        } //end of (*policy_plugin).handle
+
+        if ((*(*policy_plugin).u.policy).check_policy).is_none() {
+            //sudo_warnx(U_("policy plugin %s does not include a check_policy method"),policy_plugin->name);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"policy plugin %s does not include a check_policy method\0" as *const u8
+                        as *const libc::c_char
+                ),
+                (*policy_plugin).name
+            );
+            sudo_warnx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"policy plugin %s does not include a check_policy method\0" as *const u8
+                        as *const libc::c_char,
+                ),
+                (*policy_plugin).name,
+            );
+            ret = 0 as libc::c_int != 0;
+            break 'bad;
+        }
+
+        sudo_debug_set_active_instance_v1(-(1 as libc::c_int));
+        if (*(*policy_plugin).u.policy).version
+            >= ((1 as libc::c_int) << 16 as libc::c_int | 2 as libc::c_int) as libc::c_uint
+        {
+            if ((*(*policy_plugin).u.policy).register_hooks).is_some() {
+                ((*(*policy_plugin).u.policy).register_hooks).expect("non-null function pointer")(
+                    (1 as libc::c_int) << 16 as libc::c_int | 0 as libc::c_int,
+                    Some(register_hook as unsafe extern "C" fn(*mut sudo_hook) -> libc::c_int),
+                );
+            }
+        }
+
+        container = (*io_plugins).tqh_first;
+        while !container.is_null() {
+            if (*(*container).u.io).version
+                >= ((1 as libc::c_int) << 16 as libc::c_int | 2 as libc::c_int) as libc::c_uint
+            {
+                if ((*(*container).u.io).register_hooks).is_some() {
+                    ((*(*container).u.io).register_hooks).expect("non-null function pointer")(
+                        (1 as libc::c_int) << 16 as libc::c_int | 0 as libc::c_int,
+                        Some(register_hook as unsafe extern "C" fn(*mut sudo_hook) -> libc::c_int),
+                    );
+                }
+            }
+            container = (*container).entries.tqe_next;
+        }
+        sudo_debug_set_active_instance_v1(sudo_debug_instance); //before done line;
+
+        break 'bad;
+    } //end of goto bad;
+    debug_return_bool!(ret)
+} //end of func
