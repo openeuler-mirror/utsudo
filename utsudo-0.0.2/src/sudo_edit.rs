@@ -404,4 +404,85 @@ unsafe extern "C" fn sudo_edit_openat_nofollow(
     debug_return_int!(openat(dfd, path, oflags | O_NOFOLLOW, mode));
 }
 
+unsafe extern "C" fn sudo_edit_open_nonwritable(
+    mut path: *mut libc::c_char,
+    mut oflags: libc::c_int,
+    mut mode: mode_t,
+    mut command_details: *mut command_details,
+) -> libc::c_int {
+    let dflags: libc::c_int = DIR_OPEN_FLAGS!() as libc::c_int;
+    let mut dfd: libc::c_int = 0;
+    let mut fd: libc::c_int = 0;
+    let mut is_writable: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    if *path.offset(0 as libc::c_int as isize) as libc::c_int == '/' as i32 {
+        dfd = open(b"/\0" as *const u8 as *const libc::c_char, dflags);
+        path = path.offset(1);
+    } else {
+        dfd = open(b".\0" as *const u8 as *const libc::c_char, dflags);
+        if *path.offset(0 as libc::c_int as isize) as libc::c_int == '.' as i32
+            && *path.offset(1 as libc::c_int as isize) as libc::c_int == '/' as i32
+        {
+            path = path.offset(2 as libc::c_int as isize);
+        }
+    }
+    if dfd == -(1 as libc::c_int) {
+        debug_return_int!(-1);
+    }
+    loop {
+        let mut slash: *mut libc::c_char = 0 as *mut libc::c_char;
+        let mut subdfd: libc::c_int = 0;
+        /*
+         * Look up one component at a time, avoiding symbolic links in
+         * writable directories.
+         */
+        is_writable = dir_is_writable(dfd, &mut user_details, command_details);
+        if is_writable == -(1 as libc::c_int) {
+            close(dfd);
+            debug_return_int!(-(1 as libc::c_int));
+        }
+        while *path.offset(0 as libc::c_int as isize) as libc::c_int == '/' as i32 {
+            path = path.offset(1);
+        }
+        slash = strchr(path, '/' as i32);
+        if slash.is_null() {
+            break;
+        }
+        *slash = '\0' as i32 as libc::c_char;
+        if is_writable != 0 {
+            subdfd = sudo_edit_openat_nofollow(dfd, path, dflags, 0 as libc::c_int as mode_t);
+        } else {
+            subdfd = openat(dfd, path, dflags, 0 as libc::c_int);
+        }
+        *slash = '/' as i32 as libc::c_char; /* restore path */
+        close(dfd);
+        if subdfd == -(1 as libc::c_int) {
+            debug_return_int!(-(1 as libc::c_int));
+        }
+        path = slash.offset(1 as libc::c_int as isize);
+        dfd = subdfd;
+    } // ! loop
+    if is_writable != 0 {
+        close(dfd);
+        *__errno_location() = EISDIR;
+        debug_return_int!(-(1 as libc::c_int));
+    }
+    /*
+     * For "sudoedit /" we will receive ENOENT from openat() and sudoedit
+     * will try to create a file with an empty name.  We treat an empty
+     * path as the cwd so sudoedit can give a sensible error message.
+     */
+    fd = openat(
+        dfd,
+        if *path as libc::c_int != 0 {
+            path
+        } else {
+            b".\0" as *const u8 as *const libc::c_char
+        },
+        oflags,
+        mode,
+    );
+    close(dfd);
+    debug_return_int!(fd);
+}
 
