@@ -486,3 +486,34 @@ unsafe extern "C" fn sudo_edit_open_nonwritable(
     debug_return_int!(fd);
 }
 
+unsafe extern "C" fn sudo_edit_open(
+    mut path: *mut libc::c_char,
+    mut oflags: libc::c_int,
+    mut mode: mode_t,
+    mut command_details: *mut command_details,
+) -> libc::c_int {
+    let sflags: libc::c_int = if !command_details.is_null() {
+        (*command_details).flags
+    } else {
+        0 as libc::c_int
+    };
+    let mut fd: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    if ISSET!(sflags, CD_SUDOEDIT_FOLLOW) == 0 {
+        oflags |= O_NOFOLLOW as libc::c_int;
+    }
+    if ISSET!(sflags, CD_SUDOEDIT_CHECKDIR) != 0 && user_details.uid != ROOT_UID as libc::c_uint {
+        fd = sudo_edit_open_nonwritable(path, oflags | O_NONBLOCK, mode, command_details);
+    } else {
+        fd = open(path, oflags | O_NONBLOCK, mode);
+    }
+    if fd != -(1 as libc::c_int) && ISSET!(oflags, O_NONBLOCK) == 0 {
+        fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & !(O_NONBLOCK));
+    }
+    debug_return_int!(fd);
+}
+
+
+
+
+
