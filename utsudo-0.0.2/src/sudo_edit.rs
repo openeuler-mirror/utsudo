@@ -960,4 +960,54 @@ unsafe extern "C" fn sudo_edit_copy_tfiles(
     debug_return_int!(errors);
 }
 
+unsafe extern "C" fn selinux_run_helper(
+    mut uid: uid_t,
+    mut gid: gid_t,
+    mut ngroups: libc::c_int,
+    mut groups: *mut gid_t,
+    mut argv: *const *mut libc::c_char,
+    mut envp: *const *mut libc::c_char,
+) -> libc::c_int {
+    let mut status: libc::c_int = 0;
+    let mut ret: libc::c_int = SESH_ERR_FAILURE;
+    let mut sesh: *const libc::c_char = 0 as *const libc::c_char;
+    let mut child: pid_t = 0;
+    let mut pid: pid_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    sesh = sudo_conf_sesh_path_v1();
+    if sesh.is_null() {
+        sudo_warnx!(b"internal error: sesh path not set\0" as *const u8 as *const libc::c_char,);
+        debug_return_int!(-1);
+    }
+    child = sudo_debug_fork_v1();
+    match child {
+        -1 => {
+            sudo_warn!(b"unable to fork\0" as *const u8 as *const libc::c_char,);
+        }
+        0 => {
+            /* child runs sesh in new context */
+            if selinux_setcon() == 0 {
+                switch_user(uid, gid, ngroups, groups);
+                execve(sesh, argv, envp);
+            }
+            _exit(SESH_ERR_FAILURE);
+        }
+        _ => {
+            /* parent waits */
+            loop {
+                pid = waitpid(child, &mut status, 0 as libc::c_int);
+                if !(pid == -(1 as libc::c_int) && *__errno_location() == EINTR) {
+                    break;
+                }
+            }
+            ret = if WIFSIGNALED!(status) {
+                SESH_ERR_KILLED
+            } else {
+                WEXITSTATUS!(status)
+            };
+        }
+    }
+    debug_return_int!(ret);
+}
+
 
