@@ -194,5 +194,44 @@ unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> l
 
 static mut edit_tmpdir: [libc::c_char; 10] = [0; 10];
 
-
-
+unsafe extern "C" fn switch_user(
+    mut euid: uid_t,
+    mut egid: gid_t,
+    mut ngroups: libc::c_int,
+    mut groups: *mut gid_t,
+) {
+    let mut serrno: libc::c_int = *__errno_location();
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+        b"set uid:gid to %u:%u(%u)\0" as *const u8 as *const libc::c_char,
+        euid,
+        egid,
+        if ngroups != 0 {
+            *groups.offset(0 as libc::c_int as isize)
+        } else {
+            egid
+        }
+    );
+    /* When restoring root, change euid first; otherwise change it last. */
+    if euid == ROOT_UID as libc::c_uint {
+        if seteuid(ROOT_UID as __uid_t) != 0 {
+            sudo_fatal!(b"seteuid(ROOT_UID)\0" as *const u8 as *const libc::c_char,);
+        }
+    }
+    if setegid(egid) != 0 {
+        sudo_fatal!(b"setegid(%d)\0" as *const u8 as *const libc::c_char, egid);
+    }
+    if ngroups != -(1 as libc::c_int) {
+        if sudo_setgroups_v1(ngroups, groups) != 0 {
+            sudo_fatal!(b"setgroups\0" as *const u8 as *const libc::c_char,);
+        }
+    }
+    if euid != ROOT_UID as libc::c_uint {
+        if seteuid(euid) != 0 {
+            sudo_fatal!(b"seteuid(%u)\0" as *const u8 as *const libc::c_char, euid);
+        }
+    }
+    *__errno_location() = serrno;
+    debug_return!();
+}
