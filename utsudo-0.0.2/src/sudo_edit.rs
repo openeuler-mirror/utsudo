@@ -330,5 +330,684 @@ unsafe extern "C" fn set_tmpdir(mut command_details: *mut command_details) -> bo
     debug_return_bool!(true)
 }
 
+/*
+ * Construct a temporary file name for file and return an
+ * open file descriptor.  The temporary file name is stored
+ * in tfile which the caller is responsible for freeing.
+ */
+unsafe extern "C" fn sudo_edit_mktemp(
+    mut ofile: *const libc::c_char,
+    mut tfile: *mut *mut libc::c_char,
+) -> libc::c_int {
+    let mut cp: *const libc::c_char = 0 as *const libc::c_char;
+    let mut suff: *const libc::c_char = 0 as *const libc::c_char;
+    let mut len: libc::c_int = 0;
+    let mut tfd: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    cp = strrchr(ofile, '/' as i32);
+    if !cp.is_null() {
+        cp = cp.offset(1);
+    } else {
+        cp = ofile;
+    }
+    suff = strrchr(cp, '.' as i32);
+    if !suff.is_null() {
+        len = asprintf(
+            tfile,
+            b"%s/%.*sXXXXXXXX%s\0" as *const u8 as *const libc::c_char,
+            edit_tmpdir.as_mut_ptr(),
+            suff.offset_from(cp) as libc::c_long as size_t as libc::c_int,
+            cp,
+            suff,
+        );
+    } else {
+        len = asprintf(
+            tfile,
+            b"%s/%s.XXXXXXXX\0" as *const u8 as *const libc::c_char,
+            edit_tmpdir.as_mut_ptr(),
+            cp,
+        );
+    }
+    if len == -(1 as libc::c_int) {
+        sudo_warnx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        debug_return_int!(-(1 as libc::c_int));
+    }
+    tfd = mkstemps(
+        *tfile,
+        (if !suff.is_null() {
+            strlen(suff)
+        } else {
+            0 as libc::c_int as libc::c_ulong
+        }) as libc::c_int,
+    );
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+        b"%s -> %s, fd %d\0" as *const u8 as *const libc::c_char,
+        ofile,
+        *tfile,
+        tfd
+    );
+    debug_return_int!(tfd);
+}
+
+unsafe extern "C" fn sudo_edit_openat_nofollow(
+    mut dfd: libc::c_int,
+    mut path: *mut libc::c_char,
+    mut oflags: libc::c_int,
+    mut mode: mode_t,
+) -> libc::c_int {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    debug_return_int!(openat(dfd, path, oflags | O_NOFOLLOW, mode));
+}
+
+unsafe extern "C" fn sudo_edit_open_nonwritable(
+    mut path: *mut libc::c_char,
+    mut oflags: libc::c_int,
+    mut mode: mode_t,
+    mut command_details: *mut command_details,
+) -> libc::c_int {
+    let dflags: libc::c_int = DIR_OPEN_FLAGS!() as libc::c_int;
+    let mut dfd: libc::c_int = 0;
+    let mut fd: libc::c_int = 0;
+    let mut is_writable: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    if *path.offset(0 as libc::c_int as isize) as libc::c_int == '/' as i32 {
+        dfd = open(b"/\0" as *const u8 as *const libc::c_char, dflags);
+        path = path.offset(1);
+    } else {
+        dfd = open(b".\0" as *const u8 as *const libc::c_char, dflags);
+        if *path.offset(0 as libc::c_int as isize) as libc::c_int == '.' as i32
+            && *path.offset(1 as libc::c_int as isize) as libc::c_int == '/' as i32
+        {
+            path = path.offset(2 as libc::c_int as isize);
+        }
+    }
+    if dfd == -(1 as libc::c_int) {
+        debug_return_int!(-1);
+    }
+    loop {
+        let mut slash: *mut libc::c_char = 0 as *mut libc::c_char;
+        let mut subdfd: libc::c_int = 0;
+        /*
+         * Look up one component at a time, avoiding symbolic links in
+         * writable directories.
+         */
+        is_writable = dir_is_writable(dfd, &mut user_details, command_details);
+        if is_writable == -(1 as libc::c_int) {
+            close(dfd);
+            debug_return_int!(-(1 as libc::c_int));
+        }
+        while *path.offset(0 as libc::c_int as isize) as libc::c_int == '/' as i32 {
+            path = path.offset(1);
+        }
+        slash = strchr(path, '/' as i32);
+        if slash.is_null() {
+            break;
+        }
+        *slash = '\0' as i32 as libc::c_char;
+        if is_writable != 0 {
+            subdfd = sudo_edit_openat_nofollow(dfd, path, dflags, 0 as libc::c_int as mode_t);
+        } else {
+            subdfd = openat(dfd, path, dflags, 0 as libc::c_int);
+        }
+        *slash = '/' as i32 as libc::c_char; /* restore path */
+        close(dfd);
+        if subdfd == -(1 as libc::c_int) {
+            debug_return_int!(-(1 as libc::c_int));
+        }
+        path = slash.offset(1 as libc::c_int as isize);
+        dfd = subdfd;
+    } // ! loop
+    if is_writable != 0 {
+        close(dfd);
+        *__errno_location() = EISDIR;
+        debug_return_int!(-(1 as libc::c_int));
+    }
+    /*
+     * For "sudoedit /" we will receive ENOENT from openat() and sudoedit
+     * will try to create a file with an empty name.  We treat an empty
+     * path as the cwd so sudoedit can give a sensible error message.
+     */
+    fd = openat(
+        dfd,
+        if *path as libc::c_int != 0 {
+            path
+        } else {
+            b".\0" as *const u8 as *const libc::c_char
+        },
+        oflags,
+        mode,
+    );
+    close(dfd);
+    debug_return_int!(fd);
+}
+
+unsafe extern "C" fn sudo_edit_open(
+    mut path: *mut libc::c_char,
+    mut oflags: libc::c_int,
+    mut mode: mode_t,
+    mut command_details: *mut command_details,
+) -> libc::c_int {
+    let sflags: libc::c_int = if !command_details.is_null() {
+        (*command_details).flags
+    } else {
+        0 as libc::c_int
+    };
+    let mut fd: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    if ISSET!(sflags, CD_SUDOEDIT_FOLLOW) == 0 {
+        oflags |= O_NOFOLLOW as libc::c_int;
+    }
+    if ISSET!(sflags, CD_SUDOEDIT_CHECKDIR) != 0 && user_details.uid != ROOT_UID as libc::c_uint {
+        fd = sudo_edit_open_nonwritable(path, oflags | O_NONBLOCK, mode, command_details);
+    } else {
+        fd = open(path, oflags | O_NONBLOCK, mode);
+    }
+    if fd != -(1 as libc::c_int) && ISSET!(oflags, O_NONBLOCK) == 0 {
+        fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & !(O_NONBLOCK));
+    }
+    debug_return_int!(fd);
+}
+
+/*
+ * Create temporary copies of files[] and store the temporary path name
+ * along with the original name, size and mtime in tf.
+ * Returns the number of files copied (which may be less than nfiles)
+ * or -1 if a fatal error occurred.
+ */
+unsafe extern "C" fn sudo_edit_create_tfiles(
+    mut command_details: *mut command_details,
+    mut tf: *mut tempfile,
+    mut files: *mut *mut libc::c_char,
+    mut nfiles: libc::c_int,
+) -> libc::c_int {
+    let mut i: libc::c_int = 0;
+    let mut j: libc::c_int = 0;
+    let mut tfd: libc::c_int = 0;
+    let mut ofd: libc::c_int = 0;
+    let mut rc: libc::c_int = 0;
+    let mut times: [timespec; 2] = [timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    }; 2];
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        #[cfg(target_arch = "x86_64")]
+        st_nlink: 0,
+        st_mode: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        st_nlink: 0,
+        st_uid: 0,
+        st_gid: 0,
+        #[cfg(target_arch = "x86_64")]
+        __pad0: 0,
+        st_rdev: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad1: 0,
+        st_size: 0,
+        st_blksize: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad2: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        #[cfg(target_arch = "x86_64")]
+        __glibc_reserved: [0; 3],
+        #[cfg(not(target_arch = "x86_64"))]
+        __glibc_reserved: [0; 2],
+    };
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    /*
+     * For each file specified by the user, make a temporary version
+     * and copy the contents of the original to it.
+     */
+    i = 0 as libc::c_int;
+    j = 0 as libc::c_int;
+    while i < nfiles {
+        rc = -(1 as libc::c_int);
+        switch_user(
+            (*command_details).euid,
+            (*command_details).egid,
+            (*command_details).ngroups,
+            (*command_details).groups,
+        );
+        ofd = sudo_edit_open(
+            *files.offset(i as isize),
+            O_RDONLY,
+            (S_IRUSR!() | S_IWUSR!() | S_IRGRP!() | S_IROTH!()) as mode_t,
+            command_details,
+        );
+        if ofd != -1 || *__errno_location() == ENOENT {
+            if ofd == -(1 as libc::c_int) {
+                /*
+                 * New file, verify parent dir exists unless in cwd.
+                 * This fails early so the user knows ahead of time if the
+                 * edit won't succeed.  Additional checks are performed
+                 * when copying the temporary file back to the origin.
+                 */
+                let mut slash: *mut libc::c_char = strrchr(*files.offset(i as isize), '/' as i32);
+                if !slash.is_null() && slash != *files.offset(i as isize) {
+                    let sflags: libc::c_int = (*command_details).flags;
+                    let serrno: libc::c_int = *__errno_location();
+                    let mut dfd: libc::c_int = 0;
+                    /*
+                     * The parent directory is allowed to be a symbolic
+                     * link as long as *its* parent is not writable.
+                     */
+                    *slash = '\0' as i32 as libc::c_char;
+                    SET!((*command_details).flags, CD_SUDOEDIT_FOLLOW);
+                    dfd = sudo_edit_open(
+                        *files.offset(i as isize),
+                        DIR_OPEN_FLAGS!(),
+                        (S_IRUSR!() | S_IWUSR!() | S_IRGRP!() | S_IROTH!()) as mode_t,
+                        command_details,
+                    );
+                    (*command_details).flags = sflags;
+                    if dfd != -(1 as libc::c_int) {
+                        if fstat(dfd, &mut sb) == 0 && S_ISDIR!(sb.st_mode) {
+                            memset(
+                                &mut sb as *mut stat as *mut libc::c_void,
+                                0 as libc::c_int,
+                                ::std::mem::size_of::<stat>() as libc::c_ulong,
+                            );
+                            rc = 0 as libc::c_int;
+                        }
+                        close(dfd);
+                    }
+                    *slash = '/' as i32 as libc::c_char;
+                    *__errno_location() = serrno;
+                } else {
+                    memset(
+                        &mut sb as *mut stat as *mut libc::c_void,
+                        0 as libc::c_int,
+                        ::core::mem::size_of::<stat>() as libc::c_ulong,
+                    );
+                    rc = 0 as libc::c_int;
+                }
+            } else {
+                rc = fstat(ofd, &mut sb);
+            } // !  if ofd == -1
+        } // ! if ofd != -1
+        switch_user(
+            0 as libc::c_int as uid_t,
+            user_details.egid,
+            user_details.ngroups,
+            user_details.groups,
+        );
+        if ofd != -(1 as libc::c_int) && !(S_ISREG!(sb.st_mode)) {
+            sudo_warnx!(
+                b"%s: not a regular file\0" as *const u8 as *const libc::c_char,
+                *files.offset(i as isize)
+            );
+            close(ofd);
+            i += 1;
+            continue;
+        }
+        if rc == -(1 as libc::c_int) {
+            /* open() or fstat() error. */
+            if ofd == -(1 as libc::c_int) && *__errno_location() == ELOOP {
+                sudo_warnx!(
+                    b"%s: editing symbolic links is not permitted\0" as *const u8
+                        as *const libc::c_char,
+                    *files.offset(i as isize)
+                );
+            } else if ofd == -1 && *__errno_location() == EISDIR {
+                sudo_warnx!(
+                    b"%s: editing files in a writable directory is not permitted\0" as *const u8
+                        as *const libc::c_char,
+                    *files.offset(i as isize),
+                );
+            } else {
+                sudo_warn!(
+                    b"%s\0" as *const u8 as *const libc::c_char,
+                    *files.offset(i as isize),
+                );
+            }
+            if ofd != -(1 as libc::c_int) {
+                close(ofd);
+            }
+            i += 1;
+            continue;
+        }
+        let ref mut fresh0 = (*tf.offset(j as isize)).ofile;
+        *fresh0 = *files.offset(i as isize);
+        (*tf.offset(j as isize)).osize = sb.st_size;
+        (*tf.offset(j as isize)).omtim.tv_sec = sb.st_mtim.tv_sec;
+        (*tf.offset(j as isize)).omtim.tv_nsec = sb.st_mtim.tv_nsec;
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+            b"seteuid(%u)\0" as *const u8 as *const libc::c_char,
+            user_details.uid
+        );
+        if seteuid(user_details.uid) != 0 {
+            sudo_fatal!(
+                b"seteuid(%u)\0" as *const u8 as *const libc::c_char,
+                user_details.uid
+            );
+        }
+        tfd = sudo_edit_mktemp(
+            (*tf.offset(j as isize)).ofile,
+            &mut (*tf.offset(j as isize)).tfile,
+        );
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+            b"seteuid(%u)\0" as *const u8 as *const libc::c_char,
+            ROOT_UID
+        );
+        if seteuid(ROOT_UID as __uid_t) != 0 {
+            sudo_fatal!(b"seteuid(ROOT_UID)\0" as *const u8 as *const libc::c_char,);
+        }
+        if tfd == -(1 as libc::c_int) {
+            sudo_warn!(b"mkstemps\0" as *const u8 as *const libc::c_char,);
+            if ofd != -(1 as libc::c_int) {
+                close(ofd);
+            }
+            debug_return_int!(-(1 as libc::c_int));
+        }
+        if ofd != -(1 as libc::c_int) {
+            if sudo_copy_file(
+                (*tf.offset(j as isize)).ofile,
+                ofd,
+                (*tf.offset(j as isize)).osize,
+                (*tf.offset(j as isize)).tfile,
+                tfd,
+                -(1 as libc::c_int) as off_t,
+            ) == -(1 as libc::c_int)
+            {
+                close(ofd);
+                close(tfd);
+                debug_return_int!(-(1 as libc::c_int));
+            }
+            close(ofd);
+        }
+        /*
+         * We always update the stashed mtime because the time
+         * resolution of the filesystem the temporary file is on may
+         * not match that of the filesystem where the file to be edited
+         * resides.  It is OK if futimens() fails since we only use the
+         * info to determine whether or not a file has been modified.
+         */
+        times[1 as libc::c_int as usize].tv_sec = (*tf.offset(j as isize)).omtim.tv_sec;
+        times[0 as libc::c_int as usize].tv_sec = times[1 as libc::c_int as usize].tv_sec;
+        times[1 as libc::c_int as usize].tv_nsec = (*tf.offset(j as isize)).omtim.tv_nsec;
+        times[0 as libc::c_int as usize].tv_nsec = times[1 as libc::c_int as usize].tv_nsec;
+        if futimens(tfd, times.as_mut_ptr() as *const timespec) == -(1 as libc::c_int) {
+            if utimensat(
+                AT_FDCWD,
+                (*tf.offset(j as isize)).tfile,
+                times.as_mut_ptr() as *const timespec,
+                0,
+            ) == -(1 as libc::c_int)
+            {
+                sudo_warn!(
+                    b"%s\0" as *const u8 as *const libc::c_char,
+                    (*tf.offset(j as isize)).tfile
+                );
+            }
+        }
+        rc = fstat(tfd, &mut sb);
+        if rc == 0 {
+            (*tf.offset(j as isize)).omtim.tv_sec = sb.st_mtim.tv_sec;
+            (*tf.offset(j as isize)).omtim.tv_nsec = sb.st_mtim.tv_nsec;
+        }
+        close(tfd);
+        j += 1;
+        i += 1;
+    } // ! while
+    debug_return_int!(j);
+}
+
+/*
+ * Copy the temporary files specified in tf to the originals.
+ * Returns the number of copy errors or 0 if completely successful.
+ */
+unsafe extern "C" fn sudo_edit_copy_tfiles(
+    mut command_details: *mut command_details,
+    mut tf: *mut tempfile,
+    mut nfiles: libc::c_int,
+    mut times: *mut timespec,
+) -> libc::c_int {
+    let mut i: libc::c_int = 0;
+    let mut tfd: libc::c_int = 0;
+    let mut ofd: libc::c_int = 0;
+    let mut errors: libc::c_int = 0 as libc::c_int;
+    let mut ts: timespec = timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        #[cfg(target_arch = "x86_64")]
+        st_nlink: 0,
+        st_mode: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        st_nlink: 0,
+        st_uid: 0,
+        st_gid: 0,
+        #[cfg(target_arch = "x86_64")]
+        __pad0: 0,
+        st_rdev: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad1: 0,
+        st_size: 0,
+        st_blksize: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad2: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        #[cfg(target_arch = "x86_64")]
+        __glibc_reserved: [0; 3],
+        #[cfg(not(target_arch = "x86_64"))]
+        __glibc_reserved: [0; 2],
+    };
+    let mut oldmask: mode_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    /* Copy contents of temp files to real ones. */
+    while i < nfiles {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+            b"seteuid(%u)\0" as *const u8 as *const libc::c_char,
+            user_details.uid
+        );
+        if seteuid(user_details.uid) != 0 as libc::c_int {
+            sudo_fatal!(
+                b"seteuid(%u)\0" as *const u8 as *const libc::c_char,
+                user_details.uid,
+            );
+        }
+        tfd = sudo_edit_open(
+            (*tf.offset(i as isize)).tfile,
+            O_RDONLY,
+            S_IRUSR!() | S_IWUSR!() | S_IRGRP!() | S_IROTH!(),
+            0 as *mut command_details,
+        );
+        if seteuid(ROOT_UID as __uid_t) != 0 as libc::c_int {
+            sudo_fatal!(b"seteuid(ROOT_UID)\0" as *const u8 as *const libc::c_char,);
+        }
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+            b"seteuid(%u)\0" as *const u8 as *const libc::c_char,
+            ROOT_UID
+        );
+        if tfd == -(1 as libc::c_int)
+            || !sudo_check_temp_file(
+                tfd,
+                (*tf.offset(i as isize)).tfile,
+                user_details.uid,
+                &mut sb,
+            )
+        {
+            sudo_warnx!(
+                b"%s left unmodified\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).ofile
+            );
+            if tfd != -(1 as libc::c_int) {
+                close(tfd);
+            }
+            errors += 1;
+            i += 1;
+            continue;
+        }
+        ts.tv_sec = sb.st_mtim.tv_sec;
+        ts.tv_nsec = sb.st_mtim.tv_nsec;
+        if (*tf.offset(i as isize)).osize == sb.st_size
+            && sudo_timespeccmp!(&((*(tf.offset(i as isize))).omtim), &ts, ==) != 0
+        {
+            /*
+             * If mtime and size match but the user spent no measurable
+             * time in the editor we can't tell if the file was changed.
+             */
+            if sudo_timespeccmp!(times.offset(0 as libc::c_int as isize), times.offset(1 as libc::c_int as isize), !=)
+                != 0
+            {
+                sudo_warnx!(
+                    b"%s unchanged\0" as *const u8 as *const libc::c_char,
+                    (*tf.offset(i as isize)).ofile
+                );
+                unlink((*tf.offset(i as isize)).tfile);
+                close(tfd);
+                i += 1;
+                continue;
+            }
+        }
+        switch_user(
+            (*command_details).euid,
+            (*command_details).egid,
+            (*command_details).ngroups,
+            (*command_details).groups,
+        );
+        oldmask = umask((*command_details).umask);
+        ofd = sudo_edit_open(
+            (*tf.offset(i as isize)).ofile,
+            O_WRONLY | O_CREAT,
+            (S_IRUSR!() | S_IWUSR!() | S_IRGRP!() | S_IROTH!()) as mode_t,
+            command_details,
+        );
+        umask(oldmask);
+        switch_user(
+            ROOT_UID as uid_t,
+            user_details.egid,
+            user_details.ngroups,
+            user_details.groups,
+        );
+        if ofd == -(1 as libc::c_int) {
+            sudo_warn!(
+                b"unable to write to %s\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).ofile
+            );
+            // goto bad;
+            sudo_warnx!(
+                b"contents of edit session left in %s\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).tfile
+            );
+            errors += 1;
+            if ofd != -(1 as libc::c_int) {
+                close(ofd);
+            }
+            close(tfd);
+            i += 1;
+            continue;
+        }
+        /* Overwrite the old file with the new contents. */
+        if sudo_copy_file(
+            (*tf.offset(i as isize)).tfile,
+            tfd,
+            sb.st_size,
+            (*tf.offset(i as isize)).ofile,
+            ofd,
+            (*tf.offset(i as isize)).osize,
+        ) == -(1 as libc::c_int)
+        {
+            sudo_warnx!(
+                b"contents of edit session left in %s\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).tfile
+            );
+            errors += 1;
+        }
+        if ofd != -(1 as libc::c_int) {
+            close(ofd);
+        }
+        close(tfd);
+        i += 1;
+    } // ! while i < nfiles
+    debug_return_int!(errors);
+}
+
+unsafe extern "C" fn selinux_run_helper(
+    mut uid: uid_t,
+    mut gid: gid_t,
+    mut ngroups: libc::c_int,
+    mut groups: *mut gid_t,
+    mut argv: *const *mut libc::c_char,
+    mut envp: *const *mut libc::c_char,
+) -> libc::c_int {
+    let mut status: libc::c_int = 0;
+    let mut ret: libc::c_int = SESH_ERR_FAILURE;
+    let mut sesh: *const libc::c_char = 0 as *const libc::c_char;
+    let mut child: pid_t = 0;
+    let mut pid: pid_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    sesh = sudo_conf_sesh_path_v1();
+    if sesh.is_null() {
+        sudo_warnx!(b"internal error: sesh path not set\0" as *const u8 as *const libc::c_char,);
+        debug_return_int!(-1);
+    }
+    child = sudo_debug_fork_v1();
+    match child {
+        -1 => {
+            sudo_warn!(b"unable to fork\0" as *const u8 as *const libc::c_char,);
+        }
+        0 => {
+            /* child runs sesh in new context */
+            if selinux_setcon() == 0 {
+                switch_user(uid, gid, ngroups, groups);
+                execve(sesh, argv, envp);
+            }
+            _exit(SESH_ERR_FAILURE);
+        }
+        _ => {
+            /* parent waits */
+            loop {
+                pid = waitpid(child, &mut status, 0 as libc::c_int);
+                if !(pid == -(1 as libc::c_int) && *__errno_location() == EINTR) {
+                    break;
+                }
+            }
+            ret = if WIFSIGNALED!(status) {
+                SESH_ERR_KILLED
+            } else {
+                WEXITSTATUS!(status)
+            };
+        }
+    }
+    debug_return_int!(ret);
+}
 
 
