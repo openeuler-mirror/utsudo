@@ -235,3 +235,100 @@ unsafe extern "C" fn switch_user(
     *__errno_location() = serrno;
     debug_return!();
 }
+
+/*
+ * Returns true if the open directory fd is writable by the user.
+ */
+unsafe extern "C" fn dir_is_writable(
+    mut dfd: libc::c_int,
+    mut ud: *mut user_details,
+    mut cd: *mut command_details,
+) -> libc::c_int {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    let mut rc: libc::c_int = 0;
+    /* Change uid/gid/groups to invoking user, usually needs root perms. */
+    if (*cd).euid != ROOT_UID as libc::c_uint {
+        if seteuid(ROOT_UID as __uid_t) != 0 {
+            sudo_fatal!(b"seteuid(ROOT_UID)\0" as *const u8 as *const libc::c_char,);
+        }
+    }
+    switch_user((*ud).uid, (*ud).gid, (*ud).ngroups, (*ud).groups);
+    /* Access checks are done using the euid/egid and group vector. */
+    rc = faccessat(
+        dfd,
+        b".\0" as *const u8 as *const libc::c_char,
+        W_OK,
+        AT_EACCESS,
+    );
+    /* Change uid/gid/groups back to target user, may need root perms. */
+    if (*ud).uid != ROOT_UID as libc::c_uint {
+        if seteuid(ROOT_UID as __uid_t) != 0 {
+            sudo_fatal!(b"seteuid(ROOT_UID)\0" as *const u8 as *const libc::c_char,);
+        }
+    }
+    switch_user((*cd).euid, (*cd).egid, (*cd).ngroups, (*cd).groups);
+    if rc == 0 {
+        debug_return_int!(true as libc::c_int);
+    }
+    if *__errno_location() == EACCES {
+        debug_return_int!(0 as libc::c_int);
+    }
+    debug_return_int!(-1);
+}
+
+/*
+ * Find our temporary directory, one of /var/tmp, /usr/tmp, or /tmp
+ * Returns true on success, else false;
+ */
+unsafe extern "C" fn set_tmpdir(mut command_details: *mut command_details) -> bool {
+    let mut tdir: *const libc::c_char = 0 as *const libc::c_char;
+    let mut tmpdirs: [*const libc::c_char; 3] = [
+        b"/var/tmp/\0" as *const u8 as *const libc::c_char,
+        b"/usr/tmp/\0" as *const u8 as *const libc::c_char,
+        b"/tmp/\0" as *const u8 as *const libc::c_char,
+    ];
+    let mut i: libc::c_uint = 0;
+    let mut len: size_t = 0;
+    let mut dfd: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    i = 0 as libc::c_uint;
+    while tdir.is_null()
+        && (i as libc::c_ulong)
+            < (::std::mem::size_of::<[*const libc::c_char; 3]>() as libc::c_ulong)
+                .wrapping_div(::std::mem::size_of::<*const libc::c_char>() as libc::c_ulong)
+    {
+        dfd = open(tmpdirs[i as usize], 0 as libc::c_int);
+        if dfd != -(1 as libc::c_int) {
+            if dir_is_writable(dfd, &mut user_details, command_details) == 1 as libc::c_int {
+                tdir = tmpdirs[i as usize];
+            }
+            close(dfd);
+        }
+        i = i.wrapping_add(1);
+    }
+    if tdir.is_null() {
+        sudo_fatalx!(
+            b"no writable temporary directory found\0" as *const u8 as *const libc::c_char,
+        );
+    }
+    len = sudo_strlcpy(
+        edit_tmpdir.as_mut_ptr(),
+        tdir,
+        ::std::mem::size_of::<[libc::c_char; 10]>() as libc::c_ulong,
+    );
+    if len >= ::std::mem::size_of::<[libc::c_char; 10]>() as libc::c_ulong {
+        *__errno_location() = ENAMETOOLONG;
+        sudo_warn!(b"%s\0" as *const u8 as *const libc::c_char, tdir);
+        debug_return_bool!(false);
+    }
+    while len > 0 && {
+        len = len.wrapping_sub(1);
+        edit_tmpdir[len as usize] as libc::c_int == '/' as i32
+    } {
+        edit_tmpdir[len as usize] = '\0' as i32 as libc::c_char;
+    }
+    debug_return_bool!(true)
+}
+
+
+
