@@ -1073,6 +1073,15 @@ unsafe extern "C" fn selinux_edit_create_tfiles(
     ) as *mut *mut libc::c_char;
     sesh_args = sesh_ap;
 
+    'done: loop {
+        if sesh_args.is_null() {
+            sudo_warnx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            break 'done;
+        } // ! if sesh_args.is_null
 
 
 
@@ -1086,6 +1095,14 @@ unsafe extern "C" fn selinux_edit_create_tfiles(
 
 
 
+
+
+
+
+
+
+        break 'done;
+    } // ! 'done loop
 
     /* Contents of tf will be freed by caller. */
     free(sesh_args as *mut libc::c_void);
