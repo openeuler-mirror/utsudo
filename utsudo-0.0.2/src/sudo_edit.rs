@@ -1171,16 +1171,43 @@ unsafe extern "C" fn selinux_edit_create_tfiles(
             }
         } 
 
-
-
-
-
-
-
-
-
-
-
+        i = 0 as libc::c_int;
+        loop {
+            let mut tfd_0: libc::c_int = open(
+                (*tf.offset(i as isize)).tfile,
+                O_RDONLY | O_NONBLOCK | O_NOFOLLOW,
+            );
+            if tfd_0 == -(1 as libc::c_int) {
+                sudo_warn!(
+                    b"unable to open %s\0" as *const u8 as *const libc::c_char,
+                    (*tf.offset(i as isize)).tfile
+                );
+                break 'done;
+            }
+            if !sudo_check_temp_file(
+                tfd_0,
+                (*tf.offset(i as isize)).tfile,
+                (*command_details).uid,
+                0 as *mut stat,
+            ) {
+                close(tfd_0);
+                break 'done;
+            }
+            if fchown(tfd_0, user_details.uid, user_details.gid) != 0 {
+                sudo_warn!(
+                    b"unable to chown(%s) to %d:%d for editing\0" as *const u8
+                        as *const libc::c_char,
+                    (*tf.offset(i as isize)).tfile,
+                    user_details.uid,
+                    user_details.gid
+                );
+                close(tfd_0);
+                break 'done;
+            }
+            close(tfd_0);
+            i += 1;
+        } // ! loop
+        ret = nfiles;
 
         break 'done;
     } // ! 'done loop
