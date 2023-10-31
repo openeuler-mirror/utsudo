@@ -1420,8 +1420,50 @@ unsafe extern "C" fn selinux_edit_copy_tfiles(
 #[no_mangle]
 pub unsafe extern "C" fn sudo_edit(mut command_details: *mut command_details) -> libc::c_int {
     let mut saved_command_details: command_details = command_details {
-
-
+        uid: 0,
+        euid: 0,
+        gid: 0,
+        egid: 0,
+        umask: 0,
+        priority: 0,
+        timeout: 0,
+        ngroups: 0,
+        closefrom: 0,
+        flags: 0,
+        execfd: 0,
+        preserved_fds: preserved_fd_list {
+            tqh_first: 0 as *mut preserved_fd,
+            tqh_last: 0 as *mut *mut preserved_fd,
+        },
+        pw: 0 as *mut passwd,
+        groups: 0 as *mut gid_t,
+        command: 0 as *const libc::c_char,
+        cwd: 0 as *const libc::c_char,
+        login_class: 0 as *const libc::c_char,
+        chroot: 0 as *const libc::c_char,
+        selinux_role: 0 as *const libc::c_char,
+        selinux_type: 0 as *const libc::c_char,
+        utmp_user: 0 as *const libc::c_char,
+        tty: 0 as *const libc::c_char,
+        argv: 0 as *mut *mut libc::c_char,
+        envp: 0 as *mut *mut libc::c_char,
+    };
+    let mut nargv: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut ap: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut files: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut errors: libc::c_int = 0;
+    let mut i: libc::c_int = 0;
+    let mut ac: libc::c_int = 0;
+    let mut nargc: libc::c_int = 0;
+    let mut ret: libc::c_int = 0;
+    let mut editor_argc: libc::c_int = 0 as libc::c_int;
+    let mut nfiles: libc::c_int = 0 as libc::c_int;
+    let mut times: [timespec; 2] = [timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    }; 2];
+    let mut tf: *mut tempfile = 0 as *mut tempfile;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
 
 
 
