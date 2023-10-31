@@ -1417,3 +1417,20 @@ unsafe extern "C" fn selinux_edit_copy_tfiles(
     debug_return_int!(ret);
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_edit(mut command_details: *mut command_details) -> libc::c_int {
+    let mut saved_command_details: command_details = command_details {
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
