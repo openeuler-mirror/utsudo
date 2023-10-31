@@ -1083,8 +1083,60 @@ unsafe extern "C" fn selinux_edit_create_tfiles(
             break 'done;
         } // ! if sesh_args.is_null
 
-
-
+        let fresh1 = sesh_ap;
+        sesh_ap = sesh_ap.offset(1);
+        *fresh1 = b"sesh\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        let fresh2 = sesh_ap;
+        sesh_ap = sesh_ap.offset(1);
+        *fresh2 = b"-e\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        if ISSET!((*command_details).flags, CD_SUDOEDIT_FOLLOW) == 0 {
+            let fresh3 = sesh_ap;
+            sesh_ap = sesh_ap.offset(1);
+            *fresh3 = b"-h\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        }
+        let fresh4 = sesh_ap;
+        sesh_ap = sesh_ap.offset(1);
+        *fresh4 = b"0\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        i = 0 as libc::c_int;
+        loop {
+            if !(i < nfiles) {
+                break;
+            }
+            let mut tfile: *mut libc::c_char = 0 as *mut libc::c_char;
+            let mut ofile: *mut libc::c_char = *files.offset(i as isize);
+            let mut tfd: libc::c_int = 0;
+            let fresh5 = sesh_ap;
+            sesh_ap = sesh_ap.offset(1);
+            *fresh5 = ofile;
+            let ref mut fresh6 = (*tf.offset(i as isize)).ofile;
+            *fresh6 = ofile;
+            if stat(ofile, &mut sb) == -(1 as libc::c_int) {
+                memset(
+                    &mut sb as *mut stat as *mut libc::c_void,
+                    0 as libc::c_int,
+                    ::std::mem::size_of::<stat>() as libc::c_ulong,
+                );
+            }
+            (*tf.offset(i as isize)).osize = sb.st_size;
+            /*  mtim_get(&sb, tf[i].omtim);  */
+            (*tf.offset(i as isize)).omtim.tv_sec = sb.st_mtim.tv_sec;
+            (*tf.offset(i as isize)).omtim.tv_nsec = sb.st_mtim.tv_nsec;
+            tfd = sudo_edit_mktemp(ofile, &mut tfile);
+            if tfd == -1 {
+                sudo_warn!(b"mkstemps\0" as *const u8 as *const libc::c_char,);
+                free(tfile as *mut libc::c_void);
+                break 'done;
+            }
+            /* Helper will re-create temp file with proper security context. */
+            close(tfd);
+            unlink(tfile);
+            let fresh7 = sesh_ap;
+            sesh_ap = sesh_ap.offset(1);
+            *fresh7 = tfile;
+            let ref mut fresh8 = (*tf.offset(i as isize)).tfile;
+            *fresh8 = tfile;
+            i += 1;
+        } // ! loop
 
 
 
