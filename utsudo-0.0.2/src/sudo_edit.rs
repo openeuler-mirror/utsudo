@@ -1218,3 +1218,70 @@ unsafe extern "C" fn selinux_edit_create_tfiles(
     debug_return_int!(ret);
 }
 
+unsafe extern "C" fn selinux_edit_copy_tfiles(
+    mut command_details: *mut command_details,
+    mut tf: *mut tempfile,
+    mut nfiles: libc::c_int,
+    mut times: *mut timespec,
+) -> libc::c_int {
+    let mut sesh_args: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut sesh_ap: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut i: libc::c_int = 0;
+    let mut _rc: libc::c_int = 0;
+    let mut error: libc::c_int = 0;
+    let mut sesh_nargs: libc::c_int = 0;
+    let mut ret: libc::c_int = 1 as libc::c_int;
+    let mut tfd: libc::c_int = -(1 as libc::c_int);
+    let mut ts: timespec = timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        #[cfg(target_arch = "x86_64")]
+        st_nlink: 0,
+        st_mode: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        st_nlink: 0,
+        st_uid: 0,
+        st_gid: 0,
+        #[cfg(target_arch = "x86_64")]
+        __pad0: 0,
+        st_rdev: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad1: 0,
+        st_size: 0,
+        st_blksize: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad2: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        #[cfg(target_arch = "x86_64")]
+        __glibc_reserved: [0; 3],
+        #[cfg(not(target_arch = "x86_64"))]
+        __glibc_reserved: [0; 2],
+    };
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    if nfiles < 1 {
+        debug_return_int!(0);
+    }
+
+
+
+
+
+
+}
+
