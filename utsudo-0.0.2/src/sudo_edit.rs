@@ -1366,21 +1366,54 @@ unsafe extern "C" fn selinux_edit_copy_tfiles(
             );
         }
     } // ! while i < nfiles
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    *sesh_ap = 0 as *mut libc::c_char;
+    if tfd != -(1 as libc::c_int) {
+        close(tfd);
+    }
+    if sesh_ap.offset_from(sesh_args) as libc::c_long > 3 {
+        /* Run sesh -e 1 <t1> <o1> ... <tn> <on> */
+        error = selinux_run_helper(
+            (*command_details).uid,
+            (*command_details).gid,
+            (*command_details).ngroups,
+            (*command_details).groups,
+            sesh_args as *const *mut libc::c_char,
+            (*command_details).envp as *const *mut libc::c_char,
+        );
+        match error {
+            SESH_SUCCESS => {
+                ret = 0;
+            }
+            SESH_ERR_NO_FILES => {
+                sudo_warnx!(
+                    b"unable to copy temporary files back to their original location\0" as *const u8
+                        as *const libc::c_char,
+                );
+            }
+            SESH_ERR_SOME_FILES => {
+                sudo_warnx!(
+                    b"unable to copy some of the temporary files back to their original location\0"
+                        as *const u8 as *const libc::c_char,
+                );
+            }
+            SESH_ERR_KILLED => {
+                sudo_warnx!(b"sesh: killed by a signal\0" as *const u8 as *const libc::c_char,);
+            }
+            _ => {
+                sudo_warnx!(
+                    b"sesh: unknown error %d\0" as *const u8 as *const libc::c_char,
+                    error
+                );
+            }
+        }
+        if ret != 0 {
+            sudo_warnx!(
+                b"contents of edit session left in %s\0" as *const u8 as *const libc::c_char,
+                edit_tmpdir
+            );
+        }
+    } // !   if sesh_ap.offset_from(
+    free(sesh_args as *mut libc::c_void);
+    debug_return_int!(ret);
 }
 
