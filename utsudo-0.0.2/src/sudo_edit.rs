@@ -1146,8 +1146,30 @@ unsafe extern "C" fn selinux_edit_create_tfiles(
             sesh_args as *const *mut libc::c_char,
             (*command_details).envp as *const *mut libc::c_char,
         );
-
-
+        match error {
+            SESH_SUCCESS => {}
+            SESH_ERR_BAD_PATHS => {
+                sudo_fatalx!(
+                    b"sesh: internal error: odd number of paths\0" as *const u8
+                        as *const libc::c_char,
+                );
+            }
+            SESH_ERR_NO_FILES => {
+                sudo_fatalx!(
+                    b"sesh: unable to create temporary files\0" as *const u8 as *const libc::c_char,
+                );
+            }
+            SESH_ERR_KILLED => {
+                sudo_fatalx!(b"sesh: killed by a signal\0" as *const u8 as *const libc::c_char,);
+            }
+            _ => {
+                sudo_fatalx!(
+                    b"sesh: unknown error %d\0" as *const u8 as *const libc::c_char,
+                    error,
+                );
+                break 'done;
+            }
+        } 
 
 
 
