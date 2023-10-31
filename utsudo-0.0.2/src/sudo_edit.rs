@@ -1137,8 +1137,15 @@ unsafe extern "C" fn selinux_edit_create_tfiles(
             *fresh8 = tfile;
             i += 1;
         } // ! loop
-
-
+        *sesh_ap = 0 as *mut libc::c_char;
+        error = selinux_run_helper(
+            (*command_details).uid,
+            (*command_details).gid,
+            (*command_details).ngroups,
+            (*command_details).groups,
+            sesh_args as *const *mut libc::c_char,
+            (*command_details).envp as *const *mut libc::c_char,
+        );
 
 
 
