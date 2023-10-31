@@ -1303,6 +1303,82 @@ unsafe extern "C" fn selinux_edit_copy_tfiles(
     sesh_ap = sesh_ap.offset(1);
     *fresh11 = b"1\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
     i = 0 as libc::c_int;
+    
+    while i < nfiles {
+        if tfd != -(1 as libc::c_int) {
+            close(tfd);
+        }
+        tfd = open(
+            (*tf.offset(i as isize)).tfile,
+            O_RDONLY | O_NONBLOCK | O_NOFOLLOW,
+        );
+        if tfd == -(1 as libc::c_int) {
+            sudo_warn!(
+                b"unable to open %s\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).tfile
+            );
+            i += 1;
+            continue;
+        }
+        if !sudo_check_temp_file(
+            tfd,
+            (*tf.offset(i as isize)).tfile,
+            user_details.uid,
+            &mut sb,
+        ) {
+            i += 1;
+            continue;
+        }
+        /* mtim_get(&sb, ts); */
+        ts.tv_sec = sb.st_mtim.tv_sec;
+        ts.tv_nsec = sb.st_mtim.tv_nsec;
+        if (*tf.offset(i as isize)).osize == sb.st_size
+            && sudo_timespeccmp!(&((*((tf.offset(i as isize)))).omtim), &ts, ==) != 0
+        {
+            /*
+             * If mtime and size match but the user spent no measurable
+             * time in the editor we can't tell if the file was changed.
+             */
+            if sudo_timespeccmp!(times.offset(0 as libc::c_int as isize), times.offset(1 as libc::c_int as isize), !=)
+                != 0
+            {
+                sudo_warnx!(
+                    b"%s unchanged\0" as *const u8 as *const libc::c_char,
+                    (*tf.offset(i as isize)).ofile
+                );
+                unlink((*tf.offset(i as isize)).tfile);
+                i += 1;
+                continue;
+            }
+        }
+        let fresh12 = sesh_ap;
+        sesh_ap = sesh_ap.offset(1);
+        *fresh12 = (*tf.offset(i as isize)).tfile;
+        let fresh13 = sesh_ap;
+        sesh_ap = sesh_ap.offset(1);
+        *fresh13 = (*tf.offset(i as isize)).ofile;
+        if fchown(tfd, (*command_details).uid, (*command_details).gid) != 0 {
+            sudo_warn!(
+                b"unable to chown(%s) back to %d:%d\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).tfile,
+                (*command_details).uid,
+                (*command_details).gid
+            );
+        }
+    } // ! while i < nfiles
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
