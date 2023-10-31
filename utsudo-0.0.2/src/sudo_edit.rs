@@ -1010,4 +1010,641 @@ unsafe extern "C" fn selinux_run_helper(
     debug_return_int!(ret);
 }
 
+unsafe extern "C" fn selinux_edit_create_tfiles(
+    mut command_details: *mut command_details,
+    mut tf: *mut tempfile,
+    mut files: *mut *mut libc::c_char,
+    mut nfiles: libc::c_int,
+) -> libc::c_int {
+    let mut sesh_args: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut sesh_ap: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut i: libc::c_int = 0;
+    let mut _rc: libc::c_int = 0;
+    let mut error: libc::c_int = 0;
+    let mut sesh_nargs: libc::c_int = 0;
+    let mut ret: libc::c_int = -(1 as libc::c_int);
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        #[cfg(target_arch = "x86_64")]
+        st_nlink: 0,
+        st_mode: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        st_nlink: 0,
+        st_uid: 0,
+        st_gid: 0,
+        #[cfg(target_arch = "x86_64")]
+        __pad0: 0,
+        st_rdev: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad1: 0,
+        st_size: 0,
+        st_blksize: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad2: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        #[cfg(target_arch = "x86_64")]
+        __glibc_reserved: [0; 3],
+        #[cfg(not(target_arch = "x86_64"))]
+        __glibc_reserved: [0; 2],
+    };
 
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    if nfiles < 1 {
+        debug_return_int!(0);
+    }
+    sesh_nargs = 4 + (nfiles * 2) + 1;
+    sesh_ap = reallocarray(
+        0 as *mut libc::c_void,
+        sesh_nargs as size_t,
+        ::std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+    ) as *mut *mut libc::c_char;
+    sesh_args = sesh_ap;
+
+    'done: loop {
+        if sesh_args.is_null() {
+            sudo_warnx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            break 'done;
+        } // ! if sesh_args.is_null
+
+        let fresh1 = sesh_ap;
+        sesh_ap = sesh_ap.offset(1);
+        *fresh1 = b"sesh\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        let fresh2 = sesh_ap;
+        sesh_ap = sesh_ap.offset(1);
+        *fresh2 = b"-e\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        if ISSET!((*command_details).flags, CD_SUDOEDIT_FOLLOW) == 0 {
+            let fresh3 = sesh_ap;
+            sesh_ap = sesh_ap.offset(1);
+            *fresh3 = b"-h\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        }
+        let fresh4 = sesh_ap;
+        sesh_ap = sesh_ap.offset(1);
+        *fresh4 = b"0\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        i = 0 as libc::c_int;
+        loop {
+            if !(i < nfiles) {
+                break;
+            }
+            let mut tfile: *mut libc::c_char = 0 as *mut libc::c_char;
+            let mut ofile: *mut libc::c_char = *files.offset(i as isize);
+            let mut tfd: libc::c_int = 0;
+            let fresh5 = sesh_ap;
+            sesh_ap = sesh_ap.offset(1);
+            *fresh5 = ofile;
+            let ref mut fresh6 = (*tf.offset(i as isize)).ofile;
+            *fresh6 = ofile;
+            if stat(ofile, &mut sb) == -(1 as libc::c_int) {
+                memset(
+                    &mut sb as *mut stat as *mut libc::c_void,
+                    0 as libc::c_int,
+                    ::std::mem::size_of::<stat>() as libc::c_ulong,
+                );
+            }
+            (*tf.offset(i as isize)).osize = sb.st_size;
+            /*  mtim_get(&sb, tf[i].omtim);  */
+            (*tf.offset(i as isize)).omtim.tv_sec = sb.st_mtim.tv_sec;
+            (*tf.offset(i as isize)).omtim.tv_nsec = sb.st_mtim.tv_nsec;
+            tfd = sudo_edit_mktemp(ofile, &mut tfile);
+            if tfd == -1 {
+                sudo_warn!(b"mkstemps\0" as *const u8 as *const libc::c_char,);
+                free(tfile as *mut libc::c_void);
+                break 'done;
+            }
+            /* Helper will re-create temp file with proper security context. */
+            close(tfd);
+            unlink(tfile);
+            let fresh7 = sesh_ap;
+            sesh_ap = sesh_ap.offset(1);
+            *fresh7 = tfile;
+            let ref mut fresh8 = (*tf.offset(i as isize)).tfile;
+            *fresh8 = tfile;
+            i += 1;
+        } // ! loop
+        *sesh_ap = 0 as *mut libc::c_char;
+        error = selinux_run_helper(
+            (*command_details).uid,
+            (*command_details).gid,
+            (*command_details).ngroups,
+            (*command_details).groups,
+            sesh_args as *const *mut libc::c_char,
+            (*command_details).envp as *const *mut libc::c_char,
+        );
+        match error {
+            SESH_SUCCESS => {}
+            SESH_ERR_BAD_PATHS => {
+                sudo_fatalx!(
+                    b"sesh: internal error: odd number of paths\0" as *const u8
+                        as *const libc::c_char,
+                );
+            }
+            SESH_ERR_NO_FILES => {
+                sudo_fatalx!(
+                    b"sesh: unable to create temporary files\0" as *const u8 as *const libc::c_char,
+                );
+            }
+            SESH_ERR_KILLED => {
+                sudo_fatalx!(b"sesh: killed by a signal\0" as *const u8 as *const libc::c_char,);
+            }
+            _ => {
+                sudo_fatalx!(
+                    b"sesh: unknown error %d\0" as *const u8 as *const libc::c_char,
+                    error,
+                );
+                break 'done;
+            }
+        } 
+
+        i = 0 as libc::c_int;
+        loop {
+            let mut tfd_0: libc::c_int = open(
+                (*tf.offset(i as isize)).tfile,
+                O_RDONLY | O_NONBLOCK | O_NOFOLLOW,
+            );
+            if tfd_0 == -(1 as libc::c_int) {
+                sudo_warn!(
+                    b"unable to open %s\0" as *const u8 as *const libc::c_char,
+                    (*tf.offset(i as isize)).tfile
+                );
+                break 'done;
+            }
+            if !sudo_check_temp_file(
+                tfd_0,
+                (*tf.offset(i as isize)).tfile,
+                (*command_details).uid,
+                0 as *mut stat,
+            ) {
+                close(tfd_0);
+                break 'done;
+            }
+            if fchown(tfd_0, user_details.uid, user_details.gid) != 0 {
+                sudo_warn!(
+                    b"unable to chown(%s) to %d:%d for editing\0" as *const u8
+                        as *const libc::c_char,
+                    (*tf.offset(i as isize)).tfile,
+                    user_details.uid,
+                    user_details.gid
+                );
+                close(tfd_0);
+                break 'done;
+            }
+            close(tfd_0);
+            i += 1;
+        } // ! loop
+        ret = nfiles;
+
+        break 'done;
+    } // ! 'done loop
+
+    /* Contents of tf will be freed by caller. */
+    free(sesh_args as *mut libc::c_void);
+
+    debug_return_int!(ret);
+}
+
+unsafe extern "C" fn selinux_edit_copy_tfiles(
+    mut command_details: *mut command_details,
+    mut tf: *mut tempfile,
+    mut nfiles: libc::c_int,
+    mut times: *mut timespec,
+) -> libc::c_int {
+    let mut sesh_args: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut sesh_ap: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut i: libc::c_int = 0;
+    let mut _rc: libc::c_int = 0;
+    let mut error: libc::c_int = 0;
+    let mut sesh_nargs: libc::c_int = 0;
+    let mut ret: libc::c_int = 1 as libc::c_int;
+    let mut tfd: libc::c_int = -(1 as libc::c_int);
+    let mut ts: timespec = timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        #[cfg(target_arch = "x86_64")]
+        st_nlink: 0,
+        st_mode: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        st_nlink: 0,
+        st_uid: 0,
+        st_gid: 0,
+        #[cfg(target_arch = "x86_64")]
+        __pad0: 0,
+        st_rdev: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad1: 0,
+        st_size: 0,
+        st_blksize: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad2: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        #[cfg(target_arch = "x86_64")]
+        __glibc_reserved: [0; 3],
+        #[cfg(not(target_arch = "x86_64"))]
+        __glibc_reserved: [0; 2],
+    };
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    if nfiles < 1 {
+        debug_return_int!(0);
+    }
+
+    sesh_nargs = 3 as libc::c_int + nfiles * 2 as libc::c_int + 1 as libc::c_int;
+    sesh_ap = reallocarray(
+        0 as *mut libc::c_void,
+        sesh_nargs as size_t,
+        ::std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+    ) as *mut *mut libc::c_char;
+    sesh_args = sesh_ap;
+    if sesh_args.is_null() {
+        sudo_warnx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        debug_return_int!(-1);
+    }
+    let fresh9 = sesh_ap;
+    sesh_ap = sesh_ap.offset(1);
+    *fresh9 = b"sesh\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+    let fresh10 = sesh_ap;
+    sesh_ap = sesh_ap.offset(1);
+    *fresh10 = b"-e\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+    let fresh11 = sesh_ap;
+    sesh_ap = sesh_ap.offset(1);
+    *fresh11 = b"1\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+    i = 0 as libc::c_int;
+    
+    while i < nfiles {
+        if tfd != -(1 as libc::c_int) {
+            close(tfd);
+        }
+        tfd = open(
+            (*tf.offset(i as isize)).tfile,
+            O_RDONLY | O_NONBLOCK | O_NOFOLLOW,
+        );
+        if tfd == -(1 as libc::c_int) {
+            sudo_warn!(
+                b"unable to open %s\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).tfile
+            );
+            i += 1;
+            continue;
+        }
+        if !sudo_check_temp_file(
+            tfd,
+            (*tf.offset(i as isize)).tfile,
+            user_details.uid,
+            &mut sb,
+        ) {
+            i += 1;
+            continue;
+        }
+        /* mtim_get(&sb, ts); */
+        ts.tv_sec = sb.st_mtim.tv_sec;
+        ts.tv_nsec = sb.st_mtim.tv_nsec;
+        if (*tf.offset(i as isize)).osize == sb.st_size
+            && sudo_timespeccmp!(&((*((tf.offset(i as isize)))).omtim), &ts, ==) != 0
+        {
+            /*
+             * If mtime and size match but the user spent no measurable
+             * time in the editor we can't tell if the file was changed.
+             */
+            if sudo_timespeccmp!(times.offset(0 as libc::c_int as isize), times.offset(1 as libc::c_int as isize), !=)
+                != 0
+            {
+                sudo_warnx!(
+                    b"%s unchanged\0" as *const u8 as *const libc::c_char,
+                    (*tf.offset(i as isize)).ofile
+                );
+                unlink((*tf.offset(i as isize)).tfile);
+                i += 1;
+                continue;
+            }
+        }
+        let fresh12 = sesh_ap;
+        sesh_ap = sesh_ap.offset(1);
+        *fresh12 = (*tf.offset(i as isize)).tfile;
+        let fresh13 = sesh_ap;
+        sesh_ap = sesh_ap.offset(1);
+        *fresh13 = (*tf.offset(i as isize)).ofile;
+        if fchown(tfd, (*command_details).uid, (*command_details).gid) != 0 {
+            sudo_warn!(
+                b"unable to chown(%s) back to %d:%d\0" as *const u8 as *const libc::c_char,
+                (*tf.offset(i as isize)).tfile,
+                (*command_details).uid,
+                (*command_details).gid
+            );
+        }
+    } // ! while i < nfiles
+    *sesh_ap = 0 as *mut libc::c_char;
+    if tfd != -(1 as libc::c_int) {
+        close(tfd);
+    }
+    if sesh_ap.offset_from(sesh_args) as libc::c_long > 3 {
+        /* Run sesh -e 1 <t1> <o1> ... <tn> <on> */
+        error = selinux_run_helper(
+            (*command_details).uid,
+            (*command_details).gid,
+            (*command_details).ngroups,
+            (*command_details).groups,
+            sesh_args as *const *mut libc::c_char,
+            (*command_details).envp as *const *mut libc::c_char,
+        );
+        match error {
+            SESH_SUCCESS => {
+                ret = 0;
+            }
+            SESH_ERR_NO_FILES => {
+                sudo_warnx!(
+                    b"unable to copy temporary files back to their original location\0" as *const u8
+                        as *const libc::c_char,
+                );
+            }
+            SESH_ERR_SOME_FILES => {
+                sudo_warnx!(
+                    b"unable to copy some of the temporary files back to their original location\0"
+                        as *const u8 as *const libc::c_char,
+                );
+            }
+            SESH_ERR_KILLED => {
+                sudo_warnx!(b"sesh: killed by a signal\0" as *const u8 as *const libc::c_char,);
+            }
+            _ => {
+                sudo_warnx!(
+                    b"sesh: unknown error %d\0" as *const u8 as *const libc::c_char,
+                    error
+                );
+            }
+        }
+        if ret != 0 {
+            sudo_warnx!(
+                b"contents of edit session left in %s\0" as *const u8 as *const libc::c_char,
+                edit_tmpdir
+            );
+        }
+    } // !   if sesh_ap.offset_from(
+    free(sesh_args as *mut libc::c_void);
+    debug_return_int!(ret);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_edit(mut command_details: *mut command_details) -> libc::c_int {
+    let mut saved_command_details: command_details = command_details {
+        uid: 0,
+        euid: 0,
+        gid: 0,
+        egid: 0,
+        umask: 0,
+        priority: 0,
+        timeout: 0,
+        ngroups: 0,
+        closefrom: 0,
+        flags: 0,
+        execfd: 0,
+        preserved_fds: preserved_fd_list {
+            tqh_first: 0 as *mut preserved_fd,
+            tqh_last: 0 as *mut *mut preserved_fd,
+        },
+        pw: 0 as *mut passwd,
+        groups: 0 as *mut gid_t,
+        command: 0 as *const libc::c_char,
+        cwd: 0 as *const libc::c_char,
+        login_class: 0 as *const libc::c_char,
+        chroot: 0 as *const libc::c_char,
+        selinux_role: 0 as *const libc::c_char,
+        selinux_type: 0 as *const libc::c_char,
+        utmp_user: 0 as *const libc::c_char,
+        tty: 0 as *const libc::c_char,
+        argv: 0 as *mut *mut libc::c_char,
+        envp: 0 as *mut *mut libc::c_char,
+    };
+    let mut nargv: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut ap: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut files: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut errors: libc::c_int = 0;
+    let mut i: libc::c_int = 0;
+    let mut ac: libc::c_int = 0;
+    let mut nargc: libc::c_int = 0;
+    let mut ret: libc::c_int = 0;
+    let mut editor_argc: libc::c_int = 0 as libc::c_int;
+    let mut nfiles: libc::c_int = 0 as libc::c_int;
+    let mut times: [timespec; 2] = [timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    }; 2];
+    let mut tf: *mut tempfile = 0 as *mut tempfile;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    'clean: loop {
+        if !set_tmpdir(command_details) {
+            break 'clean;
+        }
+        /*
+         * Set real, effective and saved uids to root.
+         * We will change the euid as needed below.
+         */
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+            b"setuid(%u)\0" as *const u8 as *const libc::c_char,
+            ROOT_UID
+        );
+        if setuid(ROOT_UID as __uid_t) != 0 {
+            sudo_warn!(
+                b"unable to change uid to root (%u)\0" as *const u8 as *const libc::c_char,
+                ROOT_UID
+            );
+            break 'clean;
+        }
+        /*
+         * The user's editor must be separated from the files to be
+         * edited by a "--" option.
+         */
+        ap = (*command_details).argv;
+        while !(*ap).is_null() {
+            if !files.is_null() {
+                nfiles += 1;
+            } else if strcmp(*ap, b"--\0" as *const u8 as *const libc::c_char) == 0 {
+                files = ap.offset(1 as libc::c_int as isize);
+            } else {
+                editor_argc += 1;
+            }
+            ap = ap.offset(1);
+        } // ! while !(*ap).is_null()
+        if nfiles == 0 {
+            sudo_warnx!(
+                b"plugin error: missing file list for sudoedit\0" as *const u8
+                    as *const libc::c_char,
+            );
+            break 'clean;
+        }
+        /* Compute new SELinux security context. */
+        if ISSET!((*command_details).flags, CD_RBAC_ENABLED) != 0 {
+            if selinux_setup(
+                (*command_details).selinux_role,
+                (*command_details).selinux_type,
+                0 as *const libc::c_char,
+                -(1 as libc::c_int),
+                false,
+            ) != 0
+            {
+                break 'clean;
+            }
+        }
+        /* Copy editor files to temporaries. */
+        tf = calloc(
+            nfiles as libc::c_ulong,
+            ::std::mem::size_of::<tempfile>() as libc::c_ulong,
+        ) as *mut tempfile;
+        if tf.is_null() {
+            sudo_warnx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            break 'clean;
+        } //  ! if tf.is_null()
+        if ISSET!((*command_details).flags, CD_RBAC_ENABLED) != 0 {
+            nfiles = selinux_edit_create_tfiles(command_details, tf, files, nfiles);
+        } else {
+            nfiles = sudo_edit_create_tfiles(command_details, tf, files, nfiles);
+        }
+        if nfiles <= 0 {
+            break 'clean;
+        }
+        /*
+         * Allocate space for the new argument vector and fill it in.
+         * We concatenate the editor with its args and the file list
+         * to create a new argv.
+         */
+        nargc = editor_argc + nfiles;
+        nargv = reallocarray(
+            0 as *mut libc::c_void,
+            (nargc + 1 as libc::c_int) as size_t,
+            ::std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+        ) as *mut *mut libc::c_char;
+        if nargv.is_null() {
+            sudo_warnx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            break 'clean;
+        }
+        ac = 0 as libc::c_int;
+        while ac < editor_argc {
+            let ref mut fresh14 = *nargv.offset(ac as isize);
+            *fresh14 = *((*command_details).argv).offset(ac as isize);
+            ac += 1;
+        }
+        i = 0 as libc::c_int;
+        while i < nfiles && ac < nargc {
+            let fresh15 = i;
+            i = i + 1;
+            let fresh16 = ac;
+            ac = ac + 1;
+            let ref mut fresh17 = *nargv.offset(fresh16 as isize);
+            *fresh17 = (*tf.offset(fresh15 as isize)).tfile;
+        }
+        let ref mut fresh18 = *nargv.offset(ac as isize);
+        *fresh18 = 0 as *mut libc::c_char;
+        /*
+         * Run the editor with the invoking user's creds,
+         * keeping track of the time spent in the editor.
+         * XXX - should run editor with user's context
+         */
+        if sudo_gettime_real_v1(&mut *times.as_mut_ptr().offset(0 as libc::c_int as isize))
+            == -(1 as libc::c_int)
+        {
+            sudo_warn!(b"unable to read the clock\0" as *const u8 as *const libc::c_char,);
+            break 'clean;
+        }
+        memcpy(
+            &mut saved_command_details as *mut command_details as *mut libc::c_void,
+            command_details as *const libc::c_void,
+            ::std::mem::size_of::<command_details>() as libc::c_ulong,
+        );
+        (*command_details).uid = user_details.uid;
+        (*command_details).euid = user_details.uid;
+        (*command_details).gid = user_details.gid;
+        (*command_details).egid = user_details.gid;
+        (*command_details).ngroups = user_details.ngroups;
+        (*command_details).groups = user_details.groups;
+        (*command_details).argv = nargv;
+        ret = run_command(command_details);
+        if sudo_gettime_real_v1(&mut *times.as_mut_ptr().offset(1 as libc::c_int as isize))
+            == -(1 as libc::c_int)
+        {
+            sudo_warn!(b"unable to read the clock\0" as *const u8 as *const libc::c_char,);
+            break 'clean;
+        }
+        /* Restore saved command_details. */
+        (*command_details).uid = saved_command_details.uid;
+        (*command_details).euid = saved_command_details.euid;
+        (*command_details).gid = saved_command_details.gid;
+        (*command_details).egid = saved_command_details.egid;
+        (*command_details).ngroups = saved_command_details.ngroups;
+        (*command_details).groups = saved_command_details.groups;
+        (*command_details).argv = saved_command_details.argv;
+        /* Copy contents of temp files to real ones. */
+        if ISSET!((*command_details).flags, CD_RBAC_ENABLED) != 0 {
+            errors = selinux_edit_copy_tfiles(command_details, tf, nfiles, times.as_mut_ptr());
+        } else {
+            errors = sudo_edit_copy_tfiles(command_details, tf, nfiles, times.as_mut_ptr());
+        }
+        if errors != 0 {
+            /* Preserve the edited temporary files. */
+            ret = W_EXITCODE!(1, 0);
+        }
+        i = 0 as libc::c_int;
+        while i < nfiles {
+            free((*tf.offset(i as isize)).tfile as *mut libc::c_void);
+            i += 1;
+        }
+        free(tf as *mut libc::c_void);
+        free(nargv as *mut libc::c_void);
+        debug_return_int!(ret);
+    } // 'clean loop
+
+    if !tf.is_null() {
+        i = 0 as libc::c_int;
+        while i < nfiles {
+            if !((*tf.offset(i as isize)).tfile).is_null() {
+                unlink((*tf.offset(i as isize)).tfile);
+            }
+            free((*tf.offset(i as isize)).tfile as *mut libc::c_void);
+            i += 1;
+        }
+    }
+    free(tf as *mut libc::c_void);
+    free(nargv as *mut libc::c_void);
+    debug_return_int!(W_EXITCODE!(1, 0));
+}
