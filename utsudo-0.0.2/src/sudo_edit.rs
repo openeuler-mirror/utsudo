@@ -1010,4 +1010,20 @@ unsafe extern "C" fn selinux_run_helper(
     debug_return_int!(ret);
 }
 
+unsafe extern "C" fn selinux_edit_create_tfiles(
+    mut command_details: *mut command_details,
+    mut tf: *mut tempfile,
+    mut files: *mut *mut libc::c_char,
+    mut nfiles: libc::c_int,
+) -> libc::c_int {
+
+
+
+
+
+
+
+
+
+}
 
