@@ -1634,12 +1634,17 @@ pub unsafe extern "C" fn sudo_edit(mut command_details: *mut command_details) ->
         debug_return_int!(ret);
     } // 'clean loop
 
-
-
-
-
-
-
-
-
+    if !tf.is_null() {
+        i = 0 as libc::c_int;
+        while i < nfiles {
+            if !((*tf.offset(i as isize)).tfile).is_null() {
+                unlink((*tf.offset(i as isize)).tfile);
+            }
+            free((*tf.offset(i as isize)).tfile as *mut libc::c_void);
+            i += 1;
+        }
+    }
+    free(tf as *mut libc::c_void);
+    free(nargv as *mut libc::c_void);
+    debug_return_int!(W_EXITCODE!(1, 0));
 }
