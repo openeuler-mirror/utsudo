@@ -1061,9 +1061,35 @@ unsafe extern "C" fn selinux_edit_create_tfiles(
         __glibc_reserved: [0; 2],
     };
 
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EDIT);
+    if nfiles < 1 {
+        debug_return_int!(0);
+    }
+    sesh_nargs = 4 + (nfiles * 2) + 1;
+    sesh_ap = reallocarray(
+        0 as *mut libc::c_void,
+        sesh_nargs as size_t,
+        ::std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+    ) as *mut *mut libc::c_char;
+    sesh_args = sesh_ap;
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+    /* Contents of tf will be freed by caller. */
+    free(sesh_args as *mut libc::c_void);
+
+    debug_return_int!(ret);
 }
 
