@@ -1278,8 +1278,31 @@ unsafe extern "C" fn selinux_edit_copy_tfiles(
         debug_return_int!(0);
     }
 
-
-
+    sesh_nargs = 3 as libc::c_int + nfiles * 2 as libc::c_int + 1 as libc::c_int;
+    sesh_ap = reallocarray(
+        0 as *mut libc::c_void,
+        sesh_nargs as size_t,
+        ::std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+    ) as *mut *mut libc::c_char;
+    sesh_args = sesh_ap;
+    if sesh_args.is_null() {
+        sudo_warnx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        debug_return_int!(-1);
+    }
+    let fresh9 = sesh_ap;
+    sesh_ap = sesh_ap.offset(1);
+    *fresh9 = b"sesh\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+    let fresh10 = sesh_ap;
+    sesh_ap = sesh_ap.offset(1);
+    *fresh10 = b"-e\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+    let fresh11 = sesh_ap;
+    sesh_ap = sesh_ap.offset(1);
+    *fresh11 = b"1\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+    i = 0 as libc::c_int;
 
 
 
