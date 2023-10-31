@@ -1016,8 +1016,13 @@ unsafe extern "C" fn selinux_edit_create_tfiles(
     mut files: *mut *mut libc::c_char,
     mut nfiles: libc::c_int,
 ) -> libc::c_int {
-
-
+    let mut sesh_args: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut sesh_ap: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut i: libc::c_int = 0;
+    let mut _rc: libc::c_int = 0;
+    let mut error: libc::c_int = 0;
+    let mut sesh_nargs: libc::c_int = 0;
+    let mut ret: libc::c_int = -(1 as libc::c_int);
 
 
 
