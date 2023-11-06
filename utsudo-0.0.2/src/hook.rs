@@ -14,6 +14,20 @@ extern "C" {
     fn free(__ptr: *mut libc::c_void);
 }
 
+use crate::sudo_debug_printf2_v1;
+pub const SUDO_DEBUG_HOOKS: libc::c_int = 6 << 6;
+use utsudo_util::debug_decl;
+use utsudo_util::debug_decl_vars;
+use utsudo_util::debug_return;
+use utsudo_util::debug_return_int;
+use utsudo_util::sudo_debug::sudo_debug_enter_v1;
+use utsudo_util::sudo_debug::sudo_debug_exit_int_v1;
+use utsudo_util::sudo_debug::sudo_debug_exit_v1;
+use utsudo_util::sudo_debug_macro::sudo_debug_subsys;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_ERROR;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_LINENO;
+use utsudo_util::sudo_debug_printf;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_hook_entry {
