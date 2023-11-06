@@ -1151,6 +1151,23 @@ unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
         }
     }
     del_io_events(false);
+
+    /* Free I/O buffers. */
+    loop {
+        iob = SLIST_FIRST!(iobufs);
+        if iob.is_null() {
+            break;
+        }
+        iobufs.slh_first = (*iobufs.slh_first).entries.sle_next;
+        if !((*iob).revent).is_null() {
+            sudo_ev_free_v1((*iob).revent);
+        }
+        if !((*iob).wevent).is_null() {
+            sudo_ev_free_v1((*iob).wevent);
+        }
+        free(iob as *mut libc::c_void);
+        break;
+    }
 }
 
 /*
