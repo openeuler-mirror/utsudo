@@ -1133,3 +1133,23 @@ unsafe extern "C" fn io_buf_new(
 
     debug_return!();
 }
+
+/*
+ * We already closed the slave pty so reads from the master will not block.
+ */
+unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
+    let mut iob: *mut io_buffer = 0 as *mut io_buffer;
+    let mut n: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    /* Flush any remaining output (the plugin already got it). */
+    if io_fds[SFD_USERTTY as usize] != -(1 as libc::c_int) {
+        n = fcntl(io_fds[SFD_USERTTY as usize], F_GETFL, 0);
+        if n != -1 && ISSET!(n, O_NONBLOCK) != 0 {
+            CLR!(n, O_NONBLOCK);
+            fcntl(io_fds[SFD_USERTTY as usize], F_SETFL, n);
+        }
+    }
+    del_io_events(false);
+}
+
