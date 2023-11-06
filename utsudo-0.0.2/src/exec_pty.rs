@@ -1151,5 +1151,82 @@ unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
         }
     }
     del_io_events(false);
+
+    /* Free I/O buffers. */
+    loop {
+        iob = SLIST_FIRST!(iobufs);
+        if iob.is_null() {
+            break;
+        }
+        iobufs.slh_first = (*iobufs.slh_first).entries.sle_next;
+        if !((*iob).revent).is_null() {
+            sudo_ev_free_v1((*iob).revent);
+        }
+        if !((*iob).wevent).is_null() {
+            sudo_ev_free_v1((*iob).wevent);
+        }
+        free(iob as *mut libc::c_void);
+        break;
+    }
+    if io_fds[SFD_USERTTY as usize] != -(1 as libc::c_int) {
+        sudo_term_restore_v1(io_fds[SFD_USERTTY as usize], false);
+    }
+
+    /* Update utmp */
+    if !utmp_user.is_null() {
+        utmp_logout(
+            ptyname.as_mut_ptr(),
+            if (*cstat).type_0 == CMD_WSTATUS {
+                (*cstat).val
+            } else {
+                0
+            },
+        );
+    }
+    debug_return!();
 }
 
+/*
+ * Send command status to the monitor (signal or window size change).
+ */
+ unsafe extern "C" fn send_command_status(
+    mut ec: *mut exec_closure_pty,
+    mut type_0: libc::c_int,
+    mut val: libc::c_int,
+) {
+    let mut msg: *mut monitor_message = 0 as *mut monitor_message;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    msg = calloc(
+        1 as libc::c_ulong,
+        std::mem::size_of::<monitor_message>() as libc::c_ulong,
+    ) as *mut monitor_message;
+    if msg.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    (*msg).cstat.type_0 = type_0;
+    (*msg).cstat.val = val;
+    (*msg).entries.tqe_next = 0 as *mut monitor_message;
+    (*msg).entries.tqe_prev = (*ec).monitor_messages.tqh_last;
+    *(*ec).monitor_messages.tqh_last = msg;
+    (*ec).monitor_messages.tqh_last = &mut (*msg).entries.tqe_next;
+
+    if sudo_ev_add_v2(
+        (*ec).evbase,
+        (*ec).fwdchannel_event,
+        0 as *mut timespec,
+        true,
+    ) == -(1 as libc::c_int)
+    {
+        sudo_fatal!(b"unable to add event to queue\0" as *const u8 as *const libc::c_char,);
+    }
+
+    /* Restart event loop to send the command immediately. */
+    sudo_ev_loopcontinue_v1((*ec).evbase);
+
+    debug_return!();
+}

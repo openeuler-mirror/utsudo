@@ -14,6 +14,20 @@ extern "C" {
     fn free(__ptr: *mut libc::c_void);
 }
 
+use crate::sudo_debug_printf2_v1;
+pub const SUDO_DEBUG_HOOKS: libc::c_int = 6 << 6;
+use utsudo_util::debug_decl;
+use utsudo_util::debug_decl_vars;
+use utsudo_util::debug_return;
+use utsudo_util::debug_return_int;
+use utsudo_util::sudo_debug::sudo_debug_enter_v1;
+use utsudo_util::sudo_debug::sudo_debug_exit_int_v1;
+use utsudo_util::sudo_debug::sudo_debug_exit_v1;
+use utsudo_util::sudo_debug_macro::sudo_debug_subsys;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_ERROR;
+use utsudo_util::sudo_debug_macro::SUDO_DEBUG_LINENO;
+use utsudo_util::sudo_debug_printf;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_hook_entry {
@@ -57,6 +71,60 @@ pub type sudo_hook_fn_getenv_t = Option<
     ) -> libc::c_int,
 >;
 pub type sudo_hook_fn_unsetenv_t = Option<unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> libc::c_int>;
+
+#[no_mangle]
+pub unsafe extern "C" fn process_hooks_unsetenv(mut name: *const libc::c_char) -> libc::c_int {
+    let mut hook: *mut sudo_hook_entry = 0 as *mut sudo_hook_entry;
+    let mut rc: libc::c_int = 0 as libc::c_int;
+
+    hook = sudo_hook_unsetenv_list.slh_first;
+    while !hook.is_null() {
+        rc = ((*hook).u.unsetenv_fn).expect("non the func point")(name, (*hook).closure);
+        if rc == 1 || rc == -1 {
+            break;
+        }
+
+        hook = (*hook).entries.sle_next;
+    }
+    return rc;
+}
+
+unsafe extern "C" fn register_hook_internal(
+    mut head: *mut sudo_hook_list,
+    mut hook_fn: Option<unsafe extern "C" fn() -> libc::c_int>,
+    mut closure: *mut libc::c_void,
+) -> libc::c_int {
+    let mut hook: *mut sudo_hook_entry = 0 as *mut sudo_hook_entry;
+    //define debug_decl(register_hook_internal,SUDO_DEBUG_HOOKS)
+    debug_decl!(register_hook_internal, SUDO_DEBUG_HOOKS);
+    //end of define;
+
+    hook = calloc(
+        1 as size_t,
+        ::std::mem::size_of::<sudo_hook_entry>() as size_t,
+    ) as *mut sudo_hook_entry;
+    if hook.is_null() {
+        //define sudo_debug_printf(SUDO_DEBUG_ERROR|SUDO_DEBUG_LINENO,"unable to allocate memory");
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        //end of define;
+
+        //define debug_return_int(-1);
+        debug_return_int!(-1);
+        //end of define;
+    }
+    (*hook).u.generic_fn = hook_fn;
+    (*hook).closure = closure;
+
+    (*hook).entries.sle_next = (*head).slh_first;
+    (*head).slh_first = hook;
+
+    //define debug_return_int(0);
+    debug_return_int!(0);
+    //end of define;
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn register_hook(mut hook: *mut sudo_hook) -> libc::c_int {
