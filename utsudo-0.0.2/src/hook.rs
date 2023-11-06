@@ -72,6 +72,22 @@ pub type sudo_hook_fn_getenv_t = Option<
 >;
 pub type sudo_hook_fn_unsetenv_t = Option<unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> libc::c_int>;
 
+#[no_mangle]
+pub unsafe extern "C" fn process_hooks_unsetenv(mut name: *const libc::c_char) -> libc::c_int {
+    let mut hook: *mut sudo_hook_entry = 0 as *mut sudo_hook_entry;
+    let mut rc: libc::c_int = 0 as libc::c_int;
+
+    hook = sudo_hook_unsetenv_list.slh_first;
+    while !hook.is_null() {
+        rc = ((*hook).u.unsetenv_fn).expect("non the func point")(name, (*hook).closure);
+        if rc == 1 || rc == -1 {
+            break;
+        }
+
+        hook = (*hook).entries.sle_next;
+    }
+    return rc;
+}
 
 unsafe extern "C" fn register_hook_internal(
     mut head: *mut sudo_hook_list,
