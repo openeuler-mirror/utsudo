@@ -1192,4 +1192,25 @@ unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
             b"unable to allocate memory\0" as *const u8 as *const libc::c_char
         );
     }
+    (*msg).cstat.type_0 = type_0;
+    (*msg).cstat.val = val;
+    (*msg).entries.tqe_next = 0 as *mut monitor_message;
+    (*msg).entries.tqe_prev = (*ec).monitor_messages.tqh_last;
+    *(*ec).monitor_messages.tqh_last = msg;
+    (*ec).monitor_messages.tqh_last = &mut (*msg).entries.tqe_next;
+
+    if sudo_ev_add_v2(
+        (*ec).evbase,
+        (*ec).fwdchannel_event,
+        0 as *mut timespec,
+        true,
+    ) == -(1 as libc::c_int)
+    {
+        sudo_fatal!(b"unable to add event to queue\0" as *const u8 as *const libc::c_char,);
+    }
+
+    /* Restart event loop to send the command immediately. */
+    sudo_ev_loopcontinue_v1((*ec).evbase);
+
+    debug_return!();
 }
