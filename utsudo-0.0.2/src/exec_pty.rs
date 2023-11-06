@@ -1168,6 +1168,22 @@ unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
         free(iob as *mut libc::c_void);
         break;
     }
+    if io_fds[SFD_USERTTY as usize] != -(1 as libc::c_int) {
+        sudo_term_restore_v1(io_fds[SFD_USERTTY as usize], false);
+    }
+
+    /* Update utmp */
+    if !utmp_user.is_null() {
+        utmp_logout(
+            ptyname.as_mut_ptr(),
+            if (*cstat).type_0 == CMD_WSTATUS {
+                (*cstat).val
+            } else {
+                0
+            },
+        );
+    }
+    debug_return!();
 }
 
 /*
