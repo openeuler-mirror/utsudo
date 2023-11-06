@@ -1153,3 +1153,26 @@ unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
     del_io_events(false);
 }
 
+/*
+ * Send command status to the monitor (signal or window size change).
+ */
+ unsafe extern "C" fn send_command_status(
+    mut ec: *mut exec_closure_pty,
+    mut type_0: libc::c_int,
+    mut val: libc::c_int,
+) {
+    let mut msg: *mut monitor_message = 0 as *mut monitor_message;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    msg = calloc(
+        1 as libc::c_ulong,
+        std::mem::size_of::<monitor_message>() as libc::c_ulong,
+    ) as *mut monitor_message;
+    if msg.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+}
