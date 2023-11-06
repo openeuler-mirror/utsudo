@@ -62,3 +62,13 @@ pub unsafe extern "C" fn execvpe(
     *__errno_location() = EACCES as libc::c_int;
     return -(1 as libc::c_int);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn fexecve(
+    mut _a1: libc::c_int,
+    mut _a2: *const *mut libc::c_char,
+    mut _a3: *const *mut libc::c_char,
+) -> libc::c_int {
+    *__errno_location() = EACCES as libc::c_int;
+    return -(1 as libc::c_int);
+}
