@@ -1258,7 +1258,7 @@ unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
             signo,
         );
     }
-    
+
     sudo_debug_printf!(
         SUDO_DEBUG_DIAG,
         b"scheduled SIG%s for command\0" as *const u8 as *const libc::c_char,
@@ -1290,6 +1290,104 @@ unsafe extern "C" fn backchannel_cb(
         std::mem::size_of::<command_status>() as libc::c_ulong,
         MSG_WAITALL,
     );
+
+    match nread {
+        -1 => {
+            match errno!() {
+                EINTR | EAGAIN => { /* Nothing ready. */ }
+                _ => {
+                    if (*(*ec).cstat).val == CMD_INVALID {
+                        (*(*ec).cstat).type_0 = CMD_ERRNO;
+                        (*(*ec).cstat).val = errno!();
+                        sudo_debug_printf!(
+                            SUDO_DEBUG_ERROR,
+                            b"%s: failed to read command status: %s\0" as *const u8
+                                as *const libc::c_char,
+                            stdext::function_name!().as_ptr(),
+                            strerror(errno!())
+                        );
+                        sudo_ev_loopbreak_v1((*ec).evbase);
+                    }
+                }
+            }
+        }
+        0 => {
+            /* EOF, monitor exited or was killed. */
+            sudo_debug_printf!(
+                SUDO_DEBUG_INFO,
+                b"EOF on backchannel, monitor dead?\0" as *const u8 as *const libc::c_char
+            );
+            if (*(*ec).cstat).type_0 == CMD_INVALID {
+                /* XXX - need new CMD_ type for monitor errors. */
+                (*(*ec).cstat).type_0 = CMD_ERRNO;
+                (*(*ec).cstat).val = ECONNRESET;
+            }
+            sudo_ev_loopexit_v1((*ec).evbase);
+        }
+        8 => {
+            /* Check command status. */
+            match cstat.type_0 {
+                CMD_PID => {
+                    (*ec).cmnd_pid = cstat.val;
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_INFO,
+                        b"executed %s, pid %d\0" as *const u8 as *const libc::c_char,
+                        (*(*ec).details).command,
+                        (*ec).cmnd_pid
+                    );
+                }
+                CMD_WSTATUS => {
+                    if WIFSTOPPED!(cstat.val) {
+                        let mut signo: libc::c_int = 0;
+
+                        /* Suspend parent and tell monitor how to resume on return. */
+                        sudo_debug_printf!(
+                            SUDO_DEBUG_INFO,
+                            b"command stopped, suspending parent\0" as *const u8
+                                as *const libc::c_char
+                        );
+                        signo = suspend_sudo(ec, WSTOPSIG!(cstat.val));
+                        schedule_signal(ec, signo);
+                        /* Re-enable I/O events */
+                        add_io_events((*ec).evbase);
+                    } else {
+                        /* Command exited or was killed, either way we are done. */
+                        sudo_debug_printf!(
+                            SUDO_DEBUG_INFO,
+                            b"command exited or was killed\0" as *const u8 as *const libc::c_char
+                        );
+                        sudo_ev_loopexit_v1((*ec).evbase);
+                    }
+                    *(*ec).cstat = cstat;
+                }
+                CMD_ERRNO => {
+                    /* Monitor was unable to execute command or broken pipe. */
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_INFO,
+                        b"errno from monitor: %s\0" as *const u8 as *const libc::c_char,
+                        strerror(cstat.val)
+                    );
+                    sudo_ev_loopbreak_v1((*ec).evbase);
+                    *(*ec).cstat = cstat;
+                }
+                _ => {}
+            }
+        }
+        _ => {
+            /* Short read, should not happen. */
+            if (*(*ec).cstat).val == CMD_INVALID {
+                (*(*ec).cstat).type_0 = CMD_ERRNO;
+                (*(*ec).cstat).val = EIO;
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR,
+                    b"%s: failed to read command status: short read\0" as *const u8
+                        as *const libc::c_char,
+                    stdext::function_name!().as_ptr()
+                );
+                sudo_ev_loopbreak_v1((*ec).evbase);
+            }
+        }
+    }
 
     debug_return!();
 }
