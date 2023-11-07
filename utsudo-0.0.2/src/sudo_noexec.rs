@@ -85,3 +85,16 @@ pub unsafe extern "C" fn posix_spawn(
     *__errno_location() = EACCES as libc::c_int;
     return -(1 as libc::c_int);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn posix_spawnp(
+    mut _a1: *mut pid_t,
+    mut _a2: *const libc::c_char,
+    mut _a3: *const posix_spawn_file_actions_t,
+    mut _a4: *const posix_spawnattr_t,
+    mut _a5: *const *mut libc::c_char,
+    mut _a6: *const *mut libc::c_char,
+) -> libc::c_int {
+    *__errno_location() = EACCES as libc::c_int;
+    return -(1 as libc::c_int);
+}
