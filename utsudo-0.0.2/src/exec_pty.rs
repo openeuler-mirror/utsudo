@@ -1248,3 +1248,27 @@ unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
 
     debug_return!();
 }
+
+unsafe extern "C" fn backchannel_cb(
+    mut fd: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut ec: *mut exec_closure_pty = v as *mut exec_closure_pty;
+    let mut cstat: command_status = command_status { type_0: 0, val: 0 };
+    let mut nread: ssize_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    /*
+     * Read command status from the monitor.
+     * Note that the backchannel is a *blocking* socket.
+     */
+    nread = recv(
+        fd,
+        &mut cstat as *mut command_status as *mut libc::c_void,
+        std::mem::size_of::<command_status>() as libc::c_ulong,
+        MSG_WAITALL,
+    );
+    
+    debug_return!();
+}
