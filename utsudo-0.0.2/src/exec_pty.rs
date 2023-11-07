@@ -1230,3 +1230,21 @@ unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
 
     debug_return!();
 }
+
+/*
+ * Schedule a signal to be forwarded.
+ */
+ unsafe extern "C" fn schedule_signal(mut ec: *mut exec_closure_pty, mut signo: libc::c_int) {
+    let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+ 
+    sudo_debug_printf!(
+        SUDO_DEBUG_DIAG,
+        b"scheduled SIG%s for command\0" as *const u8 as *const libc::c_char,
+        signame.as_mut_ptr()
+    );
+
+    send_command_status(ec, CMD_SIGNO, signo);
+
+    debug_return!();
+}
