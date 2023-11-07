@@ -98,3 +98,18 @@ pub unsafe extern "C" fn posix_spawnp(
     *__errno_location() = EACCES as libc::c_int;
     return -(1 as libc::c_int);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn system(mut _a1: *const libc::c_char) -> libc::c_int {
+    *__errno_location() = EACCES as libc::c_int;
+    return -(1 as libc::c_int);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn popen(
+    mut _c: *const libc::c_char,
+    mut _t: *const libc::c_char,
+) -> *mut FILE {
+    *__errno_location() = EACCES as libc::c_int;
+    return 0 as *mut FILE;
+}
