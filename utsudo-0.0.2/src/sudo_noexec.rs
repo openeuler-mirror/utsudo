@@ -113,3 +113,23 @@ pub unsafe extern "C" fn popen(
     *__errno_location() = EACCES as libc::c_int;
     return 0 as *mut FILE;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn wordexp(
+    mut words: *const libc::c_char,
+    mut we: *mut wordexp_t,
+    mut flags: libc::c_int,
+) -> libc::c_int {
+    let mut fn_0: *mut libc::c_void = dlsym(
+        -(1 as libc::c_long) as *mut libc::c_void,
+        b"wordexp\0" as *const u8 as *const libc::c_char,
+    );
+    if fn_0.is_null() {
+        *__errno_location() = EACCES as libc::c_int;
+        return -(1 as libc::c_int);
+    }
+    return (::core::mem::transmute::<*mut libc::c_void, sudo_fn_wordexp_t>(fn_0))
+        .expect("non-null function pointer")(
+        words, we, flags | WRDE_NOCMD as libc::c_int
+    );
+}
