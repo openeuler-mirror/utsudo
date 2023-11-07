@@ -1238,6 +1238,27 @@ unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
     let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
  
+    if signo == -(2 as libc::c_int) {
+        sudo_strlcpy(
+            signame.as_mut_ptr(),
+            b"CONT_FG\0" as *const u8 as *const libc::c_char,
+            std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+        );
+    } else if signo == SIGCONT_BG {
+        sudo_strlcpy(
+            signame.as_mut_ptr(),
+            b"CONT_BG\0" as *const u8 as *const libc::c_char,
+            std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+        );
+    } else if sudo_sig2str(signo, signame.as_mut_ptr()) == -(1 as libc::c_int) {
+        snprintf(
+            signame.as_mut_ptr(),
+            std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+            b"%d\0" as *const u8 as *const libc::c_char,
+            signo,
+        );
+    }
+    
     sudo_debug_printf!(
         SUDO_DEBUG_DIAG,
         b"scheduled SIG%s for command\0" as *const u8 as *const libc::c_char,
@@ -1269,6 +1290,6 @@ unsafe extern "C" fn backchannel_cb(
         std::mem::size_of::<command_status>() as libc::c_ulong,
         MSG_WAITALL,
     );
-    
+
     debug_return!();
 }
