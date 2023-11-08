@@ -1445,4 +1445,25 @@ unsafe extern "C" fn signal_cb_pty(
     if (*ec).monitor_pid == -(1 as libc::c_int) {
         debug_return!();
     }
+
+    if sudo_sig2str(signo, signame.as_mut_ptr()) == -(1 as libc::c_int) {
+        snprintf(
+            signame.as_mut_ptr(),
+            std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+            b"%d\0" as *const u8 as *const libc::c_char,
+            signo,
+        );
+    }
+    sudo_debug_printf!(
+        SUDO_DEBUG_DIAG,
+        b"%s: evbase %p, monitor: %d, signo %s(%d), cstat %p\0" as *const u8 as *const libc::c_char,
+        stdext::function_name!().as_ptr(),
+        (*ec).evbase,
+        (*ec).monitor_pid,
+        signame.as_mut_ptr(),
+        signo,
+        (*ec).cstat
+    );
+
+    debug_return!();
 }
