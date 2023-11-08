@@ -1391,3 +1391,24 @@ unsafe extern "C" fn backchannel_cb(
 
     debug_return!();
 }
+
+/*
+ * Handle changes to the monitors's status (SIGCHLD).
+ */
+ unsafe extern "C" fn handle_sigchld_pty(mut ec: *mut exec_closure_pty) {
+    let mut n: libc::c_int = 0;
+    let mut status: libc::c_int = 0;
+    let mut pid: pid_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    /*
+     * Monitor process was signaled; wait for it as needed.
+     */
+    loop {
+        pid = waitpid((*ec).monitor_pid, &mut status, WUNTRACED | WNOHANG);
+        if !(pid == -(1 as libc::c_int) && errno!() == EINTR) {
+            break;
+        }
+        break;
+    }
+}
