@@ -1428,6 +1428,48 @@ unsafe extern "C" fn backchannel_cb(
         _ => {}
     }
 
+        /*
+     * If the monitor dies we get notified via backchannel_cb().
+     * If it was stopped, we should stop too (the command keeps
+     * running in its pty) and continue it when we come back.
+     */
+     if WIFSTOPPED!(status) {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"monitor stopped, suspending sudo\0" as *const u8 as *const libc::c_char
+        );
+        n = suspend_sudo(ec, WSTOPSIG!(status));
+        kill(pid, SIGCONT);
+        schedule_signal(ec, n);
+        /* Re-enable I/O events */
+        add_io_events((*ec).evbase);
+    } else if WIFSIGNALED!(status) {
+        let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+        if sudo_sig2str(WTERMSIG!(status), signame.as_mut_ptr()) == -(1 as libc::c_int) {
+            snprintf(
+                signame.as_mut_ptr(),
+                std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                b"%d\0" as *const u8 as *const libc::c_char,
+                WTERMSIG!(status),
+            );
+        }
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: monitor (%d) killed, SIG%s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*ec).monitor_pid,
+            signame.as_mut_ptr()
+        );
+        (*ec).monitor_pid = -(1 as libc::c_int);
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: monitor exited, status %d\0" as *const u8 as *const libc::c_char,
+            WEXITSTATUS!(status)
+        );
+        (*ec).monitor_pid = -(1 as libc::c_int);
+    }
+    
     debug_return!();
 }
 
