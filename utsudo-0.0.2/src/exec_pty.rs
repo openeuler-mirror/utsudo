@@ -1411,6 +1411,24 @@ unsafe extern "C" fn backchannel_cb(
         }
         break;
     }
+
+    match pid {
+        0 | -1 => {
+            if pid == 0 {
+                errno!() = ECHILD;
+            }
+            /* FALLTHROUGH */
+            sudo_warn!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"waitpid\0" as *const u8 as *const libc::c_char
+            );
+            debug_return!();
+        }
+        _ => {}
+    }
+
+    debug_return!();
 }
 
 /* Signal callback */
