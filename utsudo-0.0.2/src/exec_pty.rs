@@ -1412,3 +1412,19 @@ unsafe extern "C" fn backchannel_cb(
         break;
     }
 }
+
+/* Signal callback */
+unsafe extern "C" fn signal_cb_pty(
+    mut signo: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut sc: *mut sudo_ev_siginfo_container = v as *mut sudo_ev_siginfo_container;
+    let mut ec: *mut exec_closure_pty = (*sc).closure as *mut exec_closure_pty;
+    let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    if (*ec).monitor_pid == -(1 as libc::c_int) {
+        debug_return!();
+    }
+}
