@@ -1613,3 +1613,18 @@ unsafe extern "C" fn signal_cb_pty(
     }
 
 }
+
+/*
+ * Fill in the exec closure and setup initial exec events.
+ * Allocates events for the signal pipe and backchannel.
+ * Forwarded signals on the backchannel are enabled on demand.
+ */
+ unsafe extern "C" fn fill_exec_closure_pty(
+    mut ec: *mut exec_closure_pty,
+    mut cstat: *mut command_status,
+    mut details: *mut command_details,
+    mut ppgrp: pid_t,
+    mut backchannel: libc::c_int,
+) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+}
