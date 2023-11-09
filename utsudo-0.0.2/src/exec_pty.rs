@@ -1714,6 +1714,19 @@ unsafe extern "C" fn fill_exec_closure_pty(
             b"unable to allocate memory\0" as *const u8 as *const libc::c_char
         );
     }
-
+    if sudo_ev_add_v2(
+        (*ec).evbase,
+        (*ec).backchannel_event,
+        0 as *mut timespec,
+        false,
+    ) == -1
+    {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"backchannel fd %d\n\0" as *const u8 as *const libc::c_char,
+        backchannel
+    );
     
 }
