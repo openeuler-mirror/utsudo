@@ -1391,3 +1391,121 @@ unsafe extern "C" fn backchannel_cb(
 
     debug_return!();
 }
+
+/*
+ * Handle changes to the monitors's status (SIGCHLD).
+ */
+ unsafe extern "C" fn handle_sigchld_pty(mut ec: *mut exec_closure_pty) {
+    let mut n: libc::c_int = 0;
+    let mut status: libc::c_int = 0;
+    let mut pid: pid_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    /*
+     * Monitor process was signaled; wait for it as needed.
+     */
+    loop {
+        pid = waitpid((*ec).monitor_pid, &mut status, WUNTRACED | WNOHANG);
+        if !(pid == -(1 as libc::c_int) && errno!() == EINTR) {
+            break;
+        }
+        break;
+    }
+
+    match pid {
+        0 | -1 => {
+            if pid == 0 {
+                errno!() = ECHILD;
+            }
+            /* FALLTHROUGH */
+            sudo_warn!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr(),
+                b"waitpid\0" as *const u8 as *const libc::c_char
+            );
+            debug_return!();
+        }
+        _ => {}
+    }
+
+        /*
+     * If the monitor dies we get notified via backchannel_cb().
+     * If it was stopped, we should stop too (the command keeps
+     * running in its pty) and continue it when we come back.
+     */
+     if WIFSTOPPED!(status) {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"monitor stopped, suspending sudo\0" as *const u8 as *const libc::c_char
+        );
+        n = suspend_sudo(ec, WSTOPSIG!(status));
+        kill(pid, SIGCONT);
+        schedule_signal(ec, n);
+        /* Re-enable I/O events */
+        add_io_events((*ec).evbase);
+    } else if WIFSIGNALED!(status) {
+        let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+        if sudo_sig2str(WTERMSIG!(status), signame.as_mut_ptr()) == -(1 as libc::c_int) {
+            snprintf(
+                signame.as_mut_ptr(),
+                std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                b"%d\0" as *const u8 as *const libc::c_char,
+                WTERMSIG!(status),
+            );
+        }
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: monitor (%d) killed, SIG%s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*ec).monitor_pid,
+            signame.as_mut_ptr()
+        );
+        (*ec).monitor_pid = -(1 as libc::c_int);
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: monitor exited, status %d\0" as *const u8 as *const libc::c_char,
+            WEXITSTATUS!(status)
+        );
+        (*ec).monitor_pid = -(1 as libc::c_int);
+    }
+    
+    debug_return!();
+}
+
+/* Signal callback */
+unsafe extern "C" fn signal_cb_pty(
+    mut signo: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut sc: *mut sudo_ev_siginfo_container = v as *mut sudo_ev_siginfo_container;
+    let mut ec: *mut exec_closure_pty = (*sc).closure as *mut exec_closure_pty;
+    let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    if (*ec).monitor_pid == -(1 as libc::c_int) {
+        debug_return!();
+    }
+
+    if sudo_sig2str(signo, signame.as_mut_ptr()) == -(1 as libc::c_int) {
+        snprintf(
+            signame.as_mut_ptr(),
+            std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+            b"%d\0" as *const u8 as *const libc::c_char,
+            signo,
+        );
+    }
+    sudo_debug_printf!(
+        SUDO_DEBUG_DIAG,
+        b"%s: evbase %p, monitor: %d, signo %s(%d), cstat %p\0" as *const u8 as *const libc::c_char,
+        stdext::function_name!().as_ptr(),
+        (*ec).evbase,
+        (*ec).monitor_pid,
+        signame.as_mut_ptr(),
+        signo,
+        (*ec).cstat
+    );
+
+    debug_return!();
+}
