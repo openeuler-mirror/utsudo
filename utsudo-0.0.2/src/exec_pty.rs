@@ -1728,5 +1728,27 @@ unsafe extern "C" fn fill_exec_closure_pty(
         b"backchannel fd %d\n\0" as *const u8 as *const libc::c_char,
         backchannel
     );
+
+    /* Events for local signals. */
+    let ref mut sigint_event0 = (*ec).sigint_event;
+    *sigint_event0 = sudo_ev_alloc_v1(
+        SIGINT,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_pty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigint_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigint_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
     
 }
