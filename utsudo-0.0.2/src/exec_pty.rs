@@ -1507,5 +1507,289 @@ unsafe extern "C" fn signal_cb_pty(
         (*ec).cstat
     );
 
+    match signo {
+        SIGCHLD => {
+            handle_sigchld_pty(ec);
+        }
+        SIGWINCH => {
+            sync_ttysize(ec);
+        }
+        _ => {
+            /*
+             * Do not forward signals sent by a process in the command's process
+             * group, as we don't want the command to indirectly kill itself.
+             * For example, this can happen with some versions of reboot that
+             * call kill(-1, SIGTERM) to kill all other processes.
+             */
+            if USER_SIGNALED!((*sc).siginfo) && (*(*sc).siginfo)._sifields._kill.si_pid != 0 {
+                let mut si_pgrp: pid_t = getpgid((*(*sc).siginfo)._sifields._kill.si_pid);
+                if si_pgrp != -(1 as libc::c_int) {
+                    if si_pgrp == (*ec).ppgrp || si_pgrp == (*ec).cmnd_pid {
+                        debug_return!();
+                    }
+                } else if (*(*sc).siginfo)._sifields._kill.si_pid == (*ec).cmnd_pid {
+                    debug_return!();
+                }
+            }
+            /* Schedule signal to be forwared to the command. */
+            schedule_signal(ec, signo);
+        }
+    }
+
+
     debug_return!();
+}
+
+/*
+ * Forward signals in monitor_messages to the monitor so it can
+ * deliver them to the command.
+ */
+unsafe extern "C" fn fwdchannel_cb(
+    mut sock: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut ec: *mut exec_closure_pty = v as *mut exec_closure_pty;
+    let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+    let mut msg: *mut monitor_message = 0 as *mut monitor_message;
+    let mut nsent: ssize_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC); 
+
+    loop {
+        msg = TAILQ_FIRST!((*ec).monitor_messages);
+        if msg.is_null() {
+            break;
+        }
+        match (*msg).cstat.type_0 {
+            CMD_SIGNO => {
+                if (*msg).cstat.val == SIGCONT_FG {
+                    sudo_strlcpy(
+                        signame.as_mut_ptr(),
+                        b"CONT_FG\0" as *const u8 as *const libc::c_char,
+                        std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                    );
+                } else if (*msg).cstat.val == SIGCONT_BG {
+                    sudo_strlcpy(
+                        signame.as_mut_ptr(),
+                        b"CONT_BG\0" as *const u8 as *const libc::c_char,
+                        std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                    );
+                } else if sudo_sig2str((*msg).cstat.val, signame.as_mut_ptr())
+                    == -(1 as libc::c_int)
+                {
+                    snprintf(
+                        signame.as_mut_ptr(),
+                        std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                        b"%d\0" as *const u8 as *const libc::c_char,
+                        (*msg).cstat.val,
+                    );
+                }
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"sending SIG%s to monitor over backchannel\0" as *const u8
+                        as *const libc::c_char,
+                    signame.as_mut_ptr()
+                );
+            }
+            CMD_TTYWINCH => {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"sending window size change to monitor over backchannelL %d x %d\0"
+                        as *const u8 as *const libc::c_char,
+                    (*msg).cstat.val & 0xffff,
+                    (*msg).cstat.val >> 16 & 0xffff
+                );
+            }
+            _ => {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"sending cstat type %d, value %d to monitor over backchannel\0" as *const u8
+                        as *const libc::c_char,
+                    (*msg).cstat.type_0,
+                    (*msg).cstat.val
+                );
+            }
+        }
+
+        //TAILQ_REMOVE(&ec->monitor_messages, msg, entries);
+        if !((*msg).entries.tqe_next).is_null() {
+            (*(*msg).entries.tqe_next).entries.tqe_prev = (*msg).entries.tqe_prev;
+        } else {
+            (*ec).monitor_messages.tqh_last = (*msg).entries.tqe_prev;
+        }
+        *(*msg).entries.tqe_prev = (*msg).entries.tqe_next;
+
+        nsent = send(
+            sock,
+            &mut (*msg).cstat as *mut command_status as *const libc::c_void,
+            std::mem::size_of::<command_status>() as libc::c_ulong,
+            0,
+        );
+
+        if nsent as libc::c_ulong != std::mem::size_of::<command_status>() as libc::c_ulong {
+            if errno!() == EPIPE {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR,
+                    b"broken pipe writing to monitor over backchannel\0" as *const u8
+                        as *const libc::c_char
+                );
+            }
+            free(msg as *mut libc::c_void);
+            loop {
+                msg = TAILQ_FIRST!((*ec).monitor_messages);
+                if msg.is_null() {
+                    break;
+                }
+                //TAILQ_REMOVE(&ec->monitor_messages, msg, entries);
+                if !((*msg).entries.tqe_next).is_null() {
+                    (*(*msg).entries.tqe_next).entries.tqe_prev = (*msg).entries.tqe_prev;
+                } else {
+                    (*ec).monitor_messages.tqh_last = (*msg).entries.tqe_prev;
+                }
+                *(*msg).entries.tqe_prev = (*msg).entries.tqe_next;
+                free(msg as *mut libc::c_void);
+            }
+            /* XXX - need new CMD_ type for monitor errors. */
+            (*(*ec).cstat).type_0 = CMD_ERRNO;
+            (*(*ec).cstat).val = errno!();
+            sudo_ev_loopbreak_v1((*ec).evbase);
+        }
+        free(msg as *mut libc::c_void);
+        break;
+    }
+
+}
+
+/*
+ * Fill in the exec closure and setup initial exec events.
+ * Allocates events for the signal pipe and backchannel.
+ * Forwarded signals on the backchannel are enabled on demand.
+ */
+unsafe extern "C" fn fill_exec_closure_pty(
+    mut ec: *mut exec_closure_pty,
+    mut cstat: *mut command_status,
+    mut details: *mut command_details,
+    mut ppgrp: pid_t,
+    mut backchannel: libc::c_int,
+) {
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    /* Fill in the non-event part of the closure. */
+    (*ec).cmnd_pid = -(1 as libc::c_int);
+    (*ec).ppgrp = ppgrp;
+    (*ec).cstat = cstat;
+    (*ec).details = details;
+    (*ec).rows = user_details.ts_rows as libc::c_short;
+    (*ec).cols = user_details.ts_cols as libc::c_short;
+    //TAILQ_INIT!((*ec).monitor_messages);
+    (*ec).monitor_messages.tqh_first = 0 as *mut monitor_message;
+    (*ec).monitor_messages.tqh_last = &mut (*ec).monitor_messages.tqh_first;
+
+    /* Setup event base and events. */
+    let ref mut evbase0 = (*ec).evbase;
+    *evbase0 = sudo_ev_base_alloc_v1();
+    if (*ec).evbase.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+
+    /* Event for command status via backchannel. */
+    let ref mut backchannel_event0 = (*ec).backchannel_event;
+    *backchannel_event0 = sudo_ev_alloc_v1(
+        backchannel,
+        (SUDO_EV_READ | SUDO_EV_PERSIST) as libc::c_short,
+        Some(
+            backchannel_cb
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if ((*ec).backchannel_event).is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2(
+        (*ec).evbase,
+        (*ec).backchannel_event,
+        0 as *mut timespec,
+        false,
+    ) == -1
+    {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"backchannel fd %d\n\0" as *const u8 as *const libc::c_char,
+        backchannel
+    );
+
+    /* Events for local signals. */
+    let ref mut sigint_event0 = (*ec).sigint_event;
+    *sigint_event0 = sudo_ev_alloc_v1(
+        SIGINT,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_pty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigint_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigint_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+
+    let ref mut sigquit_event0 = (*ec).sigquit_event;
+    *sigquit_event0 = sudo_ev_alloc_v1(
+        SIGQUIT,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_pty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigquit_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigquit_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
+    
+    let ref mut sigtstp_event0 = (*ec).sigtstp_event;
+    *sigtstp_event0 = sudo_ev_alloc_v1(
+        SIGTSTP,
+        SUDO_EV_SIGINFO as libc::c_short,
+        Some(
+            signal_cb_pty
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if (*ec).sigtstp_event.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if sudo_ev_add_v2((*ec).evbase, (*ec).sigtstp_event, 0 as *mut timespec, false) == -1 {
+        sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
+    }
 }
