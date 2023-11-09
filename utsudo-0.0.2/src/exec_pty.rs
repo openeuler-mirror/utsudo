@@ -1627,4 +1627,15 @@ unsafe extern "C" fn signal_cb_pty(
     mut backchannel: libc::c_int,
 ) {
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    /* Fill in the non-event part of the closure. */
+    (*ec).cmnd_pid = -(1 as libc::c_int);
+    (*ec).ppgrp = ppgrp;
+    (*ec).cstat = cstat;
+    (*ec).details = details;
+    (*ec).rows = user_details.ts_rows as libc::c_short;
+    (*ec).cols = user_details.ts_cols as libc::c_short;
+    //TAILQ_INIT!((*ec).monitor_messages);
+    (*ec).monitor_messages.tqh_first = 0 as *mut monitor_message;
+    (*ec).monitor_messages.tqh_last = &mut (*ec).monitor_messages.tqh_first;
 }
