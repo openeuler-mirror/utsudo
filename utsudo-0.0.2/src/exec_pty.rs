@@ -1544,7 +1544,7 @@ unsafe extern "C" fn signal_cb_pty(
  * Forward signals in monitor_messages to the monitor so it can
  * deliver them to the command.
  */
- unsafe extern "C" fn fwdchannel_cb(
+unsafe extern "C" fn fwdchannel_cb(
     mut sock: libc::c_int,
     mut what: libc::c_int,
     mut v: *mut libc::c_void,
@@ -1665,7 +1665,7 @@ unsafe extern "C" fn signal_cb_pty(
  * Allocates events for the signal pipe and backchannel.
  * Forwarded signals on the backchannel are enabled on demand.
  */
- unsafe extern "C" fn fill_exec_closure_pty(
+unsafe extern "C" fn fill_exec_closure_pty(
     mut ec: *mut exec_closure_pty,
     mut cstat: *mut command_status,
     mut details: *mut command_details,
@@ -1684,4 +1684,36 @@ unsafe extern "C" fn signal_cb_pty(
     //TAILQ_INIT!((*ec).monitor_messages);
     (*ec).monitor_messages.tqh_first = 0 as *mut monitor_message;
     (*ec).monitor_messages.tqh_last = &mut (*ec).monitor_messages.tqh_first;
+
+    /* Setup event base and events. */
+    let ref mut evbase0 = (*ec).evbase;
+    *evbase0 = sudo_ev_base_alloc_v1();
+    if (*ec).evbase.is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+
+    /* Event for command status via backchannel. */
+    let ref mut backchannel_event0 = (*ec).backchannel_event;
+    *backchannel_event0 = sudo_ev_alloc_v1(
+        backchannel,
+        (SUDO_EV_READ | SUDO_EV_PERSIST) as libc::c_short,
+        Some(
+            backchannel_cb
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if ((*ec).backchannel_event).is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+
+    
 }
