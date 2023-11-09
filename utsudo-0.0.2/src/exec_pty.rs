@@ -1507,5 +1507,35 @@ unsafe extern "C" fn signal_cb_pty(
         (*ec).cstat
     );
 
+    match signo {
+        SIGCHLD => {
+            handle_sigchld_pty(ec);
+        }
+        SIGWINCH => {
+            sync_ttysize(ec);
+        }
+        _ => {
+            /*
+             * Do not forward signals sent by a process in the command's process
+             * group, as we don't want the command to indirectly kill itself.
+             * For example, this can happen with some versions of reboot that
+             * call kill(-1, SIGTERM) to kill all other processes.
+             */
+            if USER_SIGNALED!((*sc).siginfo) && (*(*sc).siginfo)._sifields._kill.si_pid != 0 {
+                let mut si_pgrp: pid_t = getpgid((*(*sc).siginfo)._sifields._kill.si_pid);
+                if si_pgrp != -(1 as libc::c_int) {
+                    if si_pgrp == (*ec).ppgrp || si_pgrp == (*ec).cmnd_pid {
+                        debug_return!();
+                    }
+                } else if (*(*sc).siginfo)._sifields._kill.si_pid == (*ec).cmnd_pid {
+                    debug_return!();
+                }
+            }
+            /* Schedule signal to be forwared to the command. */
+            schedule_signal(ec, signo);
+        }
+    }
+
+
     debug_return!();
 }
