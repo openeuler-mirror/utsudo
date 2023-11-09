@@ -1560,6 +1560,56 @@ unsafe extern "C" fn signal_cb_pty(
         if msg.is_null() {
             break;
         }
+        match (*msg).cstat.type_0 {
+            CMD_SIGNO => {
+                if (*msg).cstat.val == SIGCONT_FG {
+                    sudo_strlcpy(
+                        signame.as_mut_ptr(),
+                        b"CONT_FG\0" as *const u8 as *const libc::c_char,
+                        std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                    );
+                } else if (*msg).cstat.val == SIGCONT_BG {
+                    sudo_strlcpy(
+                        signame.as_mut_ptr(),
+                        b"CONT_BG\0" as *const u8 as *const libc::c_char,
+                        std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                    );
+                } else if sudo_sig2str((*msg).cstat.val, signame.as_mut_ptr())
+                    == -(1 as libc::c_int)
+                {
+                    snprintf(
+                        signame.as_mut_ptr(),
+                        std::mem::size_of::<[libc::c_char; 32]>() as libc::c_ulong,
+                        b"%d\0" as *const u8 as *const libc::c_char,
+                        (*msg).cstat.val,
+                    );
+                }
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"sending SIG%s to monitor over backchannel\0" as *const u8
+                        as *const libc::c_char,
+                    signame.as_mut_ptr()
+                );
+            }
+            CMD_TTYWINCH => {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"sending window size change to monitor over backchannelL %d x %d\0"
+                        as *const u8 as *const libc::c_char,
+                    (*msg).cstat.val & 0xffff,
+                    (*msg).cstat.val >> 16 & 0xffff
+                );
+            }
+            _ => {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"sending cstat type %d, value %d to monitor over backchannel\0" as *const u8
+                        as *const libc::c_char,
+                    (*msg).cstat.type_0,
+                    (*msg).cstat.val
+                );
+            }
+        }
     }
 
 }
