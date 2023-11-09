@@ -1555,4 +1555,11 @@ unsafe extern "C" fn signal_cb_pty(
     let mut nsent: ssize_t = 0;
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC); 
 
+    loop {
+        msg = TAILQ_FIRST!((*ec).monitor_messages);
+        if msg.is_null() {
+            break;
+        }
+    }
+
 }

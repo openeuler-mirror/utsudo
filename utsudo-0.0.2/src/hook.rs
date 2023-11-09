@@ -72,6 +72,12 @@ pub type sudo_hook_fn_getenv_t = Option<
 >;
 pub type sudo_hook_fn_unsetenv_t = Option<unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> libc::c_int>;
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_hook_list {
+    pub slh_first: *mut sudo_hook_entry,
+}
+
 static mut sudo_hook_setenv_list: sudo_hook_list = {
     let mut TMP = sudo_hook_list {
         slh_first: 0 as *mut sudo_hook_entry,
