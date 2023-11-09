@@ -1625,6 +1625,37 @@ unsafe extern "C" fn signal_cb_pty(
             std::mem::size_of::<command_status>() as libc::c_ulong,
             0,
         );
+
+        if nsent as libc::c_ulong != std::mem::size_of::<command_status>() as libc::c_ulong {
+            if errno!() == EPIPE {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR,
+                    b"broken pipe writing to monitor over backchannel\0" as *const u8
+                        as *const libc::c_char
+                );
+            }
+            free(msg as *mut libc::c_void);
+            loop {
+                msg = TAILQ_FIRST!((*ec).monitor_messages);
+                if msg.is_null() {
+                    break;
+                }
+                //TAILQ_REMOVE(&ec->monitor_messages, msg, entries);
+                if !((*msg).entries.tqe_next).is_null() {
+                    (*(*msg).entries.tqe_next).entries.tqe_prev = (*msg).entries.tqe_prev;
+                } else {
+                    (*ec).monitor_messages.tqh_last = (*msg).entries.tqe_prev;
+                }
+                *(*msg).entries.tqe_prev = (*msg).entries.tqe_next;
+                free(msg as *mut libc::c_void);
+            }
+            /* XXX - need new CMD_ type for monitor errors. */
+            (*(*ec).cstat).type_0 = CMD_ERRNO;
+            (*(*ec).cstat).val = errno!();
+            sudo_ev_loopbreak_v1((*ec).evbase);
+        }
+        free(msg as *mut libc::c_void);
+        break;
     }
 
 }
