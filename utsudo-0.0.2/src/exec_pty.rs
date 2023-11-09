@@ -1610,6 +1610,21 @@ unsafe extern "C" fn signal_cb_pty(
                 );
             }
         }
+
+        //TAILQ_REMOVE(&ec->monitor_messages, msg, entries);
+        if !((*msg).entries.tqe_next).is_null() {
+            (*(*msg).entries.tqe_next).entries.tqe_prev = (*msg).entries.tqe_prev;
+        } else {
+            (*ec).monitor_messages.tqh_last = (*msg).entries.tqe_prev;
+        }
+        *(*msg).entries.tqe_prev = (*msg).entries.tqe_next;
+
+        nsent = send(
+            sock,
+            &mut (*msg).cstat as *mut command_status as *const libc::c_void,
+            std::mem::size_of::<command_status>() as libc::c_ulong,
+            0,
+        );
     }
 
 }
