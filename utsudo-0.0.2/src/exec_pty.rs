@@ -1539,3 +1539,20 @@ unsafe extern "C" fn signal_cb_pty(
 
     debug_return!();
 }
+
+/*
+ * Forward signals in monitor_messages to the monitor so it can
+ * deliver them to the command.
+ */
+ unsafe extern "C" fn fwdchannel_cb(
+    mut sock: libc::c_int,
+    mut what: libc::c_int,
+    mut v: *mut libc::c_void,
+) {
+    let mut ec: *mut exec_closure_pty = v as *mut exec_closure_pty;
+    let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
+    let mut msg: *mut monitor_message = 0 as *mut monitor_message;
+    let mut nsent: ssize_t = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC); 
+
+}
