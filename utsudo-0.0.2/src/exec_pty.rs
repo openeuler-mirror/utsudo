@@ -1970,3 +1970,26 @@ unsafe extern "C" fn fill_exec_closure_pty(
 
     debug_return!();
 }
+
+/*
+ * Free the dynamically-allocated contents of the exec closure.
+ */
+ unsafe extern "C" fn free_exec_closure_pty(mut ec: *mut exec_closure_pty) {
+    let mut msg: *mut monitor_message = 0 as *mut monitor_message;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
+
+    sudo_ev_base_free_v1((*ec).evbase);
+    sudo_ev_free_v1((*ec).backchannel_event);
+    sudo_ev_free_v1((*ec).fwdchannel_event);
+    sudo_ev_free_v1((*ec).sigint_event);
+    sudo_ev_free_v1((*ec).sigquit_event);
+    sudo_ev_free_v1((*ec).sigtstp_event);
+    sudo_ev_free_v1((*ec).sigterm_event);
+    sudo_ev_free_v1((*ec).sighup_event);
+    sudo_ev_free_v1((*ec).sigalrm_event);
+    sudo_ev_free_v1((*ec).sigusr1_event);
+    sudo_ev_free_v1((*ec).sigusr2_event);
+    sudo_ev_free_v1((*ec).sigchld_event);
+    sudo_ev_free_v1((*ec).sigwinch_event);
+
+ }
