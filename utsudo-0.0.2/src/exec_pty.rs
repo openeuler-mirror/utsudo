@@ -1974,7 +1974,7 @@ unsafe extern "C" fn fill_exec_closure_pty(
 /*
  * Free the dynamically-allocated contents of the exec closure.
  */
- unsafe extern "C" fn free_exec_closure_pty(mut ec: *mut exec_closure_pty) {
+unsafe extern "C" fn free_exec_closure_pty(mut ec: *mut exec_closure_pty) {
     let mut msg: *mut monitor_message = 0 as *mut monitor_message;
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
 
@@ -1992,4 +1992,22 @@ unsafe extern "C" fn fill_exec_closure_pty(
     sudo_ev_free_v1((*ec).sigchld_event);
     sudo_ev_free_v1((*ec).sigwinch_event);
 
- }
+    loop {
+        msg = TAILQ_FIRST!((*ec).monitor_messages);
+        if msg.is_null() {
+            break;
+        }
+        //TAILQ_REMOVE(&ec->monitor_messages, msg, entries);
+        if !((*msg).entries.tqe_next).is_null() {
+            (*(*msg).entries.tqe_next).entries.tqe_prev = (*msg).entries.tqe_prev;
+        } else {
+            (*ec).monitor_messages.tqh_last = (*msg).entries.tqe_prev;
+        }
+        *(*msg).entries.tqe_prev = (*msg).entries.tqe_next;
+
+        free(msg as *mut libc::c_void);
+        break;
+    }
+
+    debug_return!();
+}
