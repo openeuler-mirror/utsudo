@@ -1946,5 +1946,27 @@ unsafe extern "C" fn fill_exec_closure_pty(
         sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
     }
 
+    /* The signal forwarding event gets added on demand. */
+    let ref mut fwdchannel_event0 = (*ec).fwdchannel_event;
+    *fwdchannel_event0 = sudo_ev_alloc_v1(
+        backchannel,
+        SUDO_EV_WRITE as libc::c_short,
+        Some(
+            fwdchannel_cb
+                as unsafe extern "C" fn(libc::c_int, libc::c_int, *mut libc::c_void) -> (),
+        ),
+        ec as *mut libc::c_void,
+    );
+    if ((*ec).fwdchannel_event).is_null() {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr() as *const libc::c_char,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
 
+    /* Set the default event base. */
+    sudo_ev_base_setdef_v1((*ec).evbase);
+
+    debug_return!();
 }
