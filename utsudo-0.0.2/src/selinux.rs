@@ -133,6 +133,166 @@ static mut se_state: selinux_state = selinux_state {
 use crate::sudo_debug_printf2_v1;
 use stdext::function_name;
 
+#[no_mangle]
+pub unsafe extern "C" fn get_exec_context(
+    mut old_context: security_context_t,
+    mut role: *const libc::c_char,
+    mut types: *const libc::c_char,
+) -> security_context_t {
+    let mut new_context: security_context_t = 0 as security_context_t;
+    let mut context: context_t = 0 as context_t;
+    let mut typebuf: *mut libc::c_char = 0 as *mut libc::c_char;
+    //define debug_decl(get_exec_context,SUDO_DEBUG_SELINUX)
+    debug_decl!(get_exec_context, SUDO_DEBUG_SELINUX);
+    //end of define
+    'bad: loop {
+        if role.is_null() {
+            //define sudo_warnx(U_("you mast specify a role for type %s"),type);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"you mast specity a role for type %s\0" as *const u8 as *const libc::c_char
+                ),
+                types
+            );
+            sudo_warn_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"you mast specity a role for type %s\0" as *const u8 as *const libc::c_char,
+                ),
+                types,
+            );
+            //end of define
+            *__errno_location() = EINVAL;
+            break 'bad;
+        }
+
+        if types.is_null() {
+            if get_default_type(role, &mut typebuf) != 0 {
+                //define sudo_warnx(U_("unable to get default type for role %s"),role);
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to get default type for role %s\0" as *const u8
+                            as *const libc::c_char
+                    ),
+                    role
+                );
+                sudo_warn_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to get default type for role %s\0" as *const u8
+                            as *const libc::c_char,
+                    ),
+                    role,
+                );
+                //end of define
+                *__errno_location() = EINVAL;
+                break 'bad;
+            }
+            types = typebuf;
+        }
+
+        context = context_new(old_context);
+        if context.is_null() {
+            //define sudo_warn(U_("failed to get new context"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"failed to get new context\0" as *const u8 as *const libc::c_char
+                )
+            );
+            sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"failed to get new context\0" as *const u8 as *const libc::c_char,
+            ));
+            //end of define
+            break 'bad;
+        }
+
+        if context_role_set(context, role) != 0 {
+            //define sudo_warn(U_("fail to set new role %s"),role);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"failed to set new role %s\0" as *const u8 as *const libc::c_char
+                ),
+                role
+            );
+            sudo_warn_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"failed to set new role %s\0" as *const u8 as *const libc::c_char,
+                ),
+                role,
+            );
+            //end of define
+            break 'bad;
+        }
+
+        if context_type_set(context, types) != 0 {
+            //define sudo_warn(U_("fail to set new type %s"),types);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"fail to set new type %s\0" as *const u8 as *const libc::c_char
+                ),
+                types
+            );
+            sudo_warn_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"failed to set new type %s\0" as *const u8 as *const libc::c_char,
+                ),
+                types,
+            );
+            //end of define
+            break 'bad;
+        }
+
+        new_context = strdup(context_str(context));
+        if new_context.is_null() {
+            //define sudo_warnx(U_("%s:%s"),__func__,U_("unable to allocate memory"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s : %s\0" as *const u8 as *const libc::c_char
+                ),
+                function_name!(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                )
+            );
+            sudo_warn_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s :%s\0" as *const u8 as *const libc::c_char,
+                ),
+                function_name!(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                ),
+            );
+            //end of define
+            break 'bad;
+        }
+
+      //???????????
+
+        break 'bad;
+    } //loop bad
+
+ //???????????
+}
+
 
 #[no_mangle]
 pub unsafe extern "C" fn selinux_setup(
