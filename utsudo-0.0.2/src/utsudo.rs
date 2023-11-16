@@ -666,6 +666,16 @@ unsafe extern "C" fn stat(
         return __xstat(0 as libc::c_int, __path, __statbuf); 
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn os_init_common(
+    mut _argc: libc::c_int,
+    mut _argv: *mut *mut libc::c_char,
+    mut _envp: *mut *mut libc::c_char,
+) -> libc::c_int {
+    gc_init();
+    return 0 as libc::c_int;
+}
+
 /*
  * Return user information as an array of name=value pairs.
  * and fill in struct user_details (which shares the same strings).
