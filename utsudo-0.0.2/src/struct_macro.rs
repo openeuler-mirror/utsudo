@@ -658,6 +658,80 @@ pub struct TAILQ_ENTRY_preserved_fd {
     pub tqe_prev: *mut *mut preserved_fd,
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct stat {
+    pub st_dev: __dev_t,
+    pub st_ino: __ino_t,
+    #[cfg(target_arch = "x86_64")]
+    pub st_nlink: __nlink_t,
+    pub st_mode: __mode_t,
+    #[cfg(not(target_arch = "x86_64"))]
+    pub st_nlink: __nlink_t,
+    pub st_uid: __uid_t,
+    pub st_gid: __gid_t,
+    #[cfg(target_arch = "x86_64")]
+    pub __pad0: libc::c_int,
+    pub st_rdev: __dev_t,
+    #[cfg(not(target_arch = "x86_64"))]
+    pub __pad1: __dev_t,
+    pub st_size: __off_t,
+    pub st_blksize: __blksize_t,
+    #[cfg(not(target_arch = "x86_64"))]
+    pub __pad2: libc::c_int,
+    pub st_blocks: __blkcnt_t,
+    pub st_atim: timespec,
+    pub st_mtim: timespec,
+    pub st_ctim: timespec,
+    #[cfg(target_arch = "x86_64")]
+    pub __glibc_reserved: [__syscall_slong_t; 3],
+    #[cfg(not(target_arch = "x86_64"))]
+    pub __glibc_reserved: [libc::c_int; 2],
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct plugin_container_list {
+    pub tqh_first: *mut plugin_container,
+    pub tqh_last: *mut *mut plugin_container,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct plugin_container {
+    pub entries: TAILQ_ENTRY_plugin_container,
+    pub debug_files: *mut sudo_conf_debug_file_list,
+    pub name: *mut libc::c_char,
+    pub path: *mut libc::c_char,
+    pub options: *mut *mut libc::c_char,
+    pub handle: *mut libc::c_void,
+    pub debug_instance: libc::c_int,
+    pub u: plugin_container_u,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct TAILQ_ENTRY_plugin_container {
+    pub tqe_next: *mut plugin_container,
+    pub tqe_prev: *mut *mut plugin_container,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conf_debug_file_list {
+    pub tqh_first: *mut sudo_debug_file,
+    pub tqh_last: *mut *mut sudo_debug_file,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_debug_file {
+    pub entries: TAILQ_ENTRY_sudo_debug_file,
+    pub debug_file: *mut libc::c_char,
+    pub debug_flags: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct TAILQ_ENTRY_sudo_debug_file {
+    pub tqe_next: *mut sudo_debug_file,
+    pub tqe_prev: *mut *mut sudo_debug_file,
+}
 // #define	_PATH_TTY	"/dev/tty"
 #[macro_export]
 macro_rules! _PATH_TTY {
