@@ -1010,6 +1010,124 @@ unsafe extern "C" fn get_user_info(mut ud: *mut user_details) -> *mut *mut libc:
     debug_return_ptr!(0 as *mut *mut libc::c_char)
 }
 
+
+unsafe extern "C" fn sudo_check_suid(mut sudo: *const libc::c_char) {
+    let mut pathbuf: [libc::c_char; 4096] = [0; 4096];
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        #[cfg(target_arch = "x86_64")]
+        st_nlink: 0,
+        st_mode: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        st_nlink: 0,
+        st_uid: 0,
+        st_gid: 0,
+        #[cfg(target_arch = "x86_64")]
+        __pad0: 0,
+        st_rdev: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad1: 0,
+        st_size: 0,
+        st_blksize: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad2: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        #[cfg(target_arch = "x86_64")]
+        __glibc_reserved: [0; 3],
+        #[cfg(not(target_arch = "x86_64"))]
+        __glibc_reserved: [0; 2],
+    };
+    let mut qualified: bool = false;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    if geteuid() != ROOT_UID as libc::c_uint {
+        /* Search for sudo binary in PATH if not fully qualified. */
+        qualified = !(strchr(sudo, '/' as i32)).is_null();
+        if !qualified {
+            let mut path: *mut libc::c_char =
+                getenv_unhooked(b"PATH\0" as *const u8 as *const libc::c_char);
+
+            if !path.is_null() {
+                let mut cp: *const libc::c_char = 0 as *const libc::c_char;
+                let mut ep: *const libc::c_char = 0 as *const libc::c_char;
+
+                let mut pathend: *const libc::c_char = path.offset(strlen(path) as isize);
+                cp = sudo_strsplit_v1(
+                    path,
+                    pathend,
+                    b":\0" as *const u8 as *const libc::c_char,
+                    &mut ep,
+                );
+                while !cp.is_null() {
+                    let mut len: libc::c_int = snprintf(
+                        pathbuf.as_mut_ptr(),
+                        ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+                        b"%.*s/%s\0" as *const u8 as *const libc::c_char,
+                        ep.offset_from(cp) as libc::c_long as libc::c_int,
+                        cp,
+                        sudo,
+                    );
+                    if len < 0 as libc::c_int
+                        || len as libc::c_long
+                            >= ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong
+                                as ssize_t
+                    {
+                        continue;
+                    }
+                    if access(pathbuf.as_mut_ptr(), X_OK) == 0 {
+                        sudo = pathbuf.as_mut_ptr();
+                        qualified = true;
+                        break;
+                    }
+                } // ! while !cp.is_null()
+            } // ! if !path.is_null()
+        } //  ! if !qualified
+
+        if qualified as libc::c_int != 0 && stat(sudo, &mut sb) == 0 {
+            /* Try to determine why sudo was not running as root. */
+            if sb.st_uid != ROOT_UID as libc::c_uint
+                || ISSET!(sb.st_mode, S_ISUID as libc::c_uint) == 0
+            {
+                sudo_fatalx!(
+                    b"%s must be owned by uid %d and have the setuid bit set\0" as *const u8
+                        as *const libc::c_char,
+                    sudo,
+                    ROOT_UID
+                );
+            } else {
+                sudo_fatalx!(
+                    b"effective uid is not %d, is %s on a file system 
+							   with the 'nosuid' option set or an NFS file system without
+							    root privileges?\0" as *const u8 as *const libc::c_char,
+                    ROOT_UID,
+                    sudo
+                );
+            }
+        } else {
+            sudo_fatalx!(
+                b"effective uid is not %d, is sudo installed setuid root?\0" as *const u8
+                    as *const libc::c_char,
+                ROOT_UID
+            );
+        }
+    } // ! if geteuid() != ROOT_UID
+
+    debug_return!();
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn set_user_groups(mut details: *mut command_details) -> bool {
     let mut ret: bool = false;
