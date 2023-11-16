@@ -573,6 +573,62 @@ static mut short_opts: [libc::c_char; 43] = unsafe {
     )
 };
 
+unsafe extern "C" fn env_insert(mut e: *mut environment, mut pair: *mut libc::c_char) {
+    //->libc::c_void
+    //define debug_decl(env_insert,SUDO_DEBUG_ARGS) 1<<6
+    debug_decl!(env_insert, SUDO_DEBUG_ARGS);
+    //end of define
+
+    if (*e).env_len + 1 >= (*e).env_size {
+        let mut tmp: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+
+        if (*e).env_size == 0 {
+            (*e).env_size = 16;
+        }
+        tmp = reallocarray(
+            (*e).envp as *mut libc::c_void,
+            (*e).env_size,
+            (2 as size_t).wrapping_mul(::std::mem::size_of::<*mut libc::c_char>() as size_t),
+        ) as *mut *mut libc::c_char;
+        if tmp.is_null() {
+            //define sudo_fatalx(U_(%s:%s),__func__,U_("unable to allocate memory"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s:%s\0" as *const u8 as *const libc::c_char
+                ),
+                function_name!(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                )
+            );
+            sudo_fatalx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                ),
+                function_name!(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                ),
+            );
+            //end of define;
+        }
+        (*e).envp = tmp;
+        (*e).env_size *= 2;
+    }
+
+    //let ref mut fresh 与　*fresh
+    *((*e).envp).offset((*e).env_len.wrapping_add(1) as isize) = pair;
+    *((*e).envp).offset((*e).env_len as isize) = 0 as *mut libc::c_char;
+
+    //define debug_return
+    debug_return!();
+    //end of define
+}
 unsafe extern "C" fn help() {
     let mut lbuf: sudo_lbuf = sudo_lbuf {
         output: None,
