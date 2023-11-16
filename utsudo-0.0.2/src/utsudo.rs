@@ -676,6 +676,121 @@ pub unsafe extern "C" fn os_init_common(
     return 0 as libc::c_int;
 }
 
+unsafe extern "C" fn get_user_groups(mut ud: *mut user_details) -> *mut libc::c_char {
+    // let mut current_block: u64;
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut gid_list: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut glsize: size_t = 0;
+    let mut i: libc::c_int = 0;
+    let mut len: libc::c_int = 0;
+    let mut group_source: libc::c_int = 0;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    (*ud).groups = 0 as *mut gid_t;
+    group_source = sudo_conf_group_source_v1();
+    if group_source != GROUP_SOURCE_DYNAMIC {
+        let mut maxgroups: libc::c_int = sysconf(_SC_NGROUPS_MAX as libc::c_int) as libc::c_int;
+
+        if maxgroups < 0 {
+            maxgroups = NGROUPS_MAX as libc::c_int;
+        }
+        (*ud).ngroups = getgroups(0, 0 as *mut __gid_t);
+        if (*ud).ngroups > 0 {
+            /* Use groups from kernel if not too many or source is static. */
+            if (*ud).ngroups < maxgroups || group_source == GROUP_SOURCE_STATIC {
+                (*ud).groups = reallocarray(
+                    0 as *mut libc::c_void,
+                    (*ud).ngroups as size_t,
+                    ::core::mem::size_of::<gid_t>() as libc::c_ulong,
+                ) as *mut gid_t;
+                if ((*ud).groups).is_null() {
+                    debug_return_str!(gid_list as *mut libc::c_char);
+                }
+
+                if getgroups((*ud).ngroups, (*ud).groups) < 0 {
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                        b"%s: %s: unable to get %d groups via getgroups()\0" as *const u8
+                            as *const libc::c_char,
+                        stdext::function_name!().as_ptr(),
+                        (*ud).username,
+                        (*ud).ngroups
+                    );
+                    free((*ud).groups as *mut libc::c_void);
+                    (*ud).groups = 0 as *mut gid_t;
+                } else {
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_INFO,
+                        b"%s: %s: got %d groups via getgroups()\0" as *const u8
+                            as *const libc::c_char,
+                        stdext::function_name!().as_ptr(),
+                        (*ud).username,
+                        (*ud).ngroups
+                    );
+                }
+            }
+        }
+    }
+    if ((*ud).groups).is_null() {
+        /*
+         * Query group database if kernel list is too small or disabled.
+         * Typically, this is because NFS can only support up to 16 groups.
+         */
+        if fill_group_list(ud) == -(1 as libc::c_int) {
+            debug_return_str!(gid_list as *mut libc::c_char);
+        }
+    }
+
+    /*
+     * Format group list as a comma-separated string of gids.
+     */
+    glsize = (::std::mem::size_of::<[libc::c_char; 8]>() as libc::c_ulong)
+        .wrapping_sub(1 as libc::c_int as libc::c_ulong)
+        .wrapping_add(((*ud).ngroups * (MAX_UID_T_LEN + 1)) as libc::c_ulong);
+    gid_list = malloc(glsize) as *mut libc::c_char;
+    if gid_list.is_null() {
+        debug_return_str!(gid_list as *mut libc::c_char);
+    }
+    memcpy(
+        gid_list as *mut libc::c_void,
+        b"groups=\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+        (::core::mem::size_of::<[libc::c_char; 8]>() as libc::c_ulong)
+            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+    );
+    cp = gid_list
+        .offset(::core::mem::size_of::<[libc::c_char; 8]>() as libc::c_ulong as isize)
+        .offset(-(1 as libc::c_int as isize));
+
+    i = 0 as libc::c_int;
+    while i < (*ud).ngroups {
+        len = snprintf(
+            cp,
+            glsize.wrapping_sub(cp.offset_from(gid_list) as libc::c_long as libc::c_ulong),
+            b"%s%u\0" as *const u8 as *const libc::c_char,
+            if i != 0 {
+                b",\0" as *const u8 as *const libc::c_char
+            } else {
+                b"\0" as *const u8 as *const libc::c_char
+            },
+            *((*ud).groups).offset(i as isize),
+        );
+        if len < 0 as libc::c_int
+            || len as size_t
+                >= glsize.wrapping_sub(cp.offset_from(gid_list) as libc::c_long as libc::c_ulong)
+        {
+            sudo_fatalx!(
+                b"internal error, %s overflow\0" as *const u8 as *const libc::c_char,
+                stdext::function_name!().as_ptr()
+            );
+        }
+        cp = cp.offset(len as isize);
+        i += 1;
+    }
+
+    //  done:
+    debug_return_str!(gid_list as *mut libc::c_char);
+}
+
 /*
  * Return user information as an array of name=value pairs.
  * and fill in struct user_details (which shares the same strings).
