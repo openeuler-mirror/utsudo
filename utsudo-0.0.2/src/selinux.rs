@@ -285,14 +285,43 @@ pub unsafe extern "C" fn get_exec_context(
             break 'bad;
         }
 
-      //???????????
+        if security_check_context(new_context) == -1 {
+            //define sudo_warnx(U_("%s is not a valid context"),new_context);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s is not a valid context\0" as *const u8 as *const libc::c_char
+                ),
+                new_context
+            );
+            sudo_warn_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s is not a valid context\0" as *const u8 as *const libc::c_char,
+                ),
+                new_context,
+            );
+            //end of define
+            *__errno_location() = EINVAL;
+            break 'bad;
+        }
 
+        context_free(context);
+        //define debug_return_str(new_context);
+        debug_return_str!(new_context);
+        //end of define
         break 'bad;
     } //loop bad
 
- //???????????
-}
+    free(typebuf as *mut libc::c_void);
+    context_free(context);
+    freecon(new_context);
 
+    //define  debug_return_str(NULL);
+    debug_return_str!(0 as *mut libc::c_char);
+    //end of define
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn selinux_setup(
