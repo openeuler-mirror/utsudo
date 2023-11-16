@@ -676,7 +676,314 @@ unsafe extern "C" fn help() {
     }
     sudo_lbuf_print_v1(&mut lbuf);
     usage(0 as libc::c_int);
-     /* ??????????? */
 
-}
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"\nOptions:\n\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
 
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -A, --askpass                 %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"use a helper program for password prompting\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -b, --background              %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"run command in the background\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -B, --bell                    %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"ring bell when prompting\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -C, --close-from=num          %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"close all file descriptors >= num\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -E, --preserve-env            %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"preserve user environment when running command\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"      --preserve-env=list       %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"preserve specific environment variables\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -e, --edit                    %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"edit files instead of running a command\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -g, --group=group             %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"run command as the specified group name or ID\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -H, --set-home                %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"set HOME variable to target user's home dir\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -h, --help                    %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"display help message and exit\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -h, --host=host               %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"run command on host (if supported by plugin)\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -i, --login                   %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"run login shell as the target user; a command may also be specified\0" as *const u8
+                as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -K, --remove-timestamp        %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"remove timestamp file completely\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -k, --reset-timestamp         %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"invalidate timestamp file\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -l, --list                    %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"list user's privileges or check a specific command; use twice for longer format\0"
+                as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -n, --non-interactive         %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"non-interactive mode, no prompts are used\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -P, --preserve-groups         %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"preserve group vector instead of setting to target's\0" as *const u8
+                as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -p, --prompt=prompt           %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"use the specified password prompt\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -r, --role=role               %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"create SELinux security context with specified role\0" as *const u8
+                as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -S, --stdin                   %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"read password from standard input\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -s, --shell                   %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"run shell as the target user; a command may also be specified\0" as *const u8
+                as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -t, --type=type               %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"create SELinux security context with specified type\0" as *const u8
+                as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -T, --command-timeout=timeout %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"terminate command after the specified time limit\0" as *const u8
+                as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -U, --other-user=user         %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"in list mode, display privileges for user\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -u, --user=user               %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"run command (or edit file) as specified user name or ID\0" as *const u8
+                as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -V, --version                 %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"display version information and exit\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  -v, --validate                %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"update user's timestamp without running a command\0" as *const u8
+                as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_append_v1(
+        &mut lbuf as *mut sudo_lbuf,
+        b"  --                            %s\n\0" as *const u8 as *const libc::c_char,
+        dcgettext(
+            0 as *const libc::c_char,
+            b"stop processing command line arguments\0" as *const u8 as *const libc::c_char,
+            5 as libc::c_int,
+        ),
+    );
+
+    sudo_lbuf_print_v1(&mut lbuf);
+    sudo_lbuf_destroy_v1(&mut lbuf);
+
+    sudo_debug_exit_int_v1(
+        (*::std::mem::transmute::<&[u8; 5], &[libc::c_char; 5]>(b"help\0")).as_ptr(),
+        b"parse_args.rs\0" as *const u8 as *const libc::c_char,
+        line!() as libc::c_int,
+        sudo_debug_subsys,
+        0 as libc::c_int,
+    );
+    exit(0 as libc::c_int);
+} //end of function help
