@@ -105,7 +105,6 @@ use utsudo_util::sudo_debug_printf;
 use utsudo_util::sudo_debug_macro::SUDO_DEBUG_ERROR;
 use utsudo_util::sudo_debug_macro::SUDO_DEBUG_WARN;
 
-
 #[no_mangle]
 pub unsafe extern "C" fn get_net_ifs(mut addrinfo: *mut *mut libc::c_char) -> libc::c_int {
     let mut ifa: *mut ifaddrs = 0 as *mut ifaddrs;
@@ -147,7 +146,7 @@ pub unsafe extern "C" fn get_net_ifs(mut addrinfo: *mut *mut libc::c_char) -> li
         }
         ifa = (*ifa).ifa_next;
     } //end of while
-    //wait write line 153
+      //wait write line 153
     'done: loop {
         if num_interfaces == 0 {
             break 'done;
@@ -307,4 +306,3 @@ pub unsafe extern "C" fn get_net_ifs(mut addrinfo: *mut *mut libc::c_char) -> li
     debug_return_int!(num_interfaces);
     //end of define
 }
-

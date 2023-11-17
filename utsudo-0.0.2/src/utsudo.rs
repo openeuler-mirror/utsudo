@@ -660,10 +660,10 @@ unsafe extern "C" fn stat(
     mut __path: *const libc::c_char,
     mut __statbuf: *mut stat,
 ) -> libc::c_int {
-        #[cfg(target_arch = "x86_64")]
-        return __xstat(1 as libc::c_int, __path, __statbuf);
-        #[cfg(not(target_arch = "x86_64"))]
-        return __xstat(0 as libc::c_int, __path, __statbuf); 
+    #[cfg(target_arch = "x86_64")]
+    return __xstat(1 as libc::c_int, __path, __statbuf);
+    #[cfg(not(target_arch = "x86_64"))]
+    return __xstat(0 as libc::c_int, __path, __statbuf);
 }
 
 #[no_mangle]
@@ -674,6 +674,67 @@ pub unsafe extern "C" fn os_init_common(
 ) -> libc::c_int {
     gc_init();
     return 0 as libc::c_int;
+}
+
+/*
+ * Allocate space for groups and fill in using sudo_getgrouplist2()
+ * for when we cannot (or don't want to) use getgroups().
+ * Returns 0 on success and -1 on failure.
+ */
+unsafe extern "C" fn fill_group_list(mut ud: *mut user_details) -> libc::c_int {
+    let mut ret: libc::c_int = -(1 as libc::c_int);
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    /*
+     * If user specified a max number of groups, use it, otherwise let
+     * sudo_getgrouplist2() allocate the group vector.
+     */
+    (*ud).ngroups = sudo_conf_max_groups_v1();
+
+    if (*ud).ngroups > 0 {
+        (*ud).groups = reallocarray(
+            0 as *mut libc::c_void,
+            (*ud).ngroups as size_t,
+            ::core::mem::size_of::<gid_t>() as libc::c_ulong,
+        ) as *mut gid_t;
+        if !((*ud).groups).is_null() {
+            /* No error on insufficient space if user specified max_groups. */
+            sudo_getgrouplist2_v1(
+                (*ud).username,
+                (*ud).gid,
+                &mut (*ud).groups,
+                &mut (*ud).ngroups,
+            );
+            ret = 0 as libc::c_int;
+        }
+    } else {
+        (*ud).groups = 0 as *mut gid_t;
+        ret = sudo_getgrouplist2_v1(
+            (*ud).username,
+            (*ud).gid,
+            &mut (*ud).groups,
+            &mut (*ud).ngroups,
+        );
+    }
+    if ret == -(1 as libc::c_int) {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+            b"%s: %s: unable to get groups via sudo_getgrouplist2()\0" as *const u8
+                as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*ud).username
+        );
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: %s: got %d groups via sudo_getgrouplist2()\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            (*ud).username,
+            (*ud).ngroups
+        );
+    }
+
+    debug_return_int!(ret);
 }
 
 unsafe extern "C" fn get_user_groups(mut ud: *mut user_details) -> *mut libc::c_char {
@@ -1134,7 +1195,6 @@ unsafe extern "C" fn get_user_info(mut ud: *mut user_details) -> *mut *mut libc:
     free(user_info as *mut libc::c_void);
     debug_return_ptr!(0 as *mut *mut libc::c_char)
 }
-
 
 unsafe extern "C" fn sudo_check_suid(mut sudo: *const libc::c_char) {
     let mut pathbuf: [libc::c_char; 4096] = [0; 4096];

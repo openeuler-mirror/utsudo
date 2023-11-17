@@ -5,9 +5,6 @@
  */
 #![allow(unused_variables, clashing_extern_declarations)]
 use crate::struct_macro::*;
-use utsudo_util::sudo_debug::*;
-use utsudo_util::sudo_debug_macro::*;
-use utsudo_util::*;
 use crate::ISSET;
 use crate::USER_SIGNALED;
 use crate::WEXITSTATUS;
@@ -16,6 +13,9 @@ use crate::WIFSTOPPED;
 use crate::WSTOPSIG;
 use crate::WTERMSIG;
 use crate::_PATH_TTY;
+use utsudo_util::sudo_debug::*;
+use utsudo_util::sudo_debug_macro::*;
+use utsudo_util::*;
 extern "C" {
     fn read(__fd: libc::c_int, __buf: *mut libc::c_void, __nbytes: size_t) -> ssize_t;
     fn close(__fd: libc::c_int) -> libc::c_int;
@@ -101,7 +101,6 @@ extern "C" {
     fn sudo_fatalx_nodebug_v1(fmt: *const libc::c_char, _: ...);
     fn sudo_fatal_nodebug_v1(fmt: *const libc::c_char, _: ...);
 }
-
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -555,7 +554,6 @@ unsafe extern "C" fn fill_exec_closure_nopty(
     sudo_ev_base_setdef_v1((*ec).evbase);
     debug_return!();
 }
-
 
 /*
  * Free the dynamically-allocated contents of the exec closure.

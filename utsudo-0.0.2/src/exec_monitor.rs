@@ -9,11 +9,8 @@
     clashing_extern_declarations,
     unreachable_patterns
 )]
-use crate::struct_macro::*;
-use utsudo_util::sudo_debug::*;
-use utsudo_util::sudo_debug_macro::*;
-use utsudo_util::*;
 use crate::errno;
+use crate::struct_macro::*;
 use crate::ISSET;
 use crate::SIG_IGN;
 use crate::USER_SIGNALED;
@@ -23,6 +20,9 @@ use crate::WIFSIGNALED;
 use crate::WIFSTOPPED;
 use crate::WSTOPSIG;
 use crate::WTERMSIG;
+use utsudo_util::sudo_debug::*;
+use utsudo_util::sudo_debug_macro::*;
+use utsudo_util::*;
 
 pub const WCONTINUED: libc::c_int = 8;
 
@@ -436,7 +436,6 @@ unsafe extern "C" fn mon_handle_sigchld(mut mc: *mut monitor_closure) {
     }
     debug_return!();
 }
-
 
 unsafe extern "C" fn mon_signal_cb(
     mut signo: libc::c_int,

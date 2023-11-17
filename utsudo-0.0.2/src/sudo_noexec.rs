@@ -25,7 +25,6 @@ pub struct sched_param {
 pub type sudo_fn_wordexp_t =
     Option<unsafe extern "C" fn(*const libc::c_char, *mut wordexp_t, libc::c_int) -> libc::c_int>;
 
-
 #[no_mangle]
 pub unsafe extern "C" fn execv(
     mut _a1: *const libc::c_char,
