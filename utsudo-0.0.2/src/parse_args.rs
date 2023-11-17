@@ -629,6 +629,30 @@ unsafe extern "C" fn env_insert(mut e: *mut environment, mut pair: *mut libc::c_
     debug_return!();
     //end of define
 }
+unsafe extern "C" fn usage_excl(mut fatal: libc::c_int) {
+    //define debug_decl(env_insert,SUDO_DEBUG_ARGS) 1<<6
+    debug_decl!(usage_excl, SUDO_DEBUG_ARGS);
+    //end of define
+
+    //dedine sudo_warnx(U_("Only one of the -e, -h, -i, -k, -l, -s, -v or -V options may be specified"));
+    sudo_debug_printf!(
+        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+        sudo_warn_gettext_v1(
+            0 as *const libc::c_char,
+            b"Only one of the -e, -h, -i, -k, -l, -s, -v or -V options may be specified\0"
+                as *const u8 as *const libc::c_char
+        )
+    );
+    sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+        0 as *const libc::c_char,
+        b"Only one of the -e, -h, -i, -k, -l, -s, -v or -V options may be specified\0" as *const u8
+            as *const libc::c_char,
+    ));
+    //end of define
+
+    usage(fatal);
+}
+
 unsafe extern "C" fn help() {
     let mut lbuf: sudo_lbuf = sudo_lbuf {
         output: None,
