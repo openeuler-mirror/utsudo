@@ -133,6 +133,105 @@ static mut se_state: selinux_state = selinux_state {
 use crate::sudo_debug_printf2_v1;
 use stdext::function_name;
 
+// 因为原文件有static,所以不需要加#[no_mangle]
+unsafe extern "C" fn audit_role_change(
+    old_context: security_context_t,
+    new_context: security_context_t,
+    mut ttyn: *const libc::c_char,
+    mut result: libc::c_int,
+) -> libc::c_int {
+    let mut au_fd: libc::c_int = 0;
+    let mut rc: libc::c_int = -1;
+    let mut message: *mut libc::c_char = 0 as *mut libc::c_char;
+    //define debug_decl(audit_role_change,SUDO_DEBUG_SELINUX);
+    debug_decl!(audit_role_change, SUDO_DEBUG_SELINUX);
+    //end of define
+    au_fd = audit_open();
+
+    if au_fd == -1 {
+        if *__errno_location() != EINVAL
+            && *__errno_location() != EPROTONOSUPPORT
+            && *__errno_location() != EAFNOSUPPORT
+        {
+            //define sudo_fatal(U_("unable to open audit system"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to open audit system\0" as *const u8 as *const libc::c_char
+                )
+            );
+            sudo_fatal_nodebug_v1(sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to open audit system\0" as *const u8 as *const libc::c_char,
+            ));
+            //end of define
+        }
+    } else {
+        rc = asprintf(
+            &mut message as *mut *mut libc::c_char,
+            b"newrole:old-context=%s new-context=%s\0" as *const u8 as *const libc::c_char,
+            old_context,
+            new_context,
+        );
+        if rc == -1 {
+            //define sudo_fatalx(U_("%s:%s"),__func__,U_("unable to allocate memory"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s: %s\0" as *const u8 as *const libc::c_char
+                ),
+                function_name!(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                )
+            );
+            sudo_fatalx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                ),
+                function_name!(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                ),
+            );
+            //end of define
+        }
+        rc = audit_log_user_message(
+            au_fd,
+            2300,
+            message,
+            0 as *const libc::c_char,
+            0 as *const libc::c_char,
+            ttyn,
+            result,
+        );
+        if rc <= 0 {
+            //define sudo_warn(U_("unable to send audit message"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to send audit message\0" as *const u8 as *const libc::c_char
+                )
+            );
+            sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to send audit message\0" as *const u8 as *const libc::c_char,
+            ));
+            //end of define
+        }
+        free(message as *mut libc::c_void);
+        close(au_fd);
+    };
+    //define debug_return_int(rc);
+    debug_return_int!(rc);
+    //end of define;
+}
 #[no_mangle]
 pub unsafe extern "C" fn get_exec_context(
     mut old_context: security_context_t,
