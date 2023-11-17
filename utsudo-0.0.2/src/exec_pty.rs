@@ -126,7 +126,6 @@ pub struct exec_closure_pty {
     pub monitor_messages: monitor_message_list,
 }
 
-
 #[macro_export]
 macro_rules! TAILQ_EMPTY {
     ($head:expr) => {
@@ -186,10 +185,10 @@ macro_rules! S_ISFIFO {
 
 #[inline]
 unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
-        #[cfg(target_arch = "x86_64")]
-        return __fxstat(1, __fd, __statbuf);
-        #[cfg(not(target_arch = "x86_64"))]
-        return __fxstat(0, __fd, __statbuf);
+    #[cfg(target_arch = "x86_64")]
+    return __fxstat(1, __fd, __statbuf);
+    #[cfg(not(target_arch = "x86_64"))]
+    return __fxstat(0, __fd, __statbuf);
 }
 static mut ptyname: [libc::c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];
 #[no_mangle]
@@ -1189,7 +1188,7 @@ unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
 /*
  * Send command status to the monitor (signal or window size change).
  */
- unsafe extern "C" fn send_command_status(
+unsafe extern "C" fn send_command_status(
     mut ec: *mut exec_closure_pty,
     mut type_0: libc::c_int,
     mut val: libc::c_int,
@@ -1234,10 +1233,10 @@ unsafe extern "C" fn pty_finish(mut cstat: *mut command_status) {
 /*
  * Schedule a signal to be forwarded.
  */
- unsafe extern "C" fn schedule_signal(mut ec: *mut exec_closure_pty, mut signo: libc::c_int) {
+unsafe extern "C" fn schedule_signal(mut ec: *mut exec_closure_pty, mut signo: libc::c_int) {
     let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
     debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
- 
+
     if signo == -(2 as libc::c_int) {
         sudo_strlcpy(
             signame.as_mut_ptr(),
@@ -1395,7 +1394,7 @@ unsafe extern "C" fn backchannel_cb(
 /*
  * Handle changes to the monitors's status (SIGCHLD).
  */
- unsafe extern "C" fn handle_sigchld_pty(mut ec: *mut exec_closure_pty) {
+unsafe extern "C" fn handle_sigchld_pty(mut ec: *mut exec_closure_pty) {
     let mut n: libc::c_int = 0;
     let mut status: libc::c_int = 0;
     let mut pid: pid_t = 0;
@@ -1428,12 +1427,12 @@ unsafe extern "C" fn backchannel_cb(
         _ => {}
     }
 
-        /*
+    /*
      * If the monitor dies we get notified via backchannel_cb().
      * If it was stopped, we should stop too (the command keeps
      * running in its pty) and continue it when we come back.
      */
-     if WIFSTOPPED!(status) {
+    if WIFSTOPPED!(status) {
         sudo_debug_printf!(
             SUDO_DEBUG_INFO,
             b"monitor stopped, suspending sudo\0" as *const u8 as *const libc::c_char
@@ -1469,7 +1468,7 @@ unsafe extern "C" fn backchannel_cb(
         );
         (*ec).monitor_pid = -(1 as libc::c_int);
     }
-    
+
     debug_return!();
 }
 
@@ -1536,7 +1535,6 @@ unsafe extern "C" fn signal_cb_pty(
         }
     }
 
-
     debug_return!();
 }
 
@@ -1553,7 +1551,7 @@ unsafe extern "C" fn fwdchannel_cb(
     let mut signame: [libc::c_char; SIG2STR_MAX as usize] = [0; SIG2STR_MAX as usize];
     let mut msg: *mut monitor_message = 0 as *mut monitor_message;
     let mut nsent: ssize_t = 0;
-    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC); 
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_EXEC);
 
     loop {
         msg = TAILQ_FIRST!((*ec).monitor_messages);
@@ -1657,7 +1655,6 @@ unsafe extern "C" fn fwdchannel_cb(
         free(msg as *mut libc::c_void);
         break;
     }
-
 }
 
 /*
@@ -1771,7 +1768,7 @@ unsafe extern "C" fn fill_exec_closure_pty(
     if sudo_ev_add_v2((*ec).evbase, (*ec).sigquit_event, 0 as *mut timespec, false) == -1 {
         sudo_fatal!(b"unable to add event to queue \0" as *const u8 as *const libc::c_char,);
     }
-    
+
     let ref mut sigtstp_event0 = (*ec).sigtstp_event;
     *sigtstp_event0 = sudo_ev_alloc_v1(
         SIGTSTP,

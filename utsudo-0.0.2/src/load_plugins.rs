@@ -78,10 +78,10 @@ unsafe extern "C" fn stat(
     mut __path: *const libc::c_char,
     mut __statbuf: *mut stat,
 ) -> libc::c_int {
-        #[cfg(target_arch = "x86_64")]
-        return __xstat(1 as libc::c_int, __path, __statbuf);
-        #[cfg(not(target_arch = "x86_64"))]
-        return __xstat(0 as libc::c_int, __path, __statbuf);
+    #[cfg(target_arch = "x86_64")]
+    return __xstat(1 as libc::c_int, __path, __statbuf);
+    #[cfg(not(target_arch = "x86_64"))]
+    return __xstat(0 as libc::c_int, __path, __statbuf);
 }
 
 unsafe extern "C" fn sudo_check_plugin(

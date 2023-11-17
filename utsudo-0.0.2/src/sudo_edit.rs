@@ -5,9 +5,6 @@
  */
 #![allow(unreachable_code, unused_variables, unreachable_patterns)]
 use crate::struct_macro::*;
-use utsudo_util::sudo_debug::*;
-use utsudo_util::sudo_debug_macro::*;
-use utsudo_util::*;
 use crate::ISSET;
 use crate::SET;
 use crate::S_IRGRP;
@@ -19,6 +16,9 @@ use crate::S_IWUSR;
 use crate::WEXITSTATUS;
 use crate::WIFSIGNALED;
 use crate::W_EXITCODE;
+use utsudo_util::sudo_debug::*;
+use utsudo_util::sudo_debug_macro::*;
+use utsudo_util::*;
 //#define	W_OK	2		/* Test for write permission.  */
 pub const W_OK: libc::c_int = 2;
 //# define AT_EACCESS		0x200	/* Test access permitted for effective IDs, not real IDs.  */
@@ -178,18 +178,18 @@ unsafe extern "C" fn stat(
     mut __path: *const libc::c_char,
     mut __statbuf: *mut stat,
 ) -> libc::c_int {
-        #[cfg(target_arch = "x86_64")]
-        return __xstat(1 as libc::c_int, __path, __statbuf);
-        #[cfg(not(target_arch = "x86_64"))]
-        return __xstat(0 as libc::c_int, __path, __statbuf);
+    #[cfg(target_arch = "x86_64")]
+    return __xstat(1 as libc::c_int, __path, __statbuf);
+    #[cfg(not(target_arch = "x86_64"))]
+    return __xstat(0 as libc::c_int, __path, __statbuf);
 }
 
 #[inline]
 unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
-        #[cfg(target_arch = "x86_64")]
-        return __fxstat(1 as libc::c_int, __fd, __statbuf);
-        #[cfg(not(target_arch = "x86_64"))]
-        return __fxstat(0 as libc::c_int, __fd, __statbuf);
+    #[cfg(target_arch = "x86_64")]
+    return __fxstat(1 as libc::c_int, __fd, __statbuf);
+    #[cfg(not(target_arch = "x86_64"))]
+    return __fxstat(0 as libc::c_int, __fd, __statbuf);
 }
 
 static mut edit_tmpdir: [libc::c_char; 10] = [0; 10];
@@ -1169,7 +1169,7 @@ unsafe extern "C" fn selinux_edit_create_tfiles(
                 );
                 break 'done;
             }
-        } 
+        }
 
         i = 0 as libc::c_int;
         loop {
@@ -1303,7 +1303,7 @@ unsafe extern "C" fn selinux_edit_copy_tfiles(
     sesh_ap = sesh_ap.offset(1);
     *fresh11 = b"1\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
     i = 0 as libc::c_int;
-    
+
     while i < nfiles {
         if tfd != -(1 as libc::c_int) {
             close(tfd);

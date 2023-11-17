@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: MulanPSL-2.0
  */
 
-use crate::struct_macro::*;
 use crate::process_hooks_unsetenv;
+use crate::struct_macro::*;
 pub const SUDO_HOOK_RET_STOP: libc::c_int = 1;
 pub const SUDO_HOOK_RET_ERROR: libc::c_int = -1;
 pub type sudo_fn_putenv_t = Option<unsafe extern "C" fn(*mut libc::c_char) -> libc::c_int>;
@@ -274,7 +274,7 @@ unsafe extern "C" fn putenv(mut string: *mut libc::c_char) -> libc::c_int {
     match process_hooks_putenv(string) {
         SUDO_HOOK_RET_STOP => return 0 as libc::c_int,
         SUDO_HOOK_RET_ERROR => return -(1 as libc::c_int),
-        _ => return putenv_unhooked(string), 
+        _ => return putenv_unhooked(string),
     };
 }
 

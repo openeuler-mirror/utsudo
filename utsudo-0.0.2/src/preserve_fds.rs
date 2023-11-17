@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: MulanPSL-2.0
  */
 use crate::struct_macro::*;
+use libc::__errno_location;
+use libc::strerror;
 use utsudo_util::sudo_debug::*;
 use utsudo_util::sudo_debug_macro::*;
 use utsudo_util::*;
-use libc::__errno_location;
-use libc::strerror;
 extern "C" {
     fn malloc(__size: size_t) -> *mut libc::c_void;
     fn fcntl(__fd: libc::c_int, __cmd: libc::c_int, _: ...) -> libc::c_int;

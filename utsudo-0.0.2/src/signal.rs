@@ -5,11 +5,11 @@
  */
 #![allow(unused_imports)]
 use crate::struct_macro::*;
+use crate::sudo_debug_printf2_v1;
+use crate::sudo_warn_nodebug_v1;
 use utsudo_util::sudo_debug::*;
 use utsudo_util::sudo_debug_macro::*;
 use utsudo_util::*;
-use crate::sudo_debug_printf2_v1;
-use crate::sudo_warn_nodebug_v1;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct signal_state {

@@ -35,7 +35,6 @@ pub struct group {
     pub gr_mem: *mut *mut libc::c_char,
 }
 
-
 #[no_mangle]
 pub unsafe extern "C" fn get_pty(
     mut master: *mut libc::c_int,

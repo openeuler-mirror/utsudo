@@ -660,10 +660,10 @@ unsafe extern "C" fn stat(
     mut __path: *const libc::c_char,
     mut __statbuf: *mut stat,
 ) -> libc::c_int {
-        #[cfg(target_arch = "x86_64")]
-        return __xstat(1 as libc::c_int, __path, __statbuf);
-        #[cfg(not(target_arch = "x86_64"))]
-        return __xstat(0 as libc::c_int, __path, __statbuf); 
+    #[cfg(target_arch = "x86_64")]
+    return __xstat(1 as libc::c_int, __path, __statbuf);
+    #[cfg(not(target_arch = "x86_64"))]
+    return __xstat(0 as libc::c_int, __path, __statbuf);
 }
 
 #[no_mangle]
@@ -1134,7 +1134,6 @@ unsafe extern "C" fn get_user_info(mut ud: *mut user_details) -> *mut *mut libc:
     free(user_info as *mut libc::c_void);
     debug_return_ptr!(0 as *mut *mut libc::c_char)
 }
-
 
 unsafe extern "C" fn sudo_check_suid(mut sudo: *const libc::c_char) {
     let mut pathbuf: [libc::c_char; 4096] = [0; 4096];
