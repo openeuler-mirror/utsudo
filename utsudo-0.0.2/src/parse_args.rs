@@ -573,6 +573,493 @@ static mut short_opts: [libc::c_char; 43] = unsafe {
     )
 };
 
+#[no_mangle]
+pub unsafe extern "C" fn parse_args(
+    mut argc: libc::c_int,
+    mut argv: *mut *mut libc::c_char,
+    mut nargc: *mut libc::c_int,
+    mut nargv: *mut *mut *mut libc::c_char,
+    mut settingsp: *mut *mut sudo_settings,
+    mut env_addp: *mut *mut *mut libc::c_char,
+) -> libc::c_int {
+    let mut extra_env: environment = environment {
+        envp: 0 as *mut *mut libc::c_char,
+        env_size: 0,
+        env_len: 0,
+    };
+    let mut mode: libc::c_int = 0 as libc::c_int;
+    let mut flags: libc::c_int = 0 as libc::c_int;
+    let mut valid_flags: libc::c_int = 0x10000 as libc::c_int
+        | 0x400000 as libc::c_int
+        | 0x100000 as libc::c_int
+        | 0x40000 as libc::c_int
+        | 0x800000 as libc::c_int
+        | 0x200000 as libc::c_int
+        | 0x20000 as libc::c_int;
+    let mut ch: libc::c_int = 0;
+    let mut i: libc::c_int = 0;
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut runas_user: *const libc::c_char = 0 as *const libc::c_char;
+    let mut runas_group: *const libc::c_char = 0 as *const libc::c_char;
+    let mut progname: *const libc::c_char = 0 as *const libc::c_char;
+    let mut proglen: libc::c_int = 0;
+    //define debug_decl(env_insert,SUDO_DEBUG_ARGS) 1<<6
+    debug_decl!(parse_args, SUDO_DEBUG_ARGS);
+    //end of define
+    if argc <= 0 as libc::c_int {
+        usage(1 as libc::c_int);
+    }
+    progname = sudo_getprogname();
+    sudo_settings[12 as libc::c_int as usize].value = progname;
+
+    proglen = strlen(progname) as libc::c_int;
+    if proglen > 4 as libc::c_int
+        && strcmp(
+            progname
+                .offset(proglen as isize)
+                .offset(-(4 as libc::c_int as isize)),
+            b"edit\0" as *const u8 as *const libc::c_char,
+        ) == 0 as libc::c_int
+    {
+        progname = b"sudoedit\0" as *const u8 as *const libc::c_char;
+        mode = 0x2 as libc::c_int;
+        sudo_settings[16 as libc::c_int as usize].value =
+            b"true\0" as *const u8 as *const libc::c_char;
+        valid_flags = 0x800000 as libc::c_int;
+    }
+
+    if get_net_ifs(&mut cp) > 0 as libc::c_int {
+        sudo_settings[18 as libc::c_int as usize].value = cp;
+    }
+
+    i = sudo_conf_max_groups_v1();
+
+    if i != -1 {
+        if asprintf(
+            &mut cp as *mut *mut libc::c_char,
+            b"%d\0" as *const u8 as *const libc::c_char,
+            i,
+        ) == -1 as libc::c_int
+        {
+            //define sudo_fatalx(U_("%s: %s"),__func__,U_("unable to allocate memory"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s:%s\0" as *const u8 as *const libc::c_char
+                ),
+                function_name!(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                )
+            );
+            sudo_fatalx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                ),
+                function_name!(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                ),
+            );
+            //end of define
+        }
+        sudo_settings[19 as libc::c_int as usize].value = cp;
+    }
+
+    memset(
+        &mut extra_env as *mut environment as *mut libc::c_void,
+        0 as libc::c_int,
+        ::std::mem::size_of::<environment>() as libc::c_ulong,
+    );
+
+    loop {
+        ch = getopt_long(
+            argc,
+            argv,
+            short_opts.as_ptr(),
+            long_opts.as_mut_ptr(),
+            0 as *mut libc::c_int,
+        );
+        if ch != -(1 as libc::c_int) {
+            match ch {
+                65 => {
+                    tgetpass_flags |= 0x04 as libc::c_int;
+                    continue;
+                }
+                98 => {
+                    flags |= 0x10000 as libc::c_int;
+                    continue;
+                }
+                66 => {
+                    tgetpass_flags |= 0x20 as libc::c_int;
+                    continue;
+                }
+                67 => {
+                    if !optarg.is_null() {
+                    } else {
+                        __assert_fail(
+                        b"optarg != NULL\0" as *const u8 as *const libc::c_char,
+                        b"parse_args.c\0" as *const u8 as *const libc::c_char,
+                        331 as libc::c_int as libc::c_uint,
+                        (*::std::mem::transmute::<
+                            &[u8;81],
+                            &[libc::c_char;81],
+                        >(
+                            b"int parse_args(int, char **, int *, char ***, struct sudo_settings **, char ***)\0",
+                        ))
+                            .as_ptr(),
+                    );
+                    }
+
+                    if sudo_strtonum(
+                        optarg,
+                        3 as libc::c_int as libc::c_longlong,
+                        2147483647 as libc::c_int as libc::c_longlong,
+                        0 as *mut *const libc::c_char,
+                    ) == 0 as libc::c_int as libc::c_longlong
+                    {
+                        //define sudo_warnx(U_("the argument to -C must be a number greater than or equal to 3"));
+                        sudo_debug_printf!(
+                            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                            sudo_warn_gettext_v1(
+                                0 as *const libc::c_char,
+                                b"the argument to -C must be a number greater than or equal to 3\0"
+                                    as *const u8
+                                    as *const libc::c_char
+                            )
+                        );
+                        sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                            0 as *const libc::c_char,
+                            b"the argument to -C must be a number greater than or equal to 3\0"
+                                as *const u8 as *const libc::c_char,
+                        ));
+                        //end of define
+                        usage(1);
+                    }
+                    sudo_settings[17 as libc::c_int as usize].value = optarg;
+                    continue;
+                } //end of match 67
+                68 => {
+                    continue;
+                }
+                69 => {
+                    if optarg.is_null() {
+                        sudo_settings[2 as libc::c_int as usize].value =
+                            b"true\0" as *const u8 as *const libc::c_char;
+                        flags |= 0x400000 as libc::c_int;
+                    } else {
+                        parse_env_list(&mut extra_env, optarg);
+                    }
+                    continue;
+                }
+                101 => {
+                    if mode != 0 && mode != 0x2 as libc::c_int {
+                        usage_excl(1 as libc::c_int);
+                    }
+                    mode = 0x2 as libc::c_int;
+                    sudo_settings[16 as libc::c_int as usize].value =
+                        b"true\0" as *const u8 as *const libc::c_char;
+                    valid_flags = 0x800000 as libc::c_int;
+                    continue;
+                }
+                103 => {
+                    if !optarg.is_null() {
+                    } else {
+                        __assert_fail(
+                        b"optarg != NULL\0" as *const u8 as *const libc::c_char,
+                        b"parse_args.c\0" as *const u8 as *const libc::c_char,
+                        370 as libc::c_int as libc::c_uint,
+                        (*::std::mem::transmute::<
+                            &[u8;81],
+                            &[libc::c_char;81],
+                        >(
+                            b"int parse_args(int, char **, int *, char ***, struct sudo_settings **, char ***)\0",
+                        ))
+                            .as_ptr(),
+                    );
+                    }
+                    if *optarg as libc::c_int == '\u{0}' as i32 {
+                        usage(1 as libc::c_int);
+                    }
+                    runas_group = optarg;
+                    sudo_settings[3 as libc::c_int as usize].value = optarg;
+                    continue;
+                }
+                72 => {
+                    sudo_settings[4 as libc::c_int as usize].value =
+                        b"true\0" as *const u8 as *const libc::c_char;
+                    flags |= 0x100000 as libc::c_int;
+                    continue;
+                }
+                104 => {
+                    if optarg.is_null() {
+                        if optind > 1 as libc::c_int
+                            && *(*argv.offset((optind - 1 as libc::c_int) as isize))
+                                .offset(0 as libc::c_int as isize)
+                                as libc::c_int
+                                == '-' as i32
+                            && *(*argv.offset((optind - 1 as libc::c_int) as isize))
+                                .offset(1 as libc::c_int as isize)
+                                as libc::c_int
+                                == 'h' as i32
+                            && *(*argv.offset((optind - 1 as libc::c_int) as isize))
+                                .offset(2 as libc::c_int as isize)
+                                as libc::c_int
+                                == '\u{0}' as i32
+                            && !(optind < argc
+                                && *(*argv.offset(optind as isize))
+                                    .offset(0 as libc::c_int as isize)
+                                    as libc::c_int
+                                    != '/' as i32
+                                && !(strchr(*argv.offset(optind as isize), '=' as i32)).is_null())
+                            && !(*argv.offset(optind as isize)).is_null()
+                            && *(*argv.offset(optind as isize)).offset(0 as libc::c_int as isize)
+                                as libc::c_int
+                                != '-' as i32
+                        {
+                            let fresh6 = optind;
+                            optind = optind + 1;
+                            sudo_settings[21 as libc::c_int as usize].value =
+                                *argv.offset(fresh6 as isize);
+                            continue;
+                        } else {
+                            if mode != 0 && mode != 0x40 as libc::c_int {
+                                if strcmp(
+                                    progname,
+                                    b"sudoedit\0" as *const u8 as *const libc::c_char,
+                                ) != 0 as libc::c_int
+                                {
+                                    usage_excl(1 as libc::c_int);
+                                }
+                            }
+                            mode = 0x40 as libc::c_int;
+                            valid_flags = 0 as libc::c_int;
+                            continue;
+                        }
+                    }
+                }
+                256 => {}
+
+                105 => {
+                    sudo_settings[6 as libc::c_int as usize].value =
+                        b"true\0" as *const u8 as *const libc::c_char;
+                    flags |= 0x40000 as libc::c_int;
+                    continue;
+                }
+                107 => {
+                    sudo_settings[7 as libc::c_int as usize].value =
+                        b"true\0" as *const u8 as *const libc::c_char;
+                    continue;
+                }
+                75 => {
+                    sudo_settings[7 as libc::c_int as usize].value =
+                        b"true\0" as *const u8 as *const libc::c_char;
+                    if mode != 0 && mode != 0x10 as libc::c_int {
+                        usage_excl(1 as libc::c_int);
+                    }
+                    mode = 0x10 as libc::c_int;
+                    valid_flags = 0 as libc::c_int;
+                    continue;
+                }
+                108 => {
+                    if mode != 0 {
+                        if mode == 0x80 as libc::c_int {
+                            flags |= 0x1000000 as libc::c_int;
+                        } else {
+                            usage_excl(1 as libc::c_int);
+                        }
+                    }
+                    mode = 0x80 as libc::c_int;
+                    valid_flags = 0x800000 as libc::c_int | 0x1000000 as libc::c_int;
+                    continue;
+                }
+                110 => {
+                    flags |= 0x800000 as libc::c_int;
+                    sudo_settings[15 as libc::c_int as usize].value =
+                        b"true\0" as *const u8 as *const libc::c_char;
+                    continue;
+                }
+                80 => {
+                    sudo_settings[14 as libc::c_int as usize].value =
+                        b"true\0" as *const u8 as *const libc::c_char;
+                    flags |= 0x200000 as libc::c_int;
+                    continue;
+                }
+                112 => {
+                    if !optarg.is_null() {
+                    } else {
+                        __assert_fail(
+                        b"optarg != NULL\0" as *const u8 as *const libc::c_char,
+                        b"parse_args.c\0" as *const u8 as *const libc::c_char,
+                        441 as libc::c_int as libc::c_uint,
+                        (*::std::mem::transmute::<
+                            &[u8;81],
+                            &[libc::c_char;81],
+                        >(
+                            b"int parse_args(int, char **, int *, char ***, struct sudo_settings **, char ***)\0",
+                        ))
+                            .as_ptr(),
+                    );
+                    }
+                    sudo_settings[8 as libc::c_int as usize].value = optarg;
+                    continue;
+                }
+
+                114 => {
+                    if !optarg.is_null() {
+                    } else {
+                        __assert_fail(
+                        b"optarg != NULL\0" as *const u8 as *const libc::c_char,
+                        b"parse_args.c\0" as *const u8 as *const libc::c_char,
+                        446 as libc::c_int as libc::c_uint,
+                        (*::std::mem::transmute::<
+                            &[u8;81],
+                            &[libc::c_char;81],
+                        >(
+                            b"int parse_args(int, char **, int *, char ***, struct sudo_settings **, char ***)\0",
+                        ))
+                            .as_ptr(),
+                    );
+                    }
+                    if *optarg as libc::c_int == '\u{0}' as i32 {
+                        usage(1 as libc::c_int);
+                    }
+                    sudo_settings[9 as libc::c_int as usize].value = optarg;
+                    continue;
+                }
+
+                116 => {
+                    if !optarg.is_null() {
+                    } else {
+                        __assert_fail(
+                        b"optarg != NULL\0" as *const u8 as *const libc::c_char,
+                        b"parse_args.c\0" as *const u8 as *const libc::c_char,
+                        452 as libc::c_int as libc::c_uint,
+                        (*::std::mem::transmute::<
+                            &[u8;81],
+                            &[libc::c_char;81],
+                        >(
+                            b"int parse_args(int, char **, int *, char ***, struct sudo_settings **, char ***)\0",
+                        ))
+                            .as_ptr(),
+                    );
+                    }
+                    if *optarg as libc::c_int == '\u{0}' as i32 {
+                        usage(1 as libc::c_int);
+                    }
+                    sudo_settings[10 as libc::c_int as usize].value = optarg;
+                    continue;
+                }
+
+                84 => {
+                    if !optarg.is_null() {
+                    } else {
+                        __assert_fail(
+                        b"optarg != NULL\0" as *const u8 as *const libc::c_char,
+                        b"parse_args.c\0" as *const u8 as *const libc::c_char,
+                        460 as libc::c_int as libc::c_uint,
+                        (*::std::mem::transmute::<
+                            &[u8;81],
+                            &[libc::c_char;81],
+                        >(
+                            b"int parse_args(int, char **, int *, char ***, struct sudo_settings **, char ***)\0",
+                        ))
+                            .as_ptr(),
+                    );
+                    }
+                    sudo_settings[22 as libc::c_int as usize].value = optarg;
+                    continue;
+                }
+
+                83 => {
+                    tgetpass_flags |= 0x2 as libc::c_int;
+                    continue;
+                }
+
+                115 => {
+                    sudo_settings[5 as libc::c_int as usize].value =
+                        b"true\0" as *const u8 as *const libc::c_char;
+                    flags |= 0x20000 as libc::c_int;
+                    continue;
+                }
+
+                85 => {
+                    if !optarg.is_null() {
+                    } else {
+                        __assert_fail(
+                        b"optarg != NULL\0" as *const u8 as *const libc::c_char,
+                        b"parse_args.c\0" as *const u8 as *const libc::c_char,
+                        471 as libc::c_int as libc::c_uint,
+                        (*::std::mem::transmute::<
+                            &[u8;81],
+                            &[libc::c_char;81],
+                        >(
+                            b"int parse_args(int, char **, int *, char ***, struct sudo_settings **, char ***)\0",
+                        ))
+                            .as_ptr(),
+                    );
+                    }
+                    if *optarg as libc::c_int == '\u{0}' as i32 {
+                        usage(1 as libc::c_int);
+                    }
+                    list_user = optarg;
+                    continue;
+                }
+
+                117 => {
+                    if !optarg.is_null() {
+                    } else {
+                        __assert_fail(
+                        b"optarg != NULL\0" as *const u8 as *const libc::c_char,
+                        b"parse_args.c\0" as *const u8 as *const libc::c_char,
+                        477 as libc::c_int as libc::c_uint,
+                        (*::std::mem::transmute::<
+                            &[u8;81],
+                            &[libc::c_char;81],
+                        >(
+                            b"int parse_args(int, char **, int *, char ***, struct sudo_settings **, char ***)\0",
+                        ))
+                            .as_ptr(),
+                    );
+                    }
+                    if *optarg as libc::c_int == '\u{0}' as i32 {
+                        usage(1 as libc::c_int);
+                    }
+                    runas_user = optarg;
+                    sudo_settings[11 as libc::c_int as usize].value = optarg;
+                    continue;
+                }
+
+                118 => {
+                    if mode != 0 && mode != 0x4 as libc::c_int {
+                        usage_excl(1 as libc::c_int);
+                    }
+                    mode = 0x4 as libc::c_int;
+                    valid_flags = 0x800000 as libc::c_int;
+                    continue;
+                }
+
+                86 => {
+                    if mode != 0 && mode != 0x20 as libc::c_int {
+                        usage_excl(1 as libc::c_int);
+                    }
+                    mode = 0x20 as libc::c_int;
+                    valid_flags = 0 as libc::c_int;
+                    continue;
+                }
+
+                _ => {
+                    usage(1 as libc::c_int);
+                    continue;
+                }
+            }
+
+} //end of func
+
 unsafe extern "C" fn env_insert(mut e: *mut environment, mut pair: *mut libc::c_char) {
     //->libc::c_void
     //define debug_decl(env_insert,SUDO_DEBUG_ARGS) 1<<6
