@@ -811,6 +811,61 @@ pub type sudo_conv_t = Option<
         *mut sudo_conv_callback,
     ) -> libc::c_int,
 >;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_hook {
+    pub hook_version: libc::c_uint,
+    pub hook_type: libc::c_uint,
+    pub hook_fn: sudo_hook_fn_t,
+    pub closure: *mut libc::c_void,
+}
+pub type sudo_hook_fn_t = Option<unsafe extern "C" fn() -> libc::c_int>;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct policy_plugin_1_0 {
+    pub type_0: libc::c_uint,
+    pub version: libc::c_uint,
+    pub open: Option<
+        unsafe extern "C" fn(
+            libc::c_uint,
+            sudo_conv_1_7_t,
+            sudo_printf_t,
+            *const *mut libc::c_char,
+            *const *mut libc::c_char,
+            *const *mut libc::c_char,
+        ) -> libc::c_int,
+    >,
+    pub close: Option<unsafe extern "C" fn(libc::c_int, libc::c_int) -> ()>,
+    pub show_version: Option<unsafe extern "C" fn(libc::c_int) -> libc::c_int>,
+    pub check_policy: Option<
+        unsafe extern "C" fn(
+            libc::c_int,
+            *const *mut libc::c_char,
+            *mut *mut libc::c_char,
+            *mut *mut *mut libc::c_char,
+            *mut *mut *mut libc::c_char,
+            *mut *mut *mut libc::c_char,
+        ) -> libc::c_int,
+    >,
+    pub list: Option<
+        unsafe extern "C" fn(
+            libc::c_int,
+            *const *mut libc::c_char,
+            libc::c_int,
+            *const libc::c_char,
+        ) -> libc::c_int,
+    >,
+    pub validate: Option<unsafe extern "C" fn() -> libc::c_int>,
+    pub invalidate: Option<unsafe extern "C" fn(libc::c_int) -> ()>,
+    pub init_session: Option<unsafe extern "C" fn(*mut passwd) -> libc::c_int>,
+}
+pub type sudo_conv_1_7_t = Option<
+    unsafe extern "C" fn(
+        libc::c_int,
+        *const sudo_conv_message,
+        *mut sudo_conv_reply,
+    ) -> libc::c_int,
+>;
 // #define	_PATH_TTY	"/dev/tty"
 #[macro_export]
 macro_rules! _PATH_TTY {

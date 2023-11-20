@@ -1196,6 +1196,472 @@ unsafe extern "C" fn get_user_info(mut ud: *mut user_details) -> *mut *mut libc:
     debug_return_ptr!(0 as *mut *mut libc::c_char)
 }
 
+/*
+ * Convert a command_info array into a command_details structure.
+ */
+unsafe extern "C" fn command_info_to_details(
+    mut info: *const *mut libc::c_char,
+    mut details: *mut command_details,
+) {
+    let mut i: libc::c_int = 0;
+    let mut id: id_t = 0;
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_PCOMM);
+
+    memset(
+        details as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<command_details>() as libc::c_ulong,
+    );
+    (*details).closefrom = -(1 as libc::c_int);
+    (*details).execfd = -(1 as libc::c_int);
+    (*details).flags = CD_SUDOEDIT_CHECKDIR | CD_SET_GROUPS;
+
+    (*details).preserved_fds.tqh_first = 0 as *mut preserved_fd;
+    (*details).preserved_fds.tqh_last = &mut (*details).preserved_fds.tqh_first;
+
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"command info from plugin:\0" as *const u8 as *const libc::c_char
+    );
+    i = 0 as libc::c_int;
+    while !(*info.offset(i as isize)).is_null() {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"    %d: %s\0" as *const u8 as *const libc::c_char,
+            i,
+            *info.offset(i as isize)
+        );
+        //为了可以中途跳出，加一个循环
+        loop {
+            // match *(*info.offset(i as isize)).offset(0 as libc::c_int as isize) as libc::c_int {
+            match *(*info.offset(i as isize)).offset(0 as libc::c_int as isize) as u8 as char {
+                'c' => {
+                    SET_STRING!(
+                        b"chroot=\0" as *const u8 as *const libc::c_char,
+                        (*details).chroot,
+                        8,
+                        *info.offset(i as isize)
+                    );
+                    SET_STRING!(
+                        b"command=\0" as *const u8 as *const libc::c_char,
+                        (*details).command,
+                        9,
+                        *info.offset(i as isize)
+                    );
+                    SET_STRING!(
+                        b"cwd=\0" as *const u8 as *const libc::c_char,
+                        (*details).cwd,
+                        5,
+                        *info.offset(i as isize)
+                    );
+                    if strncmp(
+                        b"closefrom=\0" as *const u8 as *const libc::c_char,
+                        *info.offset(i as isize),
+                        (::std::mem::size_of::<[libc::c_char; 11]>() as libc::c_ulong)
+                            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+                    ) == 0
+                    {
+                        cp = (*info.offset(i as isize))
+                            .offset(::std::mem::size_of::<[libc::c_char; 11]>() as libc::c_ulong
+                                as isize)
+                            .offset(-(1 as libc::c_int as isize));
+                        (*details).closefrom = sudo_strtonum(
+                            cp,
+                            0 as libc::c_int as libc::c_longlong,
+                            INT_MAX!() as libc::c_int as libc::c_longlong,
+                            &mut errstr,
+                        ) as libc::c_int;
+                        if !errstr.is_null() {
+                            sudo_fatalx!(
+                                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                                *info.offset(i as isize),
+                                errstr
+                            );
+                            break;
+                        }
+                    }
+                    break;
+                }
+                'e' => {
+                    SET_FLAG!(
+                        b"exec_background=\0" as *const u8 as *const libc::c_char,
+                        CD_EXEC_BG,
+                        17,
+                        *info.offset(i as isize),
+                        (*details).flags
+                    );
+
+                    if strncmp(
+                        b"execfd=\0" as *const u8 as *const libc::c_char,
+                        *info.offset(i as isize),
+                        (::std::mem::size_of::<[libc::c_char; 8]>() as libc::c_ulong)
+                            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+                    ) == 0
+                    {
+                        cp = (*info.offset(i as isize))
+                            .offset(::std::mem::size_of::<[libc::c_char; 8]>() as libc::c_ulong
+                                as isize)
+                            .offset(-(1 as libc::c_int as isize));
+                        (*details).execfd =
+                            sudo_strtonum(cp, 0, INT_MAX!(), &mut errstr) as libc::c_int;
+                        if !errstr.is_null() {
+                            sudo_fatalx!(
+                                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                                *info.offset(i as isize),
+                                errstr
+                            );
+                        }
+                        /* Must keep fd open during exec. */
+                        add_preserved_fd(&mut (*details).preserved_fds, (*details).execfd);
+                        break;
+                    }
+                    break;
+                }
+                'l' => {
+                    SET_STRING!(
+                        b"login_class=\0" as *const u8 as *const libc::c_char,
+                        (*details).login_class,
+                        13,
+                        *info.offset(i as isize)
+                    );
+                    break;
+                }
+                'n' => {
+                    if strncmp(
+                        b"nice=\0" as *const u8 as *const libc::c_char,
+                        *info.offset(i as isize),
+                        (::std::mem::size_of::<[libc::c_char; 6]>() as libc::c_ulong)
+                            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+                    ) == 0
+                    {
+                        cp = (*info.offset(i as isize))
+                            .offset(::std::mem::size_of::<[libc::c_char; 6]>() as libc::c_ulong
+                                as isize)
+                            .offset(-(1 as libc::c_int as isize));
+                        (*details).priority =
+                            sudo_strtonum(cp, INT_MIN!(), INT_MAX!(), &mut errstr) as libc::c_int;
+                        if !errstr.is_null() {
+                            sudo_fatalx!(
+                                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                                *info.offset(i as isize),
+                                errstr
+                            );
+                        }
+
+                        SET!((*details).flags, CD_SET_PRIORITY);
+                        break;
+                    }
+                    SET_FLAG!(
+                        b"noexec=\0" as *const u8 as *const libc::c_char,
+                        CD_NOEXEC,
+                        8,
+                        *info.offset(i as isize),
+                        (*details).flags
+                    );
+                    break;
+                }
+                'p' => {
+                    SET_FLAG!(
+                        b"preserve_groups=\0" as *const u8 as *const libc::c_char,
+                        CD_PRESERVE_GROUPS,
+                        17,
+                        *info.offset(i as isize),
+                        (*details).flags
+                    );
+                    if strncmp(
+                        b"preserve_fds=\0" as *const u8 as *const libc::c_char,
+                        *info.offset(i as isize),
+                        (::std::mem::size_of::<[libc::c_char; 14]>() as libc::c_ulong)
+                            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+                    ) == 0
+                    {
+                        parse_preserved_fds(
+                            &mut (*details).preserved_fds,
+                            (*info.offset(i as isize))
+                                .offset(
+                                    ::std::mem::size_of::<[libc::c_char; 14]>() as libc::c_ulong
+                                        as isize,
+                                )
+                                .offset(-(1 as libc::c_int as isize)),
+                        );
+                        break;
+                    }
+                    break;
+                }
+                'r' => {
+                    if strncmp(
+                        b"runas_egid=\0" as *const u8 as *const libc::c_char,
+                        *info.offset(i as isize),
+                        (::std::mem::size_of::<[libc::c_char; 12]>() as libc::c_ulong)
+                            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+                    ) == 0
+                    {
+                        cp = (*info.offset(i as isize))
+                            .offset(::std::mem::size_of::<[libc::c_char; 12]>() as libc::c_ulong
+                                as isize)
+                            .offset(-(1 as libc::c_int as isize));
+                        id = sudo_strtoid_v2(cp, &mut errstr);
+                        if !errstr.is_null() {
+                            sudo_fatalx!(
+                                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                                *info.offset(i as isize),
+                                errstr
+                            );
+                        }
+                        (*details).egid = id;
+                        SET!((*details).flags, CD_SET_EGID);
+                        break;
+                    }
+                    if strncmp(
+                        b"runas_euid=\0" as *const u8 as *const libc::c_char,
+                        *info.offset(i as isize),
+                        (::std::mem::size_of::<[libc::c_char; 12]>() as libc::c_ulong)
+                            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+                    ) == 0
+                    {
+                        cp = (*info.offset(i as isize))
+                            .offset(::std::mem::size_of::<[libc::c_char; 12]>() as libc::c_ulong
+                                as isize)
+                            .offset(-(1 as libc::c_int as isize));
+                        id = sudo_strtoid_v2(cp, &mut errstr);
+                        if !errstr.is_null() {
+                            sudo_fatalx!(
+                                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                                *info.offset(i as isize),
+                                errstr
+                            );
+                        }
+
+                        (*details).euid = id;
+                        SET!((*details).flags, CD_SET_EUID);
+                        break;
+                    }
+                    if strncmp(
+                        b"runas_gid=\0" as *const u8 as *const libc::c_char,
+                        *info.offset(i as isize),
+                        (::std::mem::size_of::<[libc::c_char; 11]>() as libc::c_ulong)
+                            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+                    ) == 0
+                    {
+                        cp = (*info.offset(i as isize))
+                            .offset(::std::mem::size_of::<[libc::c_char; 11]>() as libc::c_ulong
+                                as isize)
+                            .offset(-(1 as libc::c_int as isize));
+                        id = sudo_strtoid_v2(cp, &mut errstr);
+                        if !errstr.is_null() {
+                            sudo_fatalx!(
+                                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                                *info.offset(i as isize),
+                                errstr
+                            );
+                        }
+                        (*details).gid = id;
+                        SET!((*details).flags, CD_SET_GID);
+                        break;
+                    }
+                    if strncmp(
+                        b"runas_groups=\0" as *const u8 as *const libc::c_char,
+                        *info.offset(i as isize),
+                        (::std::mem::size_of::<[libc::c_char; 14]>() as libc::c_ulong)
+                            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+                    ) == 0
+                    {
+                        cp = (*info.offset(i as isize))
+                            .offset(::std::mem::size_of::<[libc::c_char; 14]>() as libc::c_ulong
+                                as isize)
+                            .offset(-(1 as libc::c_int as isize));
+                        (*details).ngroups =
+                            sudo_parse_gids_v1(cp, 0 as *const gid_t, &mut (*details).groups);
+                        /* sudo_parse_gids() will print a warning on error. */
+                        if (*details).ngroups == -(1 as libc::c_int) {
+                            exit(EXIT_FAILURE); /* XXX */
+                        }
+                        break;
+                    }
+                    if strncmp(
+                        b"runas_uid=\0" as *const u8 as *const libc::c_char,
+                        *info.offset(i as isize),
+                        (::std::mem::size_of::<[libc::c_char; 11]>() as libc::c_ulong)
+                            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+                    ) == 0
+                    {
+                        cp = (*info.offset(i as isize))
+                            .offset(::std::mem::size_of::<[libc::c_char; 11]>() as libc::c_ulong
+                                as isize)
+                            .offset(-(1 as libc::c_int as isize));
+                        id = sudo_strtoid_v2(cp, &mut errstr);
+                        if !errstr.is_null() {
+                            sudo_fatalx!(
+                                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                                *info.offset(i as isize),
+                                errstr
+                            );
+                        }
+                        (*details).uid = id;
+                        SET!((*details).flags, CD_SET_UID);
+                        break;
+                    }
+                    break;
+                }
+                's' => {
+                    SET_STRING!(
+                        b"selinux_role=\0" as *const u8 as *const libc::c_char,
+                        (*details).selinux_role,
+                        14,
+                        *info.offset(i as isize)
+                    );
+                    SET_STRING!(
+                        b"selinux_type=\0" as *const u8 as *const libc::c_char,
+                        (*details).selinux_type,
+                        14,
+                        *info.offset(i as isize)
+                    );
+                    SET_FLAG!(
+                        b"set_utmp=\0" as *const u8 as *const libc::c_char,
+                        CD_SET_UTMP,
+                        10,
+                        *info.offset(i as isize),
+                        (*details).flags
+                    );
+                    SET_FLAG!(
+                        b"sudoedit=\0" as *const u8 as *const libc::c_char,
+                        CD_SUDOEDIT,
+                        10,
+                        *info.offset(i as isize),
+                        (*details).flags
+                    );
+                    SET_FLAG!(
+                        b"sudoedit_checkdir=\0" as *const u8 as *const libc::c_char,
+                        CD_SUDOEDIT_CHECKDIR,
+                        19,
+                        *info.offset(i as isize),
+                        (*details).flags
+                    );
+                    SET_FLAG!(
+                        b"sudoedit_follow=\0" as *const u8 as *const libc::c_char,
+                        CD_SUDOEDIT_FOLLOW,
+                        17,
+                        *info.offset(i as isize),
+                        (*details).flags
+                    );
+                    break;
+                }
+                't' => {
+                    if strncmp(
+                        b"timeout=\0" as *const u8 as *const libc::c_char,
+                        *info.offset(i as isize),
+                        (::std::mem::size_of::<[libc::c_char; 9]>() as libc::c_ulong)
+                            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+                    ) == 0
+                    {
+                        cp = (*info.offset(i as isize))
+                            .offset(::std::mem::size_of::<[libc::c_char; 9]>() as libc::c_ulong
+                                as isize)
+                            .offset(-(1 as libc::c_int as isize));
+
+                        (*details).timeout = sudo_strtonum(
+                            cp,
+                            0 as libc::c_int as libc::c_longlong,
+                            INT_MAX!() as libc::c_int as libc::c_longlong,
+                            &mut errstr,
+                        ) as libc::c_int;
+                        if !errstr.is_null() {
+                            sudo_fatalx!(
+                                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                                *info.offset(i as isize),
+                                errstr
+                            );
+                        }
+
+                        SET!((*details).flags, CD_SET_TIMEOUT);
+                        break;
+                    }
+                    break;
+                }
+                'u' => {
+                    if strncmp(
+                        b"umask=\0" as *const u8 as *const libc::c_char,
+                        *info.offset(i as isize),
+                        (::std::mem::size_of::<[libc::c_char; 7]>() as libc::c_ulong)
+                            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+                    ) == 0
+                    {
+                        cp = (*info.offset(i as isize))
+                            .offset(::std::mem::size_of::<[libc::c_char; 7]>() as libc::c_ulong
+                                as isize)
+                            .offset(-(1 as libc::c_int as isize));
+                        (*details).umask = sudo_strtomode_v1(cp, &mut errstr) as mode_t;
+                        if !errstr.is_null() {
+                            sudo_fatalx!(
+                                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                                *info.offset(i as isize),
+                                errstr
+                            );
+                        }
+
+                        SET!((*details).flags, CD_SET_UMASK);
+                        break;
+                    }
+                    SET_FLAG!(
+                        b"umask_override=\0" as *const u8 as *const libc::c_char,
+                        CD_OVERRIDE_UMASK,
+                        16,
+                        *info.offset(i as isize),
+                        (*details).flags
+                    );
+                    SET_FLAG!(
+                        b"use_pty=\0" as *const u8 as *const libc::c_char,
+                        CD_USE_PTY,
+                        9,
+                        *info.offset(i as isize),
+                        (*details).flags
+                    );
+                    SET_STRING!(
+                        b"utmp_user=\0" as *const u8 as *const libc::c_char,
+                        (*details).utmp_user,
+                        11,
+                        *info.offset(i as isize)
+                    );
+                    break;
+                }
+                _ => {
+                    break;
+                }
+            } // while !(*info.offset(i as isize)).is_null()
+            break;
+        } // ！ loop
+        i += 1;
+        //break;
+    } // ! while !(*info.offset(i as isize)).is_null()
+
+    if ISSET!((*details).flags, CD_SET_EUID) == 0 {
+        (*details).euid = (*details).uid;
+    }
+    if ISSET!((*details).flags, CD_SET_EGID) == 0 {
+        (*details).egid = (*details).gid;
+    }
+    if ISSET!((*details).flags, CD_SET_UMASK) == 0 {
+        CLR!((*details).flags, CD_OVERRIDE_UMASK);
+    }
+    (*details).pw = getpwuid((*details).euid);
+    if !((*details).pw).is_null() && {
+        (*details).pw = sudo_pw_dup((*details).pw);
+        ((*details).pw).is_null()
+    } {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            stdext::function_name!().as_ptr(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if !((*details).selinux_role).is_null() && is_selinux_enabled() > 0 {
+        SET!((*details).flags, CD_RBAC_ENABLED);
+    }
+    debug_return!();
+}
+
 unsafe extern "C" fn sudo_check_suid(mut sudo: *const libc::c_char) {
     let mut pathbuf: [libc::c_char; 4096] = [0; 4096];
     let mut sb: stat = stat {

@@ -232,6 +232,385 @@ unsafe extern "C" fn audit_role_change(
     debug_return_int!(rc);
     //end of define;
 }
+
+unsafe extern "C" fn relabel_tty(ttyn: *const libc::c_char, ptyfd: libc::c_int) -> libc::c_int {
+    let mut tty_con: security_context_t = 0 as security_context_t;
+    let mut new_tty_con: security_context_t = 0 as security_context_t;
+    let mut sb: stat = stat {
+        st_dev: 0,
+        st_ino: 0,
+        #[cfg(target_arch = "x86_64")]
+        st_nlink: 0,
+        st_mode: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        st_nlink: 0,
+        st_uid: 0,
+        st_gid: 0,
+        #[cfg(target_arch = "x86_64")]
+        __pad0: 0,
+        st_rdev: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad1: 0,
+        st_size: 0,
+        st_blksize: 0,
+        #[cfg(not(target_arch = "x86_64"))]
+        __pad2: 0,
+        st_blocks: 0,
+        st_atim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_mtim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        st_ctim: timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        },
+        #[cfg(target_arch = "x86_64")]
+        __glibc_reserved: [0; 3],
+        #[cfg(not(target_arch = "x86_64"))]
+        __glibc_reserved: [0; 2],
+    };
+    //'bad: loop{//goto bad;
+    let mut fd: libc::c_int = 0;
+
+    //define debug_decl(relabel_tty,SUDO_DEBUG_SELINUX)
+    debug_decl!(relabel_tty, SUDO_DEBUG_SELINUX);
+    //end of define
+
+    se_state.ttyfd = ptyfd;
+
+    if ptyfd == -1 && ttyn.is_null() {
+        //define sudo_debug_printf(SUDO_DDEBUG_INFO,"%s: no tty,skip relabel",__func__);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: no tty,skip relabel\0" as *const u8 as *const libc::c_char,
+            function_name!()
+        );
+        //end of define
+
+        //define debug_return_int(0);
+        debug_return_int!(0);
+        //end of define
+    }
+
+    //define sudo_debug_printf(SUDO_DEBUG_INFO,"%s:relabeling tty %s",__func__,ttyn);
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"%s:relabeling tty %s\0" as *const u8 as *const libc::c_char,
+        function_name!(),
+        ttyn
+    );
+    //end of define
+
+    'bad: loop {
+        //goto bad;
+
+        if ptyfd == -1 {
+            se_state.ttyfd = open(ttyn, 2 | 256 | 2048);
+
+            if se_state.ttyfd == -1 || fstat(se_state.ttyfd, &mut sb) == -1 {
+                //define sudo_warn(U_("unable to open %s,not relabeling tty"),ttyn);
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to open %s,not relabeling tty\0" as *const u8
+                            as *const libc::c_char
+                    ),
+                    ttyn
+                );
+                sudo_warn_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to open %s,not relabeling tty\0" as *const u8
+                            as *const libc::c_char,
+                    ),
+                    ttyn,
+                );
+                //end of define
+                break 'bad;
+            }
+
+            //            if !(sb.st_mode & 61440 == 16384) {
+            if !(sb.st_mode & 0o170000 as libc::c_int as libc::c_uint
+                == 0o20000 as libc::c_int as libc::c_uint)
+            {
+                //define sudo_warn(U_("%s is not a character device,not relabeling tty"),ttyn);
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s is not a character device,not relabeling tty\0" as *const u8
+                            as *const libc::c_char
+                    ),
+                    ttyn
+                );
+                sudo_warn_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s is not a character device,not relabeling tty\0" as *const u8
+                            as *const libc::c_char,
+                    ),
+                    ttyn,
+                );
+                //end of define
+                break 'bad;
+            }
+
+            fcntl(
+                se_state.ttyfd,
+                F_SETFL,
+                fcntl(se_state.ttyfd, F_GETFL, 0) & !(2048),
+            );
+        }
+
+        if fgetfilecon(se_state.ttyfd, &mut tty_con) == -1 {
+            //define sudo_warn(U_("unable to get current ttycontext,not relabeling tty"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to get current ttycontext,not relabeling tty\0" as *const u8
+                        as *const libc::c_char
+                )
+            );
+            sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to get current ttycontext,not relabeling tty\0" as *const u8
+                    as *const libc::c_char,
+            ));
+            //end of define
+            break 'bad;
+        }
+
+        if !tty_con.is_null() {
+            let mut tclass: security_class_t =
+                string_to_security_class(b"chr_file\0" as *const u8 as *const libc::c_char);
+
+            if tclass == 0 {
+                //define sudo_warn(U_(""));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unknown security class \"char_file\",not relabeling tty\0" as *const u8
+                            as *const libc::c_char
+                    )
+                );
+                sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unknown security class \"char_file\",not relabeling tty\0" as *const u8
+                        as *const libc::c_char,
+                ));
+                //end of define
+                break 'bad;
+            }
+
+            if security_compute_relabel(se_state.new_context, tty_con, tclass, &mut new_tty_con)
+                == -1
+            {
+                //define sudo_warn(U_(""));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to get new tty context,not relabeling tty\0" as *const u8
+                            as *const libc::c_char
+                    )
+                );
+                sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to get new tty context,not relabeling tty\0" as *const u8
+                        as *const libc::c_char,
+                ));
+                //end of define
+                break 'bad;
+            }
+        }
+
+        if !new_tty_con.is_null() {
+            //define sudo_debug_printf(SUDO_DEBUG_INFO,"&s:tty context %s -> %s",__func__,tty_con,new_tty_con);
+            sudo_debug_printf!(
+                SUDO_DEBUG_INFO,
+                b"%s:ttycontext %s -> %s\0" as *const u8 as *const libc::c_char,
+                function_name!(),
+                tty_con,
+                new_tty_con
+            );
+            //end of define
+            if fsetfilecon(se_state.ttyfd, new_tty_con) == -1 {
+                //define sudo_warn(U_(""));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to set new tty context\0" as *const u8 as *const libc::c_char
+                    )
+                );
+                sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to set new tty context\0" as *const u8 as *const libc::c_char,
+                ));
+                //end of define
+                break 'bad;
+            }
+        }
+
+        if ptyfd != -1 {
+            se_state.ttyfd = open(ttyn, 2 | 256, 0);
+            if se_state.ttyfd == -1 || fstat(se_state.ttyfd, &mut sb) == -1 {
+                //sudo_warn(u_("unable to open %s",ttyn));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to open %s\0" as *const u8 as *const libc::c_char
+                    ),
+                    ttyn
+                );
+                sudo_warn_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to open %s\0" as *const u8 as *const libc::c_char,
+                    ),
+                    ttyn,
+                );
+                //end of define;
+                break 'bad;
+            }
+            //            if !(sb.st_mode & 61440 == 8192) {
+            if !(sb.st_mode & 0o170000 as libc::c_int as libc::c_uint
+                == 0o20000 as libc::c_int as libc::c_uint)
+            {
+                //sudo_warn(u_("",ttyn));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s is not a character device,not relabeling tty\0" as *const u8
+                            as *const libc::c_char
+                    ),
+                    ttyn
+                );
+                sudo_warn_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s is not a character device,not relabeling tty\0" as *const u8
+                            as *const libc::c_char,
+                    ),
+                    ttyn,
+                );
+                //end of define;
+                break 'bad;
+            }
+            if dup2(se_state.ttyfd, ptyfd) == -1 {
+                //define sudo_warn("dup2");
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    b"dup2\0" as *const u8 as *const libc::c_char
+                );
+                sudo_warn_nodebug_v1(b"dup2\0" as *const u8 as *const libc::c_char);
+                //end of define;
+                break 'bad;
+            }
+        } else {
+            close(se_state.ttyfd);
+            se_state.ttyfd = open(ttyn, 2 | 256 | 2048);
+            if se_state.ttyfd == -1 || fstat(se_state.ttyfd, &mut sb) == -1 {
+                //sudo_warn(u_("unable to open %s",ttyn));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to open %s\0" as *const u8 as *const libc::c_char
+                    ),
+                    ttyn
+                );
+                sudo_warn_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to open %s\0" as *const u8 as *const libc::c_char,
+                    ),
+                    ttyn,
+                );
+                //end of define
+                break 'bad;
+            }
+            if !(sb.st_mode & 61440 == 8192) {
+                //sudo_warn(u_("%s is not a character device,not relabeling tty",ttyn));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s is not a character device,not relabeling tty\0" as *const u8
+                            as *const libc::c_char
+                    ),
+                    ttyn
+                );
+                sudo_warn_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s is not a character device,not relabeling tty\0" as *const u8
+                            as *const libc::c_char,
+                    ),
+                    ttyn,
+                );
+                //end of define
+                break 'bad;
+            }
+
+            fcntl(se_state.ttyfd, 4, fcntl(se_state.ttyfd, 3, 0) & !2048);
+            loop {
+                if fd <= 2 {
+                    break;
+                }
+                if isatty(fd) != 0 && dup2(se_state.ttyfd, fd) == -1 {
+                    //define sudo_warn("dup2");
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                        b"dup2\0" as *const u8 as *const libc::c_char
+                    );
+                    sudo_warn_nodebug_v1(b"dup2\0" as *const u8 as *const libc::c_char);
+                    //end of define
+
+                    break 'bad;
+                }
+            }
+        } //else
+
+        fcntl(se_state.ttyfd, 2, 1);
+
+        se_state.ttyn = ttyn;
+        se_state.tty_context = tty_con;
+        se_state.new_tty_context = new_tty_con;
+
+        //define debug_return_int(0);
+        debug_return_int!(0);
+        //end of define
+        break 'bad;
+    } //goto bad;
+
+    //bad;
+    if se_state.ttyfd != -1 && se_state.ttyfd != ptyfd {
+        close(se_state.ttyfd);
+        se_state.ttyfd = -1;
+    }
+    freecon(tty_con);
+    //define debug_return_int(se_state.enforcing ? -1 : 0); 替换为以下ｉｆ函数
+    if se_state.enforcing != 0 {
+        //define debug_return_int(-1);
+        debug_return_int!(-1);
+        //end of define
+    } else {
+        //define debug_return_int(0);
+        debug_return_int!(0);
+        //end of define
+    }
+} //fn relabel_tty
+
 #[no_mangle]
 pub unsafe extern "C" fn get_exec_context(
     mut old_context: security_context_t,
