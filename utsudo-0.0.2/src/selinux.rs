@@ -233,6 +233,149 @@ unsafe extern "C" fn audit_role_change(
     //end of define;
 }
 
+#[no_mangle]
+unsafe extern "C" fn selinux_restore_tty() -> libc::c_int {
+    let mut ret: libc::c_int = -(1 as libc::c_int);
+    let mut chk_tty_context: security_context_t = 0 as security_context_t;
+    //define debug_decl(selinux_restore_tty,SUDO_DEBUG_SELINUX)
+    debug_decl!(selinux_restore_tty, SUDO_DEBUG_SELINUX);
+    //end of define
+
+    if se_state.ttyfd == -1 || (se_state.new_tty_context).is_null() {
+        //define sudo_debug_printf(SUDO_DEBUG_INFO,"%s:no tty,skip relabel",__func__);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: no tty,skip relabel\0" as *const u8 as *const libc::c_char,
+            function_name!()
+        );
+        //end of define
+
+        //define debug_return_int(0);
+        debug_return_int!(0);
+        //end of define
+    }
+
+    //define sudo_debug_printf(SUDO_DEBUG_INFO,"%s:%s->%s",__func__,se_state.new_tty_context,se_state.tty_context);
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"%s:%s->%s\0" as *const u8 as *const libc::c_char,
+        function_name!(),
+        se_state.new_tty_context,
+        se_state.tty_context
+    );
+    //end of define
+
+    'skip_relabel: loop {
+        //loop
+        if fgetfilecon(se_state.ttyfd, &mut chk_tty_context) == -1 {
+            //define sudo_warn(U_("unable to fgetfilecon %s"),se_state.ttyn);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to fgetfilecon %s\0" as *const u8 as *const libc::c_char
+                ),
+                se_state.ttyn
+            );
+            sudo_warn_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to fgetfilecon\0" as *const u8 as *const libc::c_char,
+                ),
+                se_state.ttyn,
+            );
+            //end of define
+
+            //跳转
+            break 'skip_relabel;
+        }
+
+        if strcmp(
+            chk_tty_context as *const libc::c_char,
+            se_state.new_tty_context as *const libc::c_char,
+        ) != 0
+        {
+            //define sudo_warnx(U_("%s changed labels"),se_state.ttyn);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s changed labels\0" as *const u8 as *const libc::c_char
+                ),
+                se_state.ttyn
+            );
+            sudo_warn_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s changed labels\0" as *const u8 as *const libc::c_char,
+                ),
+                se_state.ttyn,
+            );
+            //end of define
+
+            //define sudo_debug_printf(SUDO_DEBUG_INFO,"%s:not restoring tty label,expected %s,have %s",__func__,se_state.new_tty_context,chk_tty_context);
+            sudo_debug_printf!(
+                SUDO_DEBUG_INFO,
+                b"%s:not restoring tty label,expected %s,have %s\0" as *const u8
+                    as *const libc::c_char,
+                function_name!(),
+                se_state.new_tty_context,
+                chk_tty_context
+            );
+            //end of define
+
+            break 'skip_relabel;
+        }
+
+        if fsetfilecon(
+            se_state.ttyfd as libc::c_int,
+            se_state.tty_context as *const libc::c_char,
+        ) == -1
+        {
+            //define sudo_warn(U_("unable to restore context for %s"),se_state.ttyn);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO | SUDO_DEBUG_ERRNO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to restore context for %s\0" as *const u8 as *const libc::c_char
+                ),
+                se_state.ttyn
+            );
+            sudo_warn_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to restore context for %s\0" as *const u8 as *const libc::c_char,
+                ),
+                se_state.ttyn,
+            );
+            //end of define
+            break 'skip_relabel;
+        }
+
+        //define sudo_debug_printf(SUDO_DEBUG_INFO,"%s: successfully set tty label to
+        //%s",__func__,se_state.tty_context);
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"%s: successfully set tty label to %s\0" as *const u8 as *const libc::c_char,
+            function_name!(),
+            se_state.tty_context
+        );
+        //end of define
+        ret = 0;
+
+        break 'skip_relabel;
+    } //loop skip_relabel
+
+    if se_state.ttyfd != -1 {
+        close(se_state.ttyfd);
+        se_state.ttyfd = -1;
+    }
+    freecon(chk_tty_context);
+    //define debug_return_int(ret);
+    debug_return_int!(ret);
+    //end of define
+} //end of func
+
 unsafe extern "C" fn relabel_tty(ttyn: *const libc::c_char, ptyfd: libc::c_int) -> libc::c_int {
     let mut tty_con: security_context_t = 0 as security_context_t;
     let mut new_tty_con: security_context_t = 0 as security_context_t;

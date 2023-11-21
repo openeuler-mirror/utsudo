@@ -677,6 +677,60 @@ pub unsafe extern "C" fn os_init_common(
 }
 
 /*
+ * Ensure that stdin, stdout and stderr are open; set to /dev/null if not.
+ * Some operating systems do this automatically in the kernel or libc.
+ */
+unsafe extern "C" fn fix_fds() {
+    let mut miss: [libc::c_int; 3] = [0; 3];
+    let mut devnull: libc::c_int = -(1 as libc::c_int);
+    debug_decl!(stdext::function_name!().as_ptr(), SUDO_DEBUG_UTIL);
+
+    /*
+     * stdin, stdout and stderr must be open; set them to /dev/null
+     * if they are closed.
+     */
+
+    miss[STDIN_FILENO as usize] =
+        (fcntl(STDIN_FILENO, F_GETFL, 0) == -(1 as libc::c_int)) as libc::c_int;
+    miss[STDOUT_FILENO as usize] =
+        (fcntl(STDOUT_FILENO, F_GETFL, 0) == -(1 as libc::c_int)) as libc::c_int;
+    miss[STDERR_FILENO as usize] =
+        (fcntl(STDERR_FILENO, F_GETFL, 0) == -(1 as libc::c_int)) as libc::c_int;
+    if miss[STDIN_FILENO as usize] != 0
+        || miss[STDOUT_FILENO as usize] != 0
+        || miss[STDERR_FILENO as usize] != 0
+    {
+        devnull = open(
+            _PATH_DEVNULL!(),
+            O_RDWR,
+            S_IRUSR!() | S_IWUSR!() | S_IRGRP!() | S_IROTH!(),
+        );
+
+        if devnull == -(1 as libc::c_int) {
+            sudo_fatal!(
+                b"unable to open %s\0" as *const u8 as *const libc::c_char,
+                _PATH_DEVNULL!()
+            );
+        }
+        if miss[STDIN_FILENO as usize] != 0 && dup2(devnull, STDIN_FILENO) == -(1 as libc::c_int) {
+            sudo_fatal!(b"dup2\0" as *const u8 as *const libc::c_char,);
+        }
+        if miss[STDOUT_FILENO as usize] != 0 && dup2(devnull, STDOUT_FILENO) == -(1 as libc::c_int)
+        {
+            sudo_fatal!(b"dup2\0" as *const u8 as *const libc::c_char,);
+        }
+        if miss[STDERR_FILENO as usize] != 0 && dup2(devnull, STDERR_FILENO) == -(1 as libc::c_int)
+        {
+            sudo_fatal!(b"dup2\0" as *const u8 as *const libc::c_char,);
+        }
+        if devnull > STDERR_FILENO {
+            close(devnull);
+        }
+    }
+    debug_return!();
+}
+
+/*
  * Allocate space for groups and fill in using sudo_getgrouplist2()
  * for when we cannot (or don't want to) use getgroups().
  * Returns 0 on success and -1 on failure.
