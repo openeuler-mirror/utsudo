@@ -1058,6 +1058,382 @@ pub unsafe extern "C" fn parse_args(
                 }
             }
 
+            if !optarg.is_null() {
+            } else {
+                __assert_fail(
+                        b"optarg != NULL\0" as *const u8 as *const libc::c_char,
+                        b"parse_args.c\0" as *const u8 as *const libc::c_char,
+                        402 as libc::c_int as libc::c_uint,
+                        (*::std::mem::transmute::<
+                            &[u8;81],
+                            &[libc::c_char;81],
+                        >(
+                            b"int parse_args(int, char **, int *, char ***, struct sudo_settings **, char ***)\0",
+                        ))
+                            .as_ptr(),
+                    );
+            }
+            if *optarg as libc::c_int == '\u{0}' as i32 {
+                usage(1 as libc::c_int);
+            }
+            runas_user = optarg;
+            sudo_settings[21 as libc::c_int as usize].value = optarg;
+        } else {
+            if !(!(optind > 1 as libc::c_int
+                && *(*argv.offset((optind - 1 as libc::c_int) as isize))
+                    .offset(0 as libc::c_int as isize) as libc::c_int
+                    == '-' as i32
+                && *(*argv.offset((optind - 1 as libc::c_int) as isize))
+                    .offset(1 as libc::c_int as isize) as libc::c_int
+                    == '-' as i32
+                && *(*argv.offset((optind - 1 as libc::c_int) as isize))
+                    .offset(2 as libc::c_int as isize) as libc::c_int
+                    == '\u{0}' as i32)
+                && (optind < argc
+                    && *(*argv.offset(optind as isize)).offset(0 as libc::c_int as isize)
+                        as libc::c_int
+                        != '/' as i32
+                    && !(strchr(*argv.offset(optind as isize), '=' as i32)).is_null()))
+            {
+                break;
+            }
+            env_insert(&mut extra_env, *argv.offset(optind as isize));
+            optind += 1;
+        }
+    } //end of loop
+
+    argc -= optind;
+    argv = argv.offset(optind as isize);
+
+    if mode == 0 {
+        if !(sudo_settings[7 as libc::c_int as usize].value).is_null() {
+            if argc == 0 as libc::c_int
+                && flags & (0x20000 as libc::c_int | 0x40000 as libc::c_int) == 0
+            {
+                mode = 0x8 as libc::c_int;
+                sudo_settings[7 as libc::c_int as usize].value = 0 as *const libc::c_char;
+                valid_flags = 0 as libc::c_int;
+            }
+        }
+        if mode == 0 {
+            mode = 0x1 as libc::c_int;
+        }
+    }
+
+    if argc > 0 as libc::c_int && mode == 0x80 as libc::c_int {
+        mode = 0x100 as libc::c_int;
+    }
+
+    if flags & 0x40000 as libc::c_int != 0 {
+        if flags & 0x20000 as libc::c_int != 0 {
+            //define sudo_warnx(U_("you may not specify both the `-i' asn `-s' options"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"you may not specify both the `-i' and `-s' options\0" as *const u8
+                        as *const libc::c_char
+                )
+            );
+            sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"you may not specify both the `-i' and `-s' options\0" as *const u8
+                    as *const libc::c_char,
+            ));
+            //end of define;
+            usage(1 as libc::c_int);
+        }
+        if flags & 0x400000 as libc::c_int != 0 {
+            //define sudo_warnx(U_("you may not specify both the `-i' asn `-E' options"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"you may not specify both the `-i' and `-E' options\0" as *const u8
+                        as *const libc::c_char
+                )
+            );
+            sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"you may not specify both the `-i' and `-E' options\0" as *const u8
+                    as *const libc::c_char,
+            ));
+            //end of define;
+            usage(1 as libc::c_int);
+        }
+        flags |= 0x20000 as libc::c_int;
+    }
+
+    if flags & valid_flags != flags {
+        usage(1 as libc::c_int);
+    }
+
+    if mode == 0x2 as libc::c_int
+        && (flags & 0x400000 as libc::c_int != 0
+            || extra_env.env_len != 0 as libc::c_int as libc::c_ulong)
+    {
+        if mode & 0x400000 as libc::c_int != 0 {
+            //define sudo_warnx(U_("the `-E' option is not valid in edit mode"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"the `-E' option is not valid in edit mode\0" as *const u8
+                        as *const libc::c_char
+                )
+            );
+            sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"the `-E' option is not valid in edit mode\0" as *const u8 as *const libc::c_char,
+            ));
+            //end of define;
+        }
+        if extra_env.env_len != 0 as libc::c_int as libc::c_ulong {
+            //define sudo_warnx(U_("you may not specify environment variables in edit mode"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"you may not specify environment variables in edit mode\0" as *const u8
+                        as *const libc::c_char
+                )
+            );
+            sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"you may not specify environment variables in edit mode\0" as *const u8
+                    as *const libc::c_char,
+            ));
+            //end of define;
+        }
+        usage(1 as libc::c_int);
+    }
+
+    if (!runas_user.is_null() || !runas_group.is_null())
+        && mode
+            & (0x2 as libc::c_int | 0x1 as libc::c_int | 0x100 as libc::c_int | 0x4 as libc::c_int)
+            == 0
+    {
+        usage(1 as libc::c_int);
+    }
+
+    if !list_user.is_null() && mode != 0x80 as libc::c_int && mode != 0x100 as libc::c_int {
+        //define sudo_warnx(U_("the `-U' option may only be used with the `-l' option"));
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"the `-U' option may only be used with the `-l' option\0" as *const u8
+                    as *const libc::c_char
+            )
+        );
+        sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+            0 as *const libc::c_char,
+            b"the `-U' option may only be used with the `-l' option\0" as *const u8
+                as *const libc::c_char,
+        ));
+        //end of define;
+        usage(1 as libc::c_int);
+    }
+
+    if tgetpass_flags & 0x2 as libc::c_int != 0 && tgetpass_flags & 0x4 as libc::c_int != 0 {
+        //define sudo_warnx(U_("the `-A' asd `-S' options may not be used together"));
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"the `-A' and `-S' options may not be used together\0" as *const u8
+                    as *const libc::c_char
+            )
+        );
+        sudo_warn_nodebug_v1(sudo_warn_gettext_v1(
+            0 as *const libc::c_char,
+            b"the `-A' and `-S' options may not be used together\0" as *const u8
+                as *const libc::c_char,
+        ));
+        //end of define;
+        usage(1 as libc::c_int);
+    }
+
+    if argc == 0 as libc::c_int && mode == 0x2 as libc::c_int
+        || argc > 0 as libc::c_int
+            && mode & (0x1 as libc::c_int | 0x2 as libc::c_int | 0x100 as libc::c_int) == 0
+    {
+        usage(1 as libc::c_int);
+    }
+
+    if argc == 0 as libc::c_int && mode == 0x1 as libc::c_int && flags & 0x20000 as libc::c_int == 0
+    {
+        flags |= 0x80000 as libc::c_int | 0x20000 as libc::c_int;
+        sudo_settings[13 as libc::c_int as usize].value =
+            b"true\0" as *const u8 as *const libc::c_char;
+    }
+
+    sudo_settings[20 as libc::c_int as usize].value = sudo_conf_plugin_dir_path_v1();
+
+    if mode == 0x40 as libc::c_int {
+        help();
+    }
+
+    if flags & (0x20000 as libc::c_int | 0x40000 as libc::c_int) != 0
+        && mode & 0x1 as libc::c_int != 0
+    {
+        let mut av: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+        let mut cmnd: *mut libc::c_char = 0 as *mut libc::c_char;
+        let mut ac: libc::c_int = 1 as libc::c_int;
+        if argc != 0 as libc::c_int {
+            let mut src: *mut libc::c_char = 0 as *mut libc::c_char;
+            let mut dst: *mut libc::c_char = 0 as *mut libc::c_char;
+            let mut size: size_t = 0 as libc::c_int as size_t;
+
+            av = argv;
+            while !(*av).is_null() {
+                size = (size as libc::c_ulong)
+                    .wrapping_add((strlen(*av)).wrapping_add(1 as libc::c_int as libc::c_ulong))
+                    as size_t;
+                av = av.offset(1);
+            }
+
+            if size == 0 as libc::c_int as libc::c_ulong || {
+                cmnd = reallocarray(
+                    0 as *mut libc::c_void,
+                    size as size_t,
+                    2 as libc::c_int as size_t,
+                ) as *mut libc::c_char;
+                cmnd.is_null()
+            } {
+                //define sudo_fatalx(U_(%s:%s),__func__,U_("unable to allocate memory"));
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s:%s\0" as *const u8 as *const libc::c_char
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                    )
+                );
+                sudo_fatalx_nodebug_v1(
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    ),
+                    function_name!(),
+                    sudo_warn_gettext_v1(
+                        0 as *const libc::c_char,
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                    ),
+                );
+                //end of define;
+            }
+
+            if !gc_add(2, av as *mut libc::c_void) {
+                exit(1 as libc::c_int);
+            };
+
+            dst = cmnd;
+            av = argv;
+            while !(*av).is_null() {
+                src = *av;
+                while *src as libc::c_int != '\u{0}' as i32 {
+                    if *(*__ctype_b_loc()).offset(*src as libc::c_uchar as libc::c_int as isize)
+                        as libc::c_int
+                        & 8 as libc::c_int as libc::c_ushort as libc::c_int
+                        == 0
+                        && *src as libc::c_int != '_' as i32
+                        && *src as libc::c_int != '-' as i32
+                        && *src as libc::c_int != '$' as i32
+                    {
+                        let fresh7 = dst;
+                        dst = dst.offset(1);
+                        *fresh7 = '\\' as i32 as libc::c_char;
+                    }
+                    let fresh8 = dst;
+                    dst = dst.offset(1);
+                    *fresh8 = *src;
+                    src = src.offset(1);
+                }
+                let fresh9 = dst;
+                dst = dst.offset(1);
+                *fresh9 = ' ' as i32 as libc::c_char;
+                av = av.offset(1);
+            }
+            if cmnd != dst {
+                dst = dst.offset(-1);
+            }
+
+            *dst = '\u{0}' as i32 as libc::c_char;
+            ac += 2 as libc::c_int;
+        } //line 1716
+
+        av = reallocarray(
+            0 as *mut libc::c_void,
+            (ac + 1 as libc::c_int) as size_t,
+            ::std::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+        ) as *mut *mut libc::c_char;
+
+        if av.is_null() {
+            //define sudo_fatalx(U_(%s:%s),__func__,U_("unable to allocate memory"));
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s:%s\0" as *const u8 as *const libc::c_char
+                ),
+                function_name!(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                )
+            );
+            sudo_fatalx_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                ),
+                function_name!(),
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                ),
+            );
+            //end of define;
+        }
+
+        if !gc_add(2, av as *mut libc::c_void) {
+            exit(1 as libc::c_int);
+        }
+
+        let ref mut fresh10 = *av.offset(0 as libc::c_int as isize);
+        *fresh10 = user_details.shell as *mut libc::c_char;
+
+        if !cmnd.is_null() {
+            *av.offset(1 as libc::c_int as isize) =
+                b"-c\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+            *av.offset(2 as libc::c_int as isize) = cmnd;
+        }
+
+        *av.offset(ac as isize) = 0 as *mut libc::c_char;
+        argv = av;
+        argc = ac;
+    } //1779
+
+    if mode == 0x2 as libc::c_int {
+        argc += 1;
+        argv = argv.offset(-1);
+        *argv.offset(0 as libc::c_int as isize) =
+            b"sudoedit\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+    }
+
+    *settingsp = sudo_settings.as_mut_ptr();
+    *env_addp = extra_env.envp;
+    *nargc = argc;
+    *nargv = argv;
+
+    //define debug_return_int(mode | flags);
+    debug_return_int!(mode | flags);
+    //end of define;
 } //end of func
 
 unsafe extern "C" fn env_insert(mut e: *mut environment, mut pair: *mut libc::c_char) {
