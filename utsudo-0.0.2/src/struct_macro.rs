@@ -866,6 +866,98 @@ pub type sudo_conv_1_7_t = Option<
         *mut sudo_conv_reply,
     ) -> libc::c_int,
 >;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct io_plugin {
+    pub type_0: libc::c_uint,
+    pub version: libc::c_uint,
+    pub open: Option<
+        unsafe extern "C" fn(
+            libc::c_uint,
+            sudo_conv_t,
+            sudo_printf_t,
+            *const *mut libc::c_char,
+            *const *mut libc::c_char,
+            *const *mut libc::c_char,
+            libc::c_int,
+            *const *mut libc::c_char,
+            *const *mut libc::c_char,
+            *const *mut libc::c_char,
+        ) -> libc::c_int,
+    >,
+    pub close: Option<unsafe extern "C" fn(libc::c_int, libc::c_int) -> ()>,
+    pub show_version: Option<unsafe extern "C" fn(libc::c_int) -> libc::c_int>,
+    pub log_ttyin: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_ttyout: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_stdin: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_stdout: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_stderr: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub register_hooks: Option<
+        unsafe extern "C" fn(
+            libc::c_int,
+            Option<unsafe extern "C" fn(*mut sudo_hook) -> libc::c_int>,
+        ) -> (),
+    >,
+    pub deregister_hooks: Option<
+        unsafe extern "C" fn(
+            libc::c_int,
+            Option<unsafe extern "C" fn(*mut sudo_hook) -> libc::c_int>,
+        ) -> (),
+    >,
+    pub change_winsize: Option<unsafe extern "C" fn(libc::c_uint, libc::c_uint) -> libc::c_int>,
+    pub log_suspend: Option<unsafe extern "C" fn(libc::c_int) -> libc::c_int>,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct io_plugin_1_0 {
+    pub type_0: libc::c_uint,
+    pub version: libc::c_uint,
+    pub open: Option<
+        unsafe extern "C" fn(
+            libc::c_uint,
+            sudo_conv_1_7_t,
+            sudo_printf_t,
+            *const *mut libc::c_char,
+            *const *mut libc::c_char,
+            libc::c_int,
+            *const *mut libc::c_char,
+            *const *mut libc::c_char,
+        ) -> libc::c_int,
+    >,
+    pub close: Option<unsafe extern "C" fn(libc::c_int, libc::c_int) -> ()>,
+    pub show_version: Option<unsafe extern "C" fn(libc::c_int) -> libc::c_int>,
+    pub log_ttyin: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_ttyout: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_stdin: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_stdout: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_stderr: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct io_plugin_1_1 {
+    pub type_0: libc::c_uint,
+    pub version: libc::c_uint,
+    pub open: Option<
+        unsafe extern "C" fn(
+            libc::c_uint,
+            sudo_conv_1_7_t,
+            sudo_printf_t,
+            *const *mut libc::c_char,
+            *const *mut libc::c_char,
+            *const *mut libc::c_char,
+            libc::c_int,
+            *const *mut libc::c_char,
+            *const *mut libc::c_char,
+        ) -> libc::c_int,
+    >,
+    pub close: Option<unsafe extern "C" fn(libc::c_int, libc::c_int) -> ()>,
+    pub show_version: Option<unsafe extern "C" fn(libc::c_int) -> libc::c_int>,
+    pub log_ttyin: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_ttyout: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_stdin: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_stdout: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+    pub log_stderr: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
+}
 // #define	_PATH_TTY	"/dev/tty"
 #[macro_export]
 macro_rules! _PATH_TTY {
