@@ -1492,6 +1492,73 @@ unsafe extern "C" fn env_insert(mut e: *mut environment, mut pair: *mut libc::c_
     debug_return!();
     //end of define
 }
+#[no_mangle]
+pub unsafe extern "C" fn usage(mut fatal: libc::c_int) {
+    let mut lbuf: sudo_lbuf = sudo_lbuf {
+        output: None,
+        buf: 0 as *mut libc::c_char,
+        continuation: 0 as *const libc::c_char,
+        indent: 0,
+        len: 0,
+        size: 0,
+        cols: 0,
+        error: 0,
+    };
+
+    let mut uvec: [*mut libc::c_char; 6] = [0 as *mut libc::c_char; 6];
+    let mut i: libc::c_int = 0;
+    let mut ulen: libc::c_int = 0;
+
+    if strcmp(
+        sudo_getprogname(),
+        b"sudoedit\0" as *const u8 as *const libc::c_char,
+    ) == 0
+    {
+        uvec[0 as usize] = &*(b" -e [-AknS] [-r role] [-t type] [-C num] [-g group] [-h host] [-p prompt] [-T timeout] [-u user] file ...\0" as *const u8 as *const libc::c_char).offset(3 as isize) as *const libc::c_char as *mut libc::c_char;
+        uvec[1 as usize] = 0 as *mut libc::c_char;
+    } else {
+        uvec[0 as usize] =
+            b" -h | -K | -k | -V\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        uvec[1 as usize] = b" -v [-AknS] [-g group] [-h host] [-p prompt] [-u user]\0" as *const u8
+            as *const libc::c_char as *mut libc::c_char;
+        uvec[2 as usize] = b" -I [-AknS] [-g group] [-h host] [-p prompt] [-u user] [command]\0"
+            as *const u8 as *const libc::c_char as *mut libc::c_char;
+        uvec[3 as usize] = b" [-AbEHknPS] [-r role] [-t type] [-C num] [-g group] [-h host] [-p prompt] [-T timeout] [-u user] [VAR=value] [-i|-s] [<command>]\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        uvec[4 as usize] = b" -e [-AknS] [-r role] [-t type] [-C num] [-g group] [-h host] [-p prompt] [-T timeout] [-u user] file ...\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        uvec[5 as usize] = 0 as *mut libc::c_char;
+    }
+
+    ulen = strlen(sudo_getprogname()) as libc::c_int + 8;
+    sudo_lbuf_init_v1(
+        &mut lbuf,
+        if fatal != 0 {
+            Some(usage_err as unsafe extern "C" fn(*const libc::c_char) -> libc::c_int)
+        } else {
+            Some(usage_out as unsafe extern "C" fn(*const libc::c_char) -> libc::c_int)
+        },
+        ulen,
+        0 as *const libc::c_char,
+        user_details.ts_cols,
+    );
+
+    i = 0 as libc::c_int;
+    while !uvec[i as usize].is_null() {
+        sudo_lbuf_append_v1(
+            &mut lbuf as *mut sudo_lbuf,
+            b"usage: %s%s\0" as *const u8 as *const libc::c_char,
+            sudo_getprogname(),
+            uvec[i as usize],
+        );
+        sudo_lbuf_print_v1(&mut lbuf);
+        i += 1;
+    }
+
+    sudo_lbuf_destroy_v1(&mut lbuf);
+    if fatal != 0 {
+        exit(1);
+    }
+}
+
 unsafe extern "C" fn usage_excl(mut fatal: libc::c_int) {
     //define debug_decl(env_insert,SUDO_DEBUG_ARGS) 1<<6
     debug_decl!(usage_excl, SUDO_DEBUG_ARGS);
