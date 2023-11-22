@@ -1492,6 +1492,51 @@ unsafe extern "C" fn env_insert(mut e: *mut environment, mut pair: *mut libc::c_
     debug_return!();
     //end of define
 }
+
+unsafe extern "C" fn env_set(
+    mut e: *mut environment,
+    mut var: *mut libc::c_char,
+    mut val: *mut libc::c_char,
+) {
+    let mut pair: *mut libc::c_char = 0 as *mut libc::c_char;
+    //define debug_decl(env_insert,SUDO_DEBUG_ARGS) 1<<6
+    debug_decl!(env_set, SUDO_DEBUG_ARGS);
+    //end of define
+
+    pair = sudo_new_key_val_v1(var, val);
+    if pair.is_null() {
+        //define sudo_fatalx(U_(%s: %s),__func__,u_("unable toallocate memory"));
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"%s:%s\0" as *const u8 as *const libc::c_char
+            ),
+            function_name!(),
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            )
+        );
+        sudo_fatalx_nodebug_v1(
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+            ),
+            function_name!(),
+            sudo_warn_gettext_v1(
+                0 as *const libc::c_char,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+            ),
+        );
+        //end of define
+    }
+    env_insert(e, pair);
+
+    //define debug_return
+    debug_return!();
+    //end of define
+}
 #[no_mangle]
 pub unsafe extern "C" fn usage(mut fatal: libc::c_int) {
     let mut lbuf: sudo_lbuf = sudo_lbuf {
