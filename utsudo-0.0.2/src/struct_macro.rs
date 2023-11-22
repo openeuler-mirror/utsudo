@@ -958,6 +958,37 @@ pub struct io_plugin_1_1 {
     pub log_stdout: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
     pub log_stderr: Option<unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int>,
 }
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct user_details {
+    pub pid: pid_t,
+    pub ppid: pid_t,
+    pub pgid: pid_t,
+    pub tcpgid: pid_t,
+    pub sid: pid_t,
+    pub uid: uid_t,
+    pub euid: uid_t,
+    pub gid: uid_t,
+    pub egid: uid_t,
+    pub username: *const libc::c_char,
+    pub cwd: *const libc::c_char,
+    pub tty: *const libc::c_char,
+    pub host: *const libc::c_char,
+    pub shell: *const libc::c_char,
+    pub groups: *mut gid_t,
+    pub ngroups: libc::c_int,
+    pub ts_rows: libc::c_int,
+    pub ts_cols: libc::c_int,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_settings {
+    pub name: *const libc::c_char,
+    pub value: *const libc::c_char,
+}
+
 // #define	_PATH_TTY	"/dev/tty"
 #[macro_export]
 macro_rules! _PATH_TTY {
