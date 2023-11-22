@@ -660,10 +660,105 @@ unsafe extern "C" fn stat(
     mut __path: *const libc::c_char,
     mut __statbuf: *mut stat,
 ) -> libc::c_int {
-    #[cfg(target_arch = "x86_64")]
-    return __xstat(1 as libc::c_int, __path, __statbuf);
-    #[cfg(not(target_arch = "x86_64"))]
-    return __xstat(0 as libc::c_int, __path, __statbuf);
+        #[cfg(target_arch = "x86_64")]
+        return __xstat(1 as libc::c_int, __path, __statbuf);
+        #[cfg(not(target_arch = "x86_64"))]
+        return __xstat(0 as libc::c_int, __path, __statbuf); 
+}
+
+unsafe fn main_0(
+    mut argc: libc::c_int,
+    mut argv: *mut *mut libc::c_char,
+    mut envp: *mut *mut libc::c_char,
+) -> libc::c_int {
+    let mut nargc: libc::c_int = 0;
+    let mut ok: libc::c_int = 0;
+    let mut status: libc::c_int = 0 as libc::c_int;
+    let mut nargv: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut env_add: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut user_info: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut command_info: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut argv_out: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut user_env_out: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut settings: *mut sudo_settings = 0 as *mut sudo_settings;
+    let mut plugin: *mut plugin_container = 0 as *mut plugin_container;
+    let mut next: *mut plugin_container = 0 as *mut plugin_container;
+    let mut mask: sigset_t = sigset_t { __val: [0; 16] };
+    debug_decl_vars!(stdext::function_name!().as_ptr(), SUDO_DEBUG_MAIN);
+
+    initprogname(if argc > 0 as libc::c_int {
+        *argv.offset(0 as libc::c_int as isize)
+    } else {
+        b"sudo\0" as *const u8 as *const libc::c_char
+    });
+
+    /* Crank resource limits to unlimited. */
+    unlimit_sudo();
+
+    /* Make sure fds 0-2 are open and do OS-specific initialization. */
+    fix_fds();
+    os_init_common(argc, argv, envp);
+
+    setlocale(LC_ALL, b"\0" as *const u8 as *const libc::c_char);
+    bindtextdomain(PACKAGE_NAME!(), LOCALEDIR!());
+    textdomain(PACKAGE_NAME!());
+
+    tzset();
+
+    /* Initialize the debug subsystem. */
+    if sudo_conf_read_v1(0 as *const libc::c_char, SUDO_CONF_DEBUG) == -(1 as libc::c_int) {
+        exit(EXIT_FAILURE);
+    }
+
+    sudo_debug_instance = sudo_debug_register_v1(
+        sudo_getprogname(),
+        0 as *const *const libc::c_char,
+        0 as *mut libc::c_uint,
+        sudo_conf_debug_files_v1(sudo_getprogname()),
+    );
+
+    if sudo_debug_instance == SUDO_DEBUG_INSTANCE_ERROR {
+        exit(EXIT_FAILURE);
+    }
+
+    /* Make sure we are setuid root. */
+    sudo_check_suid(if argc > 0 as libc::c_int {
+        *argv.offset(0 as libc::c_int as isize)
+    } else {
+        b"utsudo\0" as *const u8 as *const libc::c_char
+    });
+
+    /* Save original signal state and setup default signal handlers. */
+    save_signals();
+    init_signals();
+
+    /* Reset signal mask to the default value (unblock). */
+    sigemptyset(&mut mask);
+    sigprocmask(SIG_SETMASK, &mut mask, 0 as *mut sigset_t);
+
+    /* Parse the rest of sudo.conf. */
+    sudo_conf_read_v1(0 as *const libc::c_char, SUDO_CONF_ALL & !SUDO_CONF_DEBUG);
+
+    /* Fill in user_info with user name, uid, cwd, etc. */
+    user_info = get_user_info(&mut user_details);
+    if user_info.is_null() {
+        exit(EXIT_FAILURE); /* get_user_info printed error message */
+    }
+
+    /* Disable core dumps if not enabled in sudo.conf. */
+    if sudo_conf_disable_coredump_v1() {
+        disable_coredump();
+    }
+
+
+    sudo_debug_exit_int_v1(
+        stdext::function_name!().as_ptr() as *const u8 as *const libc::c_char,
+        file!().as_ptr() as *const libc::c_char,
+        line!() as libc::c_int,
+        sudo_debug_subsys,
+        WEXITSTATUS!(status),
+    );
+    exit(WEXITSTATUS!(status));
 }
 
 #[no_mangle]
