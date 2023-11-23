@@ -750,7 +750,230 @@ unsafe fn main_0(
         disable_coredump();
     }
 
+    /* Parse command line arguments. */
+    sudo_mode = parse_args(
+        argc,
+        argv,
+        &mut nargc,
+        &mut nargv,
+        &mut settings,
+        &mut env_add,
+    );
+    sudo_debug_printf!(
+        SUDO_DEBUG_DEBUG,
+        b"sudo_mode %d\0" as *const u8 as *const libc::c_char,
+        sudo_mode
+    );
 
+    /* Print sudo version early, in case of plugin init failure. */
+    if ISSET!(sudo_mode, MODE_VERSION) != 0 {
+        printf(
+            b"Sudo version %s\n\0" as *const u8 as *const libc::c_char,
+            PACKAGE_VERSION!(),
+        );
+        if user_details.uid == ROOT_UID as libc::c_uint {
+            printf(
+                b"Configure options: %s\n\0" as *const u8 as *const libc::c_char,
+                CONFIGURE_ARGS!(),
+            );
+        }
+    }
+
+    /* Use conversation function for sudo_(warn|fatal)x? for plugins. */
+    sudo_warn_set_conversation_v1(Some(
+        sudo_conversation
+            as unsafe extern "C" fn(
+                libc::c_int,
+                *const sudo_conv_message,
+                *mut sudo_conv_reply,
+                *mut sudo_conv_callback,
+            ) -> libc::c_int,
+    ));
+
+    /* Load plugins. */
+    if !sudo_load_plugins(&mut policy_plugin, &mut io_plugins) {
+        sudo_fatalx!(b"fatal error, unable to load plugins\0" as *const u8 as *const libc::c_char,);
+    }
+
+    /* Open policy plugin. */
+    ok = policy_open(
+        &mut policy_plugin,
+        settings,
+        user_info as *const *mut libc::c_char,
+        envp as *const *mut libc::c_char,
+    );
+    if ok != 1 {
+        if ok == -(2 as libc::c_int) {
+            usage(1);
+        } else {
+            sudo_fatalx!(
+                b"unable to initialize policy plugin\0" as *const u8 as *const libc::c_char,
+            );
+        }
+    }
+
+    //为了可以中途跳出，加一个循环
+    loop {
+        match sudo_mode & MODE_MASK {
+            MODE_VERSION => {
+                policy_show_version(&mut policy_plugin, (user_details.uid == 0) as libc::c_int);
+                plugin = io_plugins.tqh_first;
+                while !plugin.is_null() {
+                    ok = iolog_open(
+                        plugin,
+                        settings,
+                        user_info as *const *mut libc::c_char,
+                        0 as *const *mut libc::c_char,
+                        nargc,
+                        nargv as *const *mut libc::c_char,
+                        envp as *const *mut libc::c_char,
+                    );
+                    if ok != -(1 as libc::c_int) {
+                        iolog_show_version(plugin, (user_details.uid == 0) as libc::c_int);
+                    }
+                    plugin = (*plugin).entries.tqe_next;
+                }
+                break;
+            }
+            MODE_VALIDATE | MODE_VALIDATE_MODE_INVALIDATE => {
+                ok = policy_validate(&mut policy_plugin);
+                exit((ok != 1 as libc::c_int) as libc::c_int);
+            }
+            MODE_KILL | MODE_INVALIDATE => {
+                policy_invalidate(&mut policy_plugin, (sudo_mode == MODE_KILL) as libc::c_int);
+                exit(0);
+                break;
+            }
+            MODE_CHECK | MODE_CHECK_MODE_INVALIDATE | MODE_LIST | MODE_LIST_MODE_INVALIDATE => {
+                ok = policy_list(
+                    &mut policy_plugin,
+                    nargc,
+                    nargv as *const *mut libc::c_char,
+                    ISSET!(sudo_mode, MODE_LONG_LIST),
+                    list_user,
+                );
+                exit((ok != 1 as libc::c_int) as libc::c_int);
+            }
+            MODE_EDIT | MODE_RUN => {
+                ok = policy_check(
+                    &mut policy_plugin,
+                    nargc,
+                    nargv as *const *mut libc::c_char,
+                    env_add,
+                    &mut command_info,
+                    &mut argv_out,
+                    &mut user_env_out,
+                );
+
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"policy plugin returns %d\0" as *const u8 as *const libc::c_char,
+                    ok
+                );
+                if ok != 1 {
+                    if ok == -(2 as libc::c_int) {
+                        usage(1);
+                    }
+                    exit(EXIT_FAILURE); /* plugin printed error message */
+                }
+                /* Reset nargv/nargc based on argv_out. */
+                /* XXX - leaks old nargv in shell mode */
+                nargv = argv_out;
+                nargc = 0 as libc::c_int;
+                while !(*nargv.offset(nargc as isize)).is_null() {
+                    nargc += 1;
+                }
+                if nargc == 0 {
+                    sudo_fatalx!(
+                        b"plugin did not return a command to execute\0" as *const u8
+                            as *const libc::c_char,
+                    );
+                }
+                /* Open I/O plugins once policy plugin succeeds. */
+                plugin = io_plugins.tqh_first;
+                while !plugin.is_null() && {
+                    next = (*plugin).entries.tqe_next;
+                    1 as libc::c_int != 0
+                } {
+                    ok = iolog_open(
+                        plugin,
+                        settings,
+                        user_info as *const *mut libc::c_char,
+                        command_info as *const *mut libc::c_char,
+                        nargc,
+                        nargv as *const *mut libc::c_char,
+                        user_env_out as *const *mut libc::c_char,
+                    );
+                    //为了可以中途跳出，加一个循环
+                    loop {
+                        match ok {
+                            1 => {
+                                break;
+                            }
+                            0 => {
+                                /* I/O plugin asked to be disabled, remove and free. */
+                                iolog_unlink(plugin);
+                                break;
+                            }
+                            -2 => {
+                                usage(1);
+                                break;
+                            }
+                            _ => {
+                                sudo_fatalx!(
+                                    b"error initializing I/O plugin %s\0" as *const u8
+                                        as *const libc::c_char,
+                                    (*plugin).name
+                                );
+                            }
+                        } // ! match ok
+
+                        break;
+                    } // ! loop
+                    plugin = next;
+                } // ! while !plugin.is_null()
+
+                /* Setup command details and run command/edit. */
+                command_info_to_details(
+                    command_info as *const *mut libc::c_char,
+                    &mut command_details,
+                );
+                command_details.tty = user_details.tty;
+                command_details.argv = argv_out;
+                command_details.envp = user_env_out;
+                if ISSET!(sudo_mode, MODE_LOGIN_SHELL) != 0 {
+                    SET!(command_details.flags, CD_LOGIN_SHELL);
+                }
+
+                if ISSET!(sudo_mode, MODE_BACKGROUND) != 0 {
+                    SET!(command_details.flags, CD_BACKGROUND);
+                }
+                /* Become full root (not just setuid) so user cannot kill us. */
+                if setuid(ROOT_UID as __uid_t) == -(1 as libc::c_int) {
+                    sudo_warn!(
+                        b"setuid(%d)\0" as *const u8 as *const libc::c_char,
+                        ROOT_UID
+                    );
+                }
+
+                if ISSET!(command_details.flags, CD_SUDOEDIT) != 0 {
+                    status = sudo_edit(&mut command_details);
+                } else {
+                    status = run_command(&mut command_details);
+                }
+
+                /* The close method was called by sudo_edit/run_command. */
+                break;
+            }
+            _ => {
+                sudo_fatalx!(
+                    b"unexpected sudo mode 0x%x\0" as *const u8 as *const libc::c_char,
+                    sudo_mode
+                );
+            }
+        } // ! match  sudo_mode & MODE_MASK
+        break;
+    } // ! loop
     sudo_debug_exit_int_v1(
         stdext::function_name!().as_ptr() as *const u8 as *const libc::c_char,
         file!().as_ptr() as *const libc::c_char,
