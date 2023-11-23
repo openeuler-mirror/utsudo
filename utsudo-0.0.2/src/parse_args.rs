@@ -1537,6 +1537,55 @@ unsafe extern "C" fn env_set(
     debug_return!();
     //end of define
 }
+
+unsafe extern "C" fn parse_env_list(mut e: *mut environment, mut list: *mut libc::c_char) {
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut last: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut val: *mut libc::c_char = 0 as *mut libc::c_char;
+    //define debug_decl(env_insert,SUDO_DEBUG_ARGS) 1<<6
+    debug_decl!(parse_env_list, SUDO_DEBUG_ARGS);
+    //end of define
+
+    cp = strtok_r(list, b",\0" as *const u8 as *const libc::c_char, &mut last);
+    while !cp.is_null() {
+        if !strchr(cp, '=' as i32).is_null() {
+            //define sudo_warnx(U_("invalid environment variable name: %s"),cp);
+            sudo_debug_printf!(
+                SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"invalid environment variable name: %s\0" as *const u8 as *const libc::c_char
+                ),
+                cp
+            );
+            sudo_warn_nodebug_v1(
+                sudo_warn_gettext_v1(
+                    0 as *const libc::c_char,
+                    b"invalid environment variable name: %s\0" as *const u8 as *const libc::c_char,
+                ),
+                cp,
+            );
+            //end of define;
+
+            //had not write ,line 661
+            usage(1);
+        }
+
+        val = getenv(cp);
+        if !val.is_null() {
+            env_set(e, cp, val);
+        }
+        cp = strtok_r(
+            0 as *mut libc::c_char,
+            b",\0" as *const u8 as *const libc::c_char,
+            &mut last,
+        );
+    }
+
+    //define debug_return
+    debug_return!();
+    //end of define
+}
 #[no_mangle]
 pub unsafe extern "C" fn usage(mut fatal: libc::c_int) {
     let mut lbuf: sudo_lbuf = sudo_lbuf {
