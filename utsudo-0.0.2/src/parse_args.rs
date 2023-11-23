@@ -1586,6 +1586,30 @@ unsafe extern "C" fn parse_env_list(mut e: *mut environment, mut list: *mut libc
     debug_return!();
     //end of define
 }
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_lbuf {
+    pub output: Option<unsafe extern "C" fn(*const libc::c_char) -> libc::c_int>,
+    pub buf: *mut libc::c_char,
+    pub continuation: *const libc::c_char,
+    pub indent: libc::c_int,
+    pub len: libc::c_int,
+    pub size: libc::c_int,
+    pub cols: libc::c_short,
+    pub error: libc::c_short,
+}
+
+unsafe extern "C" fn usage_err(mut buf: *const libc::c_char) -> libc::c_int {
+    return fputs(buf, stderr);
+}
+
+unsafe extern "C" fn usage_out(mut buf: *const libc::c_char) -> libc::c_int {
+    return fputs(buf, stdout);
+}
+
+pub type sudo_gc_types = libc::c_uint;
+
 #[no_mangle]
 pub unsafe extern "C" fn usage(mut fatal: libc::c_int) {
     let mut lbuf: sudo_lbuf = sudo_lbuf {
