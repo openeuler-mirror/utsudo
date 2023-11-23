@@ -974,6 +974,41 @@ unsafe fn main_0(
         } // ! match  sudo_mode & MODE_MASK
         break;
     } // ! loop
+
+    /*
+     * If the command was terminated by a signal, sudo needs to terminated
+     * the same way.  Otherwise, the shell may ignore a keyboard-generated
+     * signal.  However, we want to avoid having sudo dump core itself.
+     */
+    if WIFSIGNALED!(status) {
+        let mut sa: sigaction = sigaction {
+            __sigaction_handler: Signal_handler { sa_handler: None },
+            sa_mask: sigset_t { __val: [0; 16] },
+            sa_flags: 0,
+            sa_restorer: None,
+        };
+        if WCOREDUMP!(status) != 0 {
+            disable_coredump();
+        }
+        memset(
+            &mut sa as *mut sigaction as *mut libc::c_void,
+            0 as libc::c_int,
+            ::std::mem::size_of::<sigaction>() as libc::c_ulong,
+        );
+        sigemptyset(&mut sa.sa_mask);
+        sa.__sigaction_handler.sa_handler = None;
+        sigaction(WTERMSIG!(status), &mut sa, 0 as *mut sigaction);
+        sudo_debug_exit_int_v1(
+            stdext::function_name!().as_ptr() as *const u8 as *const libc::c_char,
+            file!().as_ptr() as *const libc::c_char,
+            line!() as libc::c_int,
+            sudo_debug_subsys,
+            WTERMSIG!(status) | 128,
+        );
+
+        kill(getpid(), WTERMSIG!(status));
+    }
+
     sudo_debug_exit_int_v1(
         stdext::function_name!().as_ptr() as *const u8 as *const libc::c_char,
         file!().as_ptr() as *const libc::c_char,
