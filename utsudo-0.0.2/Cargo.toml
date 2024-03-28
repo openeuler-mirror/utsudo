@@ -1,0 +1,30 @@
+[package]
+name = "utsudo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2.135"
+stdext = "0.3.1"
+utsudo_util = {path = "lib/util"}
+
+[[bin]]
+name = "utsudo"
+path = "src/utsudo.rs"
+
+[[bin]]
+name = "sesh"
+path = "src/sesh.rs"
+
+[lib]
+name = "utsudo_noexec"
+crate-type = ["cdylib"]
+
+#[[bin]]
+#name = "check_noexec"
+
+
+#[[bin]]
+#name = "check_ttyname"

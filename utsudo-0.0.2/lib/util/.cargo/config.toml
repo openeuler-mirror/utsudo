@@ -1,0 +1,14 @@
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source."https://github.com/shadowsocks/crypto"]
+git = "https://github.com/shadowsocks/crypto"
+branch = "master"
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"
+
+[target.'cfg(target_os = "linux")']
+rustflags = ["-Clink-arg=-Wl,-soname=libutsudo_util.so.0"]
+
