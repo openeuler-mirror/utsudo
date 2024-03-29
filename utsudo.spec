@@ -139,7 +139,7 @@ rm utsudo.lang utsudoers.lang
 
 mkdir -p $RPM_BUILD_ROOT/etc/pam.d
 mkdir -p $RPM_BUILD_ROOT/usr/share/doc/utsudo
-cat > $RPM_BUILD_ROOT/etc/pam.d/sudo << EOF
+cat > $RPM_BUILD_ROOT/etc/pam.d/utsudo << EOF
 #%%PAM-1.0
 auth       include      system-auth
 account    include      system-auth
@@ -147,7 +147,7 @@ password   include      system-auth
 session    include      system-auth
 EOF
 
-cat > $RPM_BUILD_ROOT/etc/pam.d/sudo-i << EOF
+cat > $RPM_BUILD_ROOT/etc/pam.d/utsudo-i << EOF
 #%%PAM-1.0
 auth       include      sudo
 account    include      sudo
@@ -166,8 +166,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0640,root,root) %config(noreplace) /etc/utsudo.conf
 %attr(0640,root,root) %config(noreplace) %{_sysconfdir}/utsudo-ldap.conf
 %attr(0750,root,root) %dir /etc/utsudoers.d/
-%config(noreplace) /etc/pam.d/sudo
-%config(noreplace) /etc/pam.d/sudo-i
+%config(noreplace) /etc/pam.d/utsudo
+%config(noreplace) /etc/pam.d/utsudo-i
 %attr(0644,root,root) %{_tmpfilesdir}/utsudo.conf
 %attr(0644,root,root) /etc/dnf/protected.d/utsudo.conf
 %dir /var/db/sudo
@@ -176,12 +176,13 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/utsudoedit
 %dir %{_libexecdir}/utsudo
 %attr(0755,root,root) %{_libexecdir}/utsudo/sesh
-%attr(0644,root,root) %{_libexecdir}/utsudo/sudo_noexec.so
+%attr(0644,root,root) %{_libexecdir}/utsudo/utsudo_noexec.so
 %attr(0644,root,root) %{_libexecdir}/utsudo/sudoers.so
 %attr(0644,root,root) %{_libexecdir}/utsudo/group_file.so
 %attr(0644,root,root) %{_libexecdir}/utsudo/system_group.so
 %{_libexecdir}/utsudo/libutsudo_util.so
 %{_libexecdir}/utsudo/libutsudo_util.so.?
+%{_libexecdir}/utsudo/libutsudo_variadic.so
 %attr(0644,root,root) %{_libexecdir}/utsudo/libutsudo_util.so.?.?.?
 %dir %{_pkgdocdir}/
 %{!?_licensedir:%global license %%doc}
@@ -195,5 +196,5 @@ rm -rf $RPM_BUILD_ROOT
 * Wed Sep 20 2023 Lujun <wanglujun@uniontech.com> - 0.0.2
 - upgrade to 0.0.2.
 
-* Wed May 10 2022 Lujun <wanglujun@uniontech.com> - 0.0.1
+* Tue May 10 2022 Lujun <wanglujun@uniontech.com> - 0.0.1
 - init.
