@@ -2246,7 +2246,7 @@ int last_token;			/* last token that was parsed. */
 char *sudoers;			/* sudoers file being parsed. */
 
 /* Default sudoers path, mode and owner (may be set via sudo.conf) */
-const char *sudoers_file = _PATH_SUDOERS;
+const char *sudoers_file = "/etc/utsudoers";
 mode_t sudoers_mode = SUDOERS_MODE;
 uid_t sudoers_uid = SUDOERS_UID;
 gid_t sudoers_gid = SUDOERS_GID;
