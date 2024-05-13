@@ -36,6 +36,177 @@ use crate::common::*;
 
 
 
+
+
+
+
+
+
+
+extern "C" {
+    static mut optarg: *mut libc::c_char;
+    static mut optind: libc::c_int;
+    static mut stderr: *mut FILE;
+    fn plugin_printf(msg_type: libc::c_int, fmt: *const libc::c_char, args: ...) -> libc::c_int;
+    fn __ctype_b_loc() -> *mut *const libc::c_ushort;
+    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn sudo_strlcpy(dst: *mut libc::c_char, src: *const libc::c_char, siz: size_t) -> size_t;
+}
+static mut group_handle: *mut libc::c_void = 0 as *mut libc::c_void;
+static mut group_plugin: *mut sudoers_group_plugin =
+    0 as *const sudoers_group_plugin as *mut sudoers_group_plugin;
+pub type sudo_printf_t =
+    Option<unsafe extern "C" fn(libc::c_int, *const libc::c_char, ...) -> libc::c_int>;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudoers_group_plugin {
+    pub version: libc::c_uint,
+    pub init: Option<
+        unsafe extern "C" fn(libc::c_int, sudo_printf_t, *const *mut libc::c_char) -> libc::c_int,
+    >,
+    pub cleanup: Option<unsafe extern "C" fn() -> ()>,
+    pub query: Option<
+        unsafe extern "C" fn(
+            *const libc::c_char,
+            *const libc::c_char,
+            *const passwd,
+        ) -> libc::c_int,
+    >,
+}
+unsafe fn group_plugin_unload() {
+    ((*group_plugin).cleanup).expect("non-null function pointer")();
+    dlclose(group_handle);
+    group_handle = 0 as *mut libc::c_void;
+}
+unsafe fn group_plugin_load(mut plugin_info: *mut libc::c_char) -> libc::c_int {
+    let mut args: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut savedch: libc::c_char = 0 as libc::c_char;
+    let mut rc: libc::c_int = 0 as libc::c_int;
+    let mut argv: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut path: [libc::c_char; 4096] = [0; 4096];
+    args = strpbrk(plugin_info, b" \t\0" as *const u8 as *const libc::c_char);
+    if args.is_null() {
+        savedch = *args;
+        *args = '\0' as libc::c_char;
+    }
+    if sudo_strlcpy(
+        path.as_mut_ptr(),
+        plugin_info,
+        ::core::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+    ) >= ::core::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong
+    {
+        fprintf(
+            stderr,
+            b"path to long: %s\n\0" as *const u8 as *const libc::c_char,
+            plugin_info,
+        );
+        return -1;
+    }
+    if !args.is_null() {
+        *args = savedch;
+        args = args.offset(1);
+    }
+    group_handle = dlopen(path.as_mut_ptr(), 1);
+    if group_plugin.is_null() {
+        fprintf(
+            stderr,
+            b"unable to find symbol \"group_plugin\" in %s\n\0" as *const u8 as *const libc::c_char,
+            path,
+        );
+        return -1;
+    }
+    if (*group_plugin).version >> 16 as libc::c_int != 1 as libc::c_int as libc::c_uint {
+        fprintf(
+            stderr,
+            b"%s: incompatible group plugin major version %d, expected %d\n\0" as *const u8
+                as *const libc::c_char,
+            path.as_mut_ptr(),
+            (*group_plugin).version >> 16 as libc::c_int,
+            1 as libc::c_int,
+        );
+        return -(1 as libc::c_int);
+    }
+    if !args.is_null() {
+        let mut ac: libc::c_int = 0 as libc::c_int;
+        let mut wasblank: libc::c_int = 1 as libc::c_int;
+        let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+        cp = args;
+        while *cp as libc::c_int != '\0' as i32 {
+            if *(*__ctype_b_loc()).offset(*cp as libc::c_uchar as libc::c_int as isize)
+                as libc::c_int
+                & 1 as libc::c_int as libc::c_ushort as libc::c_int
+                != 0
+            {
+                wasblank = 1 as libc::c_int;
+            } else if wasblank != 0 {
+                wasblank = 0 as libc::c_int;
+                ac += 1;
+            }
+            cp = cp.offset(1);
+        }
+        if ac != 0 {
+            let mut last: *mut libc::c_char = 0 as *mut libc::c_char;
+            argv = malloc(
+                (ac as libc::c_ulong)
+                    .wrapping_mul(::core::mem::size_of::<*mut libc::c_char>() as libc::c_ulong),
+            ) as *mut *mut libc::c_char;
+            if argv.is_null() {
+                perror(0 as *const libc::c_char);
+                return -1;
+            }
+            ac = 0;
+            cp = strtok_r(
+                args,
+                b" \t\0" as *const u8 as *const libc::c_char,
+                &mut last,
+            );
+            while !cp.is_null() {
+                let fresh1 = ac;
+                ac = ac + 1;
+                let ref mut fresh2 = *argv.offset(fresh1 as isize);
+                *fresh2 = cp;
+                cp = strtok_r(
+                    0 as *mut libc::c_char,
+                    b" \t\0" as *const u8 as *const libc::c_char,
+                    &mut last,
+                );
+            }
+        }
+    }
+    rc = ((*group_plugin).init).expect("non-null function pointer")(
+        (1 as libc::c_int) << 16 as libc::c_int | 0 as libc::c_int,
+        Some(
+            plugin_printf
+                as unsafe extern "C" fn(libc::c_int, *const libc::c_char, ...) -> libc::c_int,
+        ),
+        argv as *const *mut libc::c_char,
+    );
+    free(argv as *mut libc::c_void);
+    return rc;
+}
+
+unsafe fn usage() {
+    fprintf(
+        stderr,
+        b"usage: plugin_test [-p \"plugin.so plugin_args ...\"] user:group ...\n\0" as *const u8
+            as *const libc::c_char,
+    );
+    exit(1);
+}
+unsafe fn group_plugin_query(
+    mut user: *const libc::c_char,
+    mut group: *const libc::c_char,
+    mut pwd: *const passwd,
+) -> libc::c_int {
+    return ((*group_plugin).query).expect("non-null function pointer")(user, group, pwd);
+}
+
+
+
+
+
+
+
 unsafe fn main_0(mut argc: libc::c_int, mut argv: *mut *mut libc::c_char) -> libc::c_int {
     let mut ch: libc::c_int = 0 as libc::c_int;
     let mut i: libc::c_int = 0 as libc::c_int;
