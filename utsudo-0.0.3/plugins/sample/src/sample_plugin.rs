@@ -704,3 +704,89 @@ unsafe extern "C" fn find_editor(
     *argv_out = nargv;
     return editor_path;
 }
+
+#[no_mangle]
+unsafe extern "C" fn policy_check(
+    mut argc: libc::c_int,
+    mut argv: *const *mut libc::c_char,
+    mut env_add: *mut *mut libc::c_char,
+    mut command_info_out: *mut *mut *mut libc::c_char,
+    mut argv_out: *mut *mut *mut libc::c_char,
+    mut user_env_out: *mut *mut *mut libc::c_char,
+) -> libc::c_int {
+    let mut command: *mut libc::c_char = 0 as *mut libc::c_char;
+
+    if argc == 0 || (*argv.offset(0 as libc::c_int as isize)).is_null() {
+        sudo_log.expect("non-null function pointer")(
+            SUDO_CONV_ERROR_MSG as libc::c_int,
+            b"no command specified\n\0" as *const u8 as *const libc::c_char,
+        );
+        return 0 as libc::c_int;
+    }
+    if check_passwd() == 0 {
+        return 0 as libc::c_int;
+    }
+
+    command = find_in_path(*argv.offset(0 as libc::c_int as isize), plugin_state.envp);
+    if command.is_null() {
+        sudo_log.expect("non-null function pointer")(
+            SUDO_CONV_ERROR_MSG as libc::c_int,
+            b"%s: command not found\n\0" as *const u8 as *const libc::c_char,
+            *argv.offset(0 as libc::c_int as isize),
+        );
+        return 0 as libc::c_int;
+    }
+
+    if strcmp(
+        command,
+        b"/usr/bin/vi\0" as *const u8 as *const libc::c_char,
+    ) == 0 as libc::c_int
+    {
+        use_sudoedit = 1 as libc::c_int;
+    }
+
+    if use_sudoedit != 0 {
+        free(command as *mut libc::c_void);
+        command = find_editor(
+            argc - 1 as libc::c_int,
+            argv.offset(1 as libc::c_int as isize),
+            argv_out,
+        );
+        if command.is_null() {
+            sudo_log.expect("non-null function pointer")(
+                SUDO_CONV_ERROR_MSG as libc::c_int,
+                b"unable to find valid editor\n\0" as *const u8 as *const libc::c_char,
+            );
+            return -(1 as libc::c_int);
+        }
+        use_sudoedit = 1 as libc::c_int;
+    } else {
+        *argv_out = argv as *mut *mut libc::c_char;
+    }
+
+    *user_env_out = plugin_state.envp;
+    *command_info_out = build_command_info(command);
+    free(command as *mut libc::c_void);
+    if (*command_info_out).is_null() {
+        sudo_log.expect("non-null function pointer")(
+            SUDO_CONV_ERROR_MSG as libc::c_int,
+            b"out of memory\n\0" as *const u8 as *const libc::c_char,
+        );
+        return -(1 as libc::c_int);
+    }
+    return 1 as libc::c_int;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn policy_list(
+    mut argc: libc::c_int,
+    mut argv: *const *mut libc::c_char,
+    mut verbose: libc::c_int,
+    mut list_user: *const libc::c_char,
+) -> libc::c_int {
+    sudo_log.expect("non-null function pointer")(
+        SUDO_CONV_INFO_MSG as libc::c_int,
+        b"Validated users may run any command\n\0" as *const u8 as *const libc::c_char,
+    );
+    return 1 as libc::c_int;
+}
