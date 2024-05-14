@@ -790,3 +790,97 @@ pub unsafe extern "C" fn policy_list(
     );
     return 1 as libc::c_int;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn policy_version(mut verbose: libc::c_int) -> libc::c_int {
+    sudo_log.expect("non-null function pointer")(
+        SUDO_CONV_INFO_MSG as libc::c_int,
+        b"Sample policy plugin version %s\n\0" as *const u8 as *const libc::c_char,
+        b"1.8.29\0" as *const u8 as *const libc::c_char,
+    );
+    return 1 as libc::c_int;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn policy_close(mut exit_status: libc::c_int, mut error: libc::c_int) {
+    if error != 0 {
+        sudo_log.expect("non-null function pointer")(
+            SUDO_CONV_ERROR_MSG as libc::c_int,
+            b"Command error: %s\n\0" as *const u8 as *const libc::c_char,
+            strerror(error),
+        );
+    } else if exit_status & 0x7f as libc::c_int == 0 as libc::c_int {
+        sudo_log.expect("non-null function pointer")(
+            SUDO_CONV_INFO_MSG as libc::c_int,
+            b"Command exited with status %d\n\0" as *const u8 as *const libc::c_char,
+            (exit_status & 0xff00 as libc::c_int) >> 8 as libc::c_int,
+        );
+    } else if ((exit_status & 0x7f as libc::c_int) + 1 as libc::c_int) as libc::c_schar
+        as libc::c_int
+        >> 1 as libc::c_int
+        > 0 as libc::c_int
+    {
+        sudo_log.expect("non-null function pointer")(
+            SUDO_CONV_INFO_MSG as libc::c_int,
+            b"Command killed by signal %d\n\0" as *const u8 as *const libc::c_char,
+            exit_status & 0x7f as libc::c_int,
+        );
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn io_open(
+    mut version: libc::c_uint,
+    mut conversation: sudo_conv_t,
+    mut sudo_printf: sudo_printf_t,
+    mut settings: *const *mut libc::c_char,
+    mut user_info: *const *mut libc::c_char,
+    mut command_info: *const *mut libc::c_char,
+    mut argc: libc::c_int,
+    mut argv: *const *mut libc::c_char,
+    mut user_env: *const *mut libc::c_char,
+    mut args: *const *mut libc::c_char,
+) -> libc::c_int {
+    let mut fd: libc::c_int = 0;
+    let mut path: [libc::c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];
+    if sudo_conv.is_none() {
+        sudo_conv = conversation;
+    }
+    if sudo_log.is_none() {
+        sudo_log = sudo_printf;
+    }
+
+    snprintf(
+        path.as_mut_ptr(),
+        ::core::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+        b"/var/tmp/sample-%u.output\0" as *const u8 as *const libc::c_char,
+        getpid() as libc::c_uint,
+    );
+    fd = open(
+        path.as_mut_ptr(),
+        O_WRONLY as libc::c_int | O_CREAT as libc::c_int | O_EXCL as libc::c_int,
+        0o644 as libc::c_int,
+    );
+    if fd == -(1 as libc::c_int) {
+        return 0 as libc::c_int;
+    }
+    output = fdopen(fd, b"w\0" as *const u8 as *const libc::c_char);
+
+    snprintf(
+        path.as_mut_ptr(),
+        ::core::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+        b"/var/tmp/sample-%u.input\0" as *const u8 as *const libc::c_char,
+        getpid() as libc::c_uint,
+    );
+    fd = open(
+        path.as_mut_ptr(),
+        O_WRONLY as libc::c_int | O_CREAT as libc::c_int | O_EXCL as libc::c_int,
+        0o644 as libc::c_int,
+    );
+    if fd == -(1 as libc::c_int) {
+        return 0 as libc::c_int;
+    }
+    input = fdopen(fd, b"w\0" as *const u8 as *const libc::c_char);
+
+    return 1 as libc::c_int;
+}
