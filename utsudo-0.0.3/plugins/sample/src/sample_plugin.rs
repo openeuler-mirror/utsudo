@@ -884,3 +884,65 @@ unsafe extern "C" fn io_open(
 
     return 1 as libc::c_int;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn io_close(mut exit_status: libc::c_int, mut error: libc::c_int) {
+    fclose(input);
+    fclose(output);
+}
+
+#[no_mangle]
+unsafe extern "C" fn io_version(mut verbose: libc::c_int) -> libc::c_int {
+    sudo_log.expect("non-null function pointer")(
+        SUDO_CONV_INFO_MSG as libc::c_int,
+        b"Sample I/O plugin version %s\n\0" as *const u8 as *const libc::c_char,
+        b"1.8.29\0" as *const u8 as *const libc::c_char,
+    );
+    return 1 as libc::c_int;
+}
+
+unsafe extern "C" fn io_log_input(
+    mut buf: *const libc::c_char,
+    mut len: libc::c_uint,
+) -> libc::c_int {
+    let mut y: libc::c_ulong = fwrite(
+        buf as *const libc::c_void,
+        len as libc::c_ulong,
+        1 as libc::c_int as libc::c_ulong,
+        input,
+    );
+    return 1 as libc::c_int;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn io_log_output(
+    mut buf: *const libc::c_char,
+    mut len: libc::c_uint,
+) -> libc::c_int {
+    let mut cp: *const libc::c_char = 0 as *const libc::c_char;
+    let mut ep: *const libc::c_char = 0 as *const libc::c_char;
+    let mut ret: bool = true;
+    let mut y: libc::c_ulong = fwrite(
+        buf as *const libc::c_void,
+        len as libc::c_ulong,
+        1 as libc::c_int as libc::c_ulong,
+        output,
+    );
+    cp = buf;
+    ep = buf.offset(len as isize);
+    while cp < ep {
+        if cp.offset(5 as libc::c_int as isize) < ep
+            && memcmp(
+                cp as *const libc::c_void,
+                b"honk!\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+                5 as libc::c_int as libc::c_ulong,
+            ) == 0 as libc::c_int
+        {
+            ret = 0 as libc::c_int != 0;
+            break;
+        }
+        cp = cp.offset(1);
+    }
+    return ret as libc::c_int;
+}
+
