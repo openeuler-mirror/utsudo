@@ -1,0 +1,32 @@
+[package]
+name = "utsudoers"
+version = "0.1.0"
+edition = "2021"
+build = "../../build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2.135"
+stdext = "0.3.1"
+c2rust-bitfields = "0.17.0"
+utsudo_util = {path = "../../lib/util"}
+
+[lib]
+crate-type = ["cdylib"]
+
+[[bin]]
+name = "cvtutsudoers"
+path = "src/cvtsudoers.rs"
+
+[[bin]]
+name = "viutsudo"
+path = "src/visudo.rs"
+
+[[bin]]
+name = "utsudoreplay"
+path = "src/sudoreplay.rs"
+
+[[bin]]
+name = "testutsudoers"
+path = "src/testsudoers.rs"
