@@ -946,3 +946,104 @@ pub unsafe extern "C" fn io_log_output(
     return ret as libc::c_int;
 }
 
+#[no_mangle]
+pub static mut sample_policy: policy_plugin = unsafe {
+    {
+        let mut init = policy_plugin {
+            type_0: 1 as libc::c_int as libc::c_uint,
+            version: ((1 as libc::c_int) << 16 as libc::c_int | 14 as libc::c_int) as libc::c_uint,
+            open: Some(
+                policy_open
+                    as unsafe extern "C" fn(
+                        libc::c_uint,
+                        sudo_conv_t,
+                        sudo_printf_t,
+                        *const *mut libc::c_char,
+                        *const *mut libc::c_char,
+                        *const *mut libc::c_char,
+                        *const *mut libc::c_char,
+                    ) -> libc::c_int,
+            ),
+            close: Some(policy_close as unsafe extern "C" fn(libc::c_int, libc::c_int) -> ()),
+            show_version: Some(policy_version as unsafe extern "C" fn(libc::c_int) -> libc::c_int),
+            check_policy: Some(
+                policy_check
+                    as unsafe extern "C" fn(
+                        libc::c_int,
+                        *const *mut libc::c_char,
+                        *mut *mut libc::c_char,
+                        *mut *mut *mut libc::c_char,
+                        *mut *mut *mut libc::c_char,
+                        *mut *mut *mut libc::c_char,
+                    ) -> libc::c_int,
+            ),
+            list: Some(
+                policy_list
+                    as unsafe extern "C" fn(
+                        libc::c_int,
+                        *const *mut libc::c_char,
+                        libc::c_int,
+                        *const libc::c_char,
+                    ) -> libc::c_int,
+            ),
+            validate: None,
+            invalidate: None,
+            init_session: None,
+            register_hooks: None,
+            deregister_hooks: None,
+        };
+        init
+    }
+};
+
+#[no_mangle]
+pub static mut sample_io: io_plugin = unsafe {
+    {
+        let mut init = io_plugin {
+            type_0: 2 as libc::c_int as libc::c_uint,
+            version: ((1 as libc::c_int) << 16 as libc::c_int | 14 as libc::c_int) as libc::c_uint,
+            open: Some(
+                io_open
+                    as unsafe extern "C" fn(
+                        libc::c_uint,
+                        sudo_conv_t,
+                        sudo_printf_t,
+                        *const *mut libc::c_char,
+                        *const *mut libc::c_char,
+                        *const *mut libc::c_char,
+                        libc::c_int,
+                        *const *mut libc::c_char,
+                        *const *mut libc::c_char,
+                        *const *mut libc::c_char,
+                    ) -> libc::c_int,
+            ),
+            close: Some(io_close as unsafe extern "C" fn(libc::c_int, libc::c_int) -> ()),
+            show_version: Some(io_version as unsafe extern "C" fn(libc::c_int) -> libc::c_int),
+            log_ttyin: Some(
+                io_log_input
+                    as unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int,
+            ),
+            log_ttyout: Some(
+                io_log_output
+                    as unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int,
+            ),
+            log_stdin: Some(
+                io_log_input
+                    as unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int,
+            ),
+            log_stdout: Some(
+                io_log_output
+                    as unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int,
+            ),
+            log_stderr: Some(
+                io_log_output
+                    as unsafe extern "C" fn(*const libc::c_char, libc::c_uint) -> libc::c_int,
+            ),
+            register_hooks: None,
+            deregister_hooks: None,
+            change_winsize: None,
+            log_suspend: None,
+        };
+        init
+    }
+};
