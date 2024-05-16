@@ -237,7 +237,32 @@ pub unsafe extern "C" fn mygetgrnam(mut name: *const libc::c_char) -> *mut group
     return gr;
 }
 
-
-
+#[no_mangle]
+pub unsafe extern "C" fn mygetgrgid(mut gid: gid_t) -> *mut group {
+    let mut gr: *mut group = 0 as *mut group;
+    if grf.is_null() {
+        grf = fopen(grfile, b"r\0" as *const u8 as *const libc::c_char);
+        if grf.is_null() {
+            return 0 as *mut group;
+        }
+        fcntl(fileno(grf), 2 as libc::c_int, 1 as libc::c_int);
+    } else {
+        rewind(grf);
+    }
+    loop {
+        gr = mygetgrent();
+        if gr.is_null() {
+            break;
+        }
+        if (*gr).gr_gid == gid {
+            break;
+        }
+    }
+    if gr_stayopen == 0 {
+        fclose(grf);
+        grf = 0 as *mut FILE;
+    }
+    return gr;
+}
 
 
