@@ -246,7 +246,477 @@ macro_rules! rbisempty {
     };
 }
 
-
-
+/*
+ * Comparison function for the red-black tree.
+ * Aliases are sorted by name with the type used as a tie-breaker.
+ */
+unsafe extern "C" fn alias_compare(
+    mut v1: *const libc::c_void,
+    mut v2: *const libc::c_void,
+) -> libc::c_int {
+    let mut a1: *const alias = v1 as *const alias;
+    let mut a2: *const alias = v2 as *const alias;
+    let mut res: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    if a1.is_null() {
+        res = -(1 as libc::c_int);
+    } else if a2.is_null() {
+        res = 1;
+    } else {
+        res = strcmp((*a1).name, (*a2).name);
+        if res == 0 {
+            res = (*a1).type0 as libc::c_int - (*a1).type0 as libc::c_int;
+        }
+    }
+    debug_return_int!(res);
+}
+/*
+ * Search the tree for an alias with the specified name and type.
+ * Returns a pointer to the alias structure or NULL if not found.
+ * Caller is responsible for calling alias_put() on the returned
+ * alias to mark it as unused.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn alias_get(
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut name: *const libc::c_char,
+    mut type0: libc::c_int,
+) -> *mut alias {
+    let mut key: alias = alias {
+        name: 0 as *mut libc::c_char,
+        type0: 0,
+        used: 0,
+        lineno: 0,
+        file: 0 as *mut libc::c_char,
+        members: member_list {
+            tqh_first: 0 as *mut member,
+            tqh_last: 0 as *mut *mut member,
+        },
+    };
+    let mut node: *mut rbnode = 0 as *mut rbnode;
+    let mut a: *mut alias = 0 as *mut alias;
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    if (*parse_tree).aliases.is_null() {
+        debug_return_ptr!(0 as *mut alias);
+    }
+    key.name = name as *mut libc::c_char;
+    key.type0 = type0 as libc::c_ushort;
+    node = rbfind(
+        (*parse_tree).aliases,
+        &mut key as *mut alias as *mut libc::c_void,
+    );
+    if !node.is_null() {
+        /*
+         * Check whether this alias is already in use.
+         * If so, we've detected a loop.  If not, set the flag,
+         * which the caller should clear with a call to alias_put().
+         */
+        a = (*node).data as *mut alias;
+        if (*a).used != 0 {
+            errno!() = ELOOP;
+            debug_return_ptr!(0 as *mut alias);
+        }
+        (*a).used = true as libc::c_short;
+    } else {
+        errno!() = ELOOP;
+    }
+    debug_return_ptr!(a as *mut alias);
+}
+/*
+ * Clear the "used" flag in an alias once the caller is done with it.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn alias_put(mut a: *mut alias) {
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    (*a).used = false as libc::c_short;
+    debug_return!();
+}
+/*
+ * Add an alias to the aliases redblack tree.
+ * Note that "file" must be a reference-counted string.
+ * Returns NULL on success and an error string on failure.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn alias_add(
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut name: *mut libc::c_char,
+    mut type0: libc::c_int,
+    mut file: *mut libc::c_char,
+    mut lineno: libc::c_int,
+    mut members: *mut member,
+) -> *const libc::c_char {
+    static mut errbuf: [libc::c_char; 512] = [0; 512];
+    let mut a: *mut alias = 0 as *mut alias;
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    if ((*parse_tree).aliases).is_null() {
+        (*parse_tree).aliases = alloc_aliases();
+        if ((*parse_tree).aliases).is_null() {
+            sudo_strlcpy(
+                errbuf.as_mut_ptr(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                ::core::mem::size_of::<[libc::c_char; 512]>() as libc::c_ulong,
+            );
+            debug_return_str!(errbuf.as_mut_ptr());
+        }
+    }
+    a = calloc(
+        1 as libc::c_ulong,
+        ::core::mem::size_of::<alias>() as libc::c_ulong,
+    ) as *mut alias;
+    if a.is_null() {
+        sudo_strlcpy(
+            errbuf.as_mut_ptr(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+            ::core::mem::size_of::<[libc::c_char; 512]>() as libc::c_ulong,
+        );
+        debug_return_str!(errbuf.as_mut_ptr());
+    }
+    (*a).name = name;
+    (*a).type0 = type0 as libc::c_ushort;
+    /* a->used = false; */
+    (*a).file = rcstr_addref(file);
+    (*a).lineno = lineno;
+    //HLTQ_TO_TAILQ(&a->members, members, entries);
+    (*a).members.tqh_first = members;
+    (*a).members.tqh_last = (*members).entries.tqe_prev;
+    (*members).entries.tqe_prev = &mut (*a).members.tqh_first;
+    match rbinsert(
+        (*parse_tree).aliases,
+        a as *mut libc::c_void,
+        0 as *mut *mut rbnode,
+    ) {
+        1 => {
+            sudo_snprintf(
+                errbuf.as_mut_ptr(),
+                ::core::mem::size_of::<[libc::c_char; 512]>() as libc::c_ulong,
+                b"Alias \"%s\" already defined\0" as *const u8 as *const libc::c_char,
+                name,
+            );
+            alias_free(a as *mut libc::c_void);
+            debug_return_str!(errbuf.as_mut_ptr());
+        }
+        -1 => {
+            sudo_strlcpy(
+                errbuf.as_mut_ptr(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+                ::core::mem::size_of::<[libc::c_char; 512]>() as libc::c_ulong,
+            );
+            alias_free(a as *mut libc::c_void);
+            debug_return_str!(errbuf.as_mut_ptr());
+        }
+        _ => {}
+    }
+    debug_return_str!(0 as *const libc::c_char);
+}
+/*
+ * Closure to adapt 2-arg rbapply() to 3-arg alias_apply().
+ */
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct alias_apply_closure {
+    pub parse_tree: *mut sudoers_parse_tree,
+    pub func: Option<
+        unsafe extern "C" fn(*mut sudoers_parse_tree, *mut alias, *mut libc::c_void) -> libc::c_int,
+    >,
+    pub cookie: *mut libc::c_void,
+}
+/* Adapt rbapply() to alias_apply() calling convention. */
+unsafe extern "C" fn alias_apply_func(
+    mut v1: *mut libc::c_void,
+    mut v2: *mut libc::c_void,
+) -> libc::c_int {
+    let mut a: *mut alias = v1 as *mut alias;
+    let mut closure: *mut alias_apply_closure = v2 as *mut alias_apply_closure;
+    return ((*closure).func).expect("non-null function pointer")(
+        (*closure).parse_tree,
+        a,
+        (*closure).cookie,
+    );
+}
+/*
+ * Apply a function to each alias entry and pass in a cookie.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn alias_apply(
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut func: Option<
+        unsafe extern "C" fn(*mut sudoers_parse_tree, *mut alias, *mut libc::c_void) -> libc::c_int,
+    >,
+    mut cookie: *mut libc::c_void,
+) {
+    let mut closure: alias_apply_closure = alias_apply_closure {
+        parse_tree: 0 as *mut sudoers_parse_tree,
+        func: None,
+        cookie: 0 as *mut libc::c_void,
+    };
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    if !((*parse_tree).aliases).is_null() {
+        closure.parse_tree = parse_tree;
+        closure.func = func;
+        closure.cookie = cookie;
+        rbapply!(
+            (*parse_tree).aliases,
+            Some(
+                alias_apply_func
+                    as unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> libc::c_int,
+            ),
+            &mut closure as *mut alias_apply_closure as *mut libc::c_void,
+            rbtraversal::inorder
+        );
+    }
+    debug_return!();
+}
+/*
+ * Returns true if there are no aliases in the parse_tree, else false.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn no_aliases(mut parse_tree: *mut sudoers_parse_tree) -> bool {
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    debug_return_bool!(((*parse_tree).aliases).is_null() || rbisempty!((*parse_tree).aliases));
+}
+/*
+ * Free memory used by an alias struct and its members.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn alias_free(mut v: *mut libc::c_void) {
+    let mut a: *mut alias = v as *mut alias;
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    if !a.is_null() {
+        free((*a).name as *mut libc::c_void);
+        rcstr_delref((*a).file);
+        free_members(&mut (*a).members);
+        free(a as *mut libc::c_void);
+    }
+    debug_return!();
+}
+/*
+ * Find the named alias, remove it from the tree and return it.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn alias_remove(
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut name: *mut libc::c_char,
+    mut type0: libc::c_int,
+) -> *mut alias {
+    let mut node: *mut rbnode = 0 as *mut rbnode;
+    let mut key: alias = alias {
+        name: 0 as *mut libc::c_char,
+        type0: 0,
+        used: 0,
+        lineno: 0,
+        file: 0 as *mut libc::c_char,
+        members: member_list {
+            tqh_first: 0 as *mut member,
+            tqh_last: 0 as *mut *mut member,
+        },
+    };
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    if !((*parse_tree).aliases).is_null() {
+        key.name = name;
+        key.type0 = type0 as libc::c_ushort;
+        node = rbfind(
+            (*parse_tree).aliases,
+            &mut key as *mut alias as *mut libc::c_void,
+        );
+        if !node.is_null() {
+            //debug_return_ptr(rbdelete(parse_tree->aliases, node));
+            debug_return_ptr!(rbdelete((*parse_tree).aliases, node) as *mut alias);
+        }
+    }
+    errno!() = ENOENT;
+    debug_return_ptr!(0 as *mut alias);
+}
+#[no_mangle]
+pub unsafe extern "C" fn alloc_aliases() -> *mut rbtree {
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    debug_return_ptr!(rbcreate(Some(
+        alias_compare
+            as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> libc::c_int,
+    )));
+}
+#[no_mangle]
+pub unsafe extern "C" fn free_aliases(mut aliases: *mut rbtree) {
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    if !aliases.is_null() {
+        rbdestroy(
+            aliases,
+            Some(alias_free as unsafe extern "C" fn(*mut libc::c_void) -> ()),
+        );
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn alias_type_to_string(mut alias_type: libc::c_int) -> *const libc::c_char {
+    return if alias_type == HOSTALIAS {
+        b"Host_Alias\0" as *const u8 as *const libc::c_char
+    } else if alias_type == CMNDALIAS {
+        b"Cmnd_Alias\0" as *const u8 as *const libc::c_char
+    } else if alias_type == USERALIAS {
+        b"User_Alias\0" as *const u8 as *const libc::c_char
+    } else if alias_type == RUNASALIAS {
+        b"Runas_Alias\0" as *const u8 as *const libc::c_char
+    } else {
+        b"Invalid_Alias\0" as *const u8 as *const libc::c_char
+    };
+}
+/*
+ * Remove the alias of the specified type as well as any other aliases
+ * referenced by that alias.  Stores removed aliases in a freelist.
+ */
+unsafe extern "C" fn alias_remove_recursive(
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut name: *mut libc::c_char,
+    mut type0: libc::c_int,
+    mut freelist: *mut rbtree,
+) -> bool {
+    let mut m: *mut member = 0 as *mut member;
+    let mut a: *mut alias = 0 as *mut alias;
+    let mut ret: bool = true;
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    a = alias_remove(parse_tree, name, type0);
+    if !a.is_null() {
+        //TAILQ_FOREACH(m, &a->members, entries)
+        m = (*a).members.tqh_first;
+        loop {
+            if m.is_null() {
+                break;
+            }
+            if (*m).type0 as libc::c_int == ALIAS {
+                if !alias_remove_recursive(parse_tree, (*m).name, type0, freelist) {
+                    ret = false;
+                }
+            }
+            m = (*m).entries.tqe_next;
+        }
+        if rbinsert(freelist, a as *mut libc::c_void, 0 as *mut *mut rbnode) != 0 {
+            ret = false;
+        }
+    }
+    debug_return_bool!(ret);
+}
+unsafe extern "C" fn alias_find_used_members(
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut members: *mut member_list,
+    mut atype: libc::c_int,
+    mut used_aliases: *mut rbtree,
+) -> libc::c_int {
+    let mut m: *mut member = 0 as *mut member;
+    let mut errors: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    if !members.is_null() {
+        //TAILQ_FOREACH(m, &a->members, entries)
+        m = (*members).tqh_first;
+        loop {
+            if m.is_null() {
+                break;
+            }
+            if (*m).type0 as libc::c_int != ALIAS {
+                if !alias_remove_recursive(parse_tree, (*m).name, atype, used_aliases) {
+                    errors += 1;
+                }
+            }
+            m = (*m).entries.tqe_next;
+        }
+    }
+    debug_return_int!(errors);
+}
+/*
+ * Move all aliases referenced by userspecs to used_aliases.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn alias_find_used(
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut used_aliases: *mut rbtree,
+) -> bool {
+    let mut priv0: *mut privilege = 0 as *mut privilege;
+    let mut us: *mut userspec = 0 as *mut userspec;
+    let mut cs: *mut cmndspec = 0 as *mut cmndspec;
+    let mut d: *mut defaults = 0 as *mut defaults;
+    let mut m: *mut member = 0 as *mut member;
+    let mut errors: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_ALIAS!());
+    /* Move referenced aliases to used_aliases. */
+    //TAILQ_FOREACH(us, &parse_tree->userspecs, entries)
+    us = (*parse_tree).userspecs.tqh_first;
+    loop {
+        if us.is_null() {
+            break;
+        }
+        errors += alias_find_used_members(parse_tree, &mut (*us).users, USERALIAS, used_aliases);
+        //TAILQ_FOREACH(priv, &us->privileges, entries)
+        priv0 = (*us).privileges.tqh_first;
+        loop {
+            if priv0.is_null() {
+                break;
+            }
+            errors += alias_find_used_members(
+                parse_tree,
+                &mut (*priv0).hostlist,
+                HOSTALIAS,
+                used_aliases,
+            );
+            //TAILQ_FOREACH(cs, &priv->cmndlist, entries)
+            cs = (*priv0).cmndlist.tqh_first;
+            loop {
+                if cs.is_null() {
+                    break;
+                }
+                errors += alias_find_used_members(
+                    parse_tree,
+                    (*cs).runasuserlist,
+                    RUNASALIAS,
+                    used_aliases,
+                );
+                errors += alias_find_used_members(
+                    parse_tree,
+                    (*cs).runasgrouplist,
+                    RUNASALIAS,
+                    used_aliases,
+                );
+                m = (*cs).cmnd;
+                if (*m).type0 as libc::c_int == ALIAS {
+                    if !alias_remove_recursive(parse_tree, (*m).name, CMNDALIAS, used_aliases) {
+                        errors += 1;
+                    }
+                }
+                cs = (*cs).entries.tqe_next;
+            }
+            priv0 = (*priv0).entries.tqe_next;
+        }
+        us = (*us).entries.tqe_next;
+    }
+    //TAILQ_FOREACH(d, &parse_tree->defaults, entries)
+    d = (*parse_tree).defaults.tqh_first;
+    loop {
+        if d.is_null() {
+            break;
+        }
+        match (*d).type0 {
+            DEFAULTS_HOST => {
+                errors +=
+                    alias_find_used_members(parse_tree, (*d).binding, HOSTALIAS, used_aliases);
+            }
+            DEFAULTS_USER => {
+                errors +=
+                    alias_find_used_members(parse_tree, (*d).binding, USERALIAS, used_aliases);
+            }
+            DEFAULTS_RUNAS => {
+                errors +=
+                    alias_find_used_members(parse_tree, (*d).binding, RUNASALIAS, used_aliases);
+            }
+            DEFAULTS_CMND => {
+                errors +=
+                    alias_find_used_members(parse_tree, (*d).binding, CMNDALIAS, used_aliases);
+            }
+            _ => {}
+        }
+        d = (*d).entries.tqe_next;
+    }
+    //debug_return_int(errors ? false : true);
+    if errors != 0 {
+        debug_return_bool!(false);
+    } else {
+        debug_return_bool!(true);
+    }
+}
 
 
