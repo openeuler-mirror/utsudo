@@ -108,3 +108,144 @@ pub type sudo_conv_t = Option<
         *mut sudo_conv_callback,
     ) -> libc::c_int,
 >;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct getpass_closure {
+    pub tstat: libc::c_int,
+    pub cookie: *mut libc::c_void,
+    pub auth_pw: *mut passwd,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_user {
+    pub pw: *mut passwd,
+    pub _runas_pw: *mut passwd,
+    pub _runas_gr: *mut group,
+    pub cmnd_stat: *mut stat,
+    pub name: *mut libc::c_char,
+    pub path: *mut libc::c_char,
+    pub tty: *mut libc::c_char,
+    pub ttypath: *mut libc::c_char,
+    pub host: *mut libc::c_char,
+    pub shost: *mut libc::c_char,
+    pub runhost: *mut libc::c_char,
+    pub srunhost: *mut libc::c_char,
+    pub prompt: *mut libc::c_char,
+    pub cmnd: *mut libc::c_char,
+    pub cmnd_args: *mut libc::c_char,
+    pub cmnd_base: *mut libc::c_char,
+    pub cmnd_safe: *mut libc::c_char,
+    pub class_name: *mut libc::c_char,
+    pub krb5_ccname: *mut libc::c_char,
+    pub gid_list: *mut gid_list,
+    pub env_vars: *const *mut libc::c_char,
+    pub role: *mut libc::c_char,
+    pub type_0: *mut libc::c_char,
+    pub cwd: *const libc::c_char,
+    pub iolog_file: *mut libc::c_char,
+    pub gids: *mut gid_t,
+    pub execfd: libc::c_int,
+    pub ngids: libc::c_int,
+    pub closefrom: libc::c_int,
+    pub lines: libc::c_int,
+    pub cols: libc::c_int,
+    pub flags: libc::c_int,
+    pub max_groups: libc::c_int,
+    pub timeout: libc::c_int,
+    pub umask: mode_t,
+    pub uid: uid_t,
+    pub gid: uid_t,
+    pub sid: pid_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _IO_FILE {
+    pub _flags: libc::c_int,
+    pub _IO_read_ptr: *mut libc::c_char,
+    pub _IO_read_end: *mut libc::c_char,
+    pub _IO_read_base: *mut libc::c_char,
+    pub _IO_write_base: *mut libc::c_char,
+    pub _IO_write_ptr: *mut libc::c_char,
+    pub _IO_write_end: *mut libc::c_char,
+    pub _IO_buf_base: *mut libc::c_char,
+    pub _IO_buf_end: *mut libc::c_char,
+    pub _IO_save_base: *mut libc::c_char,
+    pub _IO_backup_base: *mut libc::c_char,
+    pub _IO_save_end: *mut libc::c_char,
+    pub _markers: *mut _IO_marker,
+    pub _chain: *mut _IO_FILE,
+    pub _fileno: libc::c_int,
+    pub _flags2: libc::c_int,
+    pub _old_offset: __off_t,
+    pub _cur_column: libc::c_ushort,
+    pub _vtable_offset: libc::c_schar,
+    pub _shortbuf: [libc::c_char; 1],
+    pub _lock: *mut libc::c_void,
+    pub _offset: __off64_t,
+    pub _codecvt: *mut _IO_codecvt,
+    pub _wide_data: *mut _IO_wide_data,
+    pub _freeres_list: *mut _IO_FILE,
+    pub _freeres_buf: *mut libc::c_void,
+    pub __pad5: size_t,
+    pub _mode: libc::c_int,
+    pub _unused2: [libc::c_char; 20],
+}
+pub type _IO_lock_t = ();
+pub type FILE = _IO_FILE;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conv_callback {
+    pub version: libc::c_uint,
+    pub closure: *mut libc::c_void,
+    pub on_suspend: sudo_conv_callback_fn_t,
+    pub on_resume: sudo_conv_callback_fn_t,
+}
+pub type sudo_conv_callback_fn_t =
+    Option<unsafe extern "C" fn(libc::c_int, *mut libc::c_void) -> libc::c_int>;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conv_message {
+    pub msg_type: libc::c_int,
+    pub timeout: libc::c_int,
+    pub msg: *const libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conv_reply {
+    pub reply: *mut libc::c_char,
+}
+
+#[macro_export]
+macro_rules! ISSET {
+    ($t:expr,$f:expr) => {
+        (($t) & ($f))
+    };
+}
+
+// #define SUDO_CONV_CALLBACK_VERSION_MAJOR	1
+// #define SUDO_CONV_CALLBACK_VERSION_MINOR	0
+pub const SUDO_CONV_CALLBACK_VERSION_MAJOR: libc::c_int = 1;
+pub const SUDO_CONV_CALLBACK_VERSION_MINOR: libc::c_int = 0;
+
+#[macro_export]
+macro_rules! SUDO_API_MKVERSION {
+    ($x: expr, $y: expr) => {
+        ((($x) << 16) | ($y))
+    };
+}
+
+#[macro_export]
+macro_rules! SUDO_CONV_CALLBACK_VERSION {
+    () => {
+        SUDO_API_MKVERSION!(
+            SUDO_CONV_CALLBACK_VERSION_MAJOR,
+            SUDO_CONV_CALLBACK_VERSION_MINOR
+        )
+    };
+}
+
+
