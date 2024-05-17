@@ -1580,3 +1580,426 @@ macro_rules! isalnum {
         (__isctype!(($c), _ISalnum!()))
     };
 }
+
+////////////  定义结构体值
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_5 {
+    pub tqe_next: *mut userspec,
+    pub tqe_prev: *mut *mut userspec,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct privilege_list {
+    pub tqh_first: *mut privilege,
+    pub tqh_last: *mut *mut privilege,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct userspec_list {
+    pub tqh_first: *mut userspec,
+    pub tqh_last: *mut *mut userspec,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct userspec {
+    pub entries: C2RustUnnamed_5,
+    pub users: member_list,
+    pub privileges: privilege_list,
+    pub comments: comment_list,
+    pub lineno: libc::c_int,
+    pub file: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudoers_parse_tree {
+    pub userspecs: userspec_list,
+    pub defaults: defaults_list,
+    pub aliases: *mut rbtree,
+    pub shost: *const libc::c_char,
+    pub lhost: *const libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_lbuf {
+    pub output: Option<unsafe extern "C" fn(*const libc::c_char) -> libc::c_int>,
+    pub buf: *mut libc::c_char,
+    pub continuation: *const libc::c_char,
+    pub indent: libc::c_int,
+    pub len: libc::c_int,
+    pub size: libc::c_int,
+    pub cols: libc::c_short,
+    pub error: libc::c_short,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct comment_list {
+    pub stqh_first: *mut sudoers_comment,
+    pub stqh_last: *mut *mut sudoers_comment,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudoers_comment {
+    pub entries: C2RustUnnamed_6,
+    pub str_0: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_6 {
+    pub stqe_next: *mut sudoers_comment,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct LDAP;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct LDAPMessage;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct pam_handle;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct cmndspec {
+    pub entries: C2RustUnnamed_3,
+    pub runasuserlist: *mut member_list,
+    pub runasgrouplist: *mut member_list,
+    pub cmnd: *mut member,
+    pub tags: cmndtag,
+    pub timeout: libc::c_int,
+    pub notbefore: time_t,
+    pub notafter: time_t,
+    pub role: *mut libc::c_char,
+    pub type_0: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_3 {
+    pub tqe_next: *mut cmndspec,
+    pub tqe_prev: *mut *mut cmndspec,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct command_digest {
+    pub digest_type: libc::c_uint,
+    pub digest_str: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_command {
+    pub cmnd: *mut libc::c_char,
+    pub args: *mut libc::c_char,
+    pub digest: *mut command_digest,
+}
+#[derive(Copy, Clone, BitfieldStruct)]
+#[repr(C)]
+pub struct cmndtag {
+    #[bitfield(name = "nopasswd", ty = "libc::c_int", bits = "0..=2")]
+    #[bitfield(name = "noexec", ty = "libc::c_int", bits = "3..=5")]
+    #[bitfield(name = "setenv", ty = "libc::c_int", bits = "6..=8")]
+    #[bitfield(name = "log_input", ty = "libc::c_int", bits = "9..=11")]
+    #[bitfield(name = "log_output", ty = "libc::c_int", bits = "12..=14")]
+    #[bitfield(name = "send_mail", ty = "libc::c_int", bits = "15..=17")]
+    #[bitfield(name = "follow", ty = "libc::c_int", bits = "18..=20")]
+    pub nopasswd_noexec_setenv_log_input_log_output_send_mail_follow: [u8; 3],
+    #[bitfield(padding)]
+    pub c2rust_padding: [u8; 1],
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct cmndspec_list {
+    pub tqh_first: *mut cmndspec,
+    pub tqh_last: *mut *mut cmndspec,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct privilege {
+    pub entries: C2RustUnnamed_4,
+    pub ldap_role: *mut libc::c_char,
+    pub hostlist: member_list,
+    pub cmndlist: cmndspec_list,
+    pub defaults: defaults_list,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_4 {
+    pub tqe_next: *mut privilege,
+    pub tqe_prev: *mut *mut privilege,
+}
+#[derive(Debug, Copy, Clone)]
+#[repr(C)]
+pub struct group_list {
+    pub ngroups: libc::c_int,
+    pub groups: *mut *mut libc::c_char,
+}
+#[derive(Debug, Copy, Clone)]
+#[repr(C)]
+pub struct gid_list {
+    pub ngids: libc::c_int,
+    pub gids: *mut GETGROUPS_T,
+}
+#[derive(Debug, Copy, Clone)]
+#[repr(C)]
+pub struct __dirstream {
+    _unused: [u8; 0],
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_digest {
+    pub func: *mut digest_function,
+    pub ctx: SHA2_CTX,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union C2RustUnnamed {
+    pub st32: [uint32_t; 8],
+    pub st64: [uint64_t; 8],
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct digest_function {
+    pub digest_len: libc::c_uint,
+    pub init: Option<unsafe extern "C" fn(*mut SHA2_CTX) -> ()>,
+    pub update: Option<unsafe extern "C" fn(*mut SHA2_CTX, *const libc::c_uchar, size_t) -> ()>,
+    pub final_0: Option<unsafe extern "C" fn(*mut libc::c_uchar, *mut SHA2_CTX) -> ()>,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct re_dfa_t {
+    pub _address: libc::c_uchar,
+}
+#[derive(Clone)]
+#[repr(C)]
+pub struct cache_item {
+    pub refcnt: libc::c_uint,
+    pub type_0: libc::c_uint,
+    pub registry: [libc::c_char; 16],
+    pub k: cache_item_key_union,
+    pub d: cache_item_datum_union,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union cache_item_key_union {
+    pub uid: uid_t,
+    pub gid: gid_t,
+    pub name: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union cache_item_datum_union {
+    pub pw: *mut passwd,
+    pub gr: *mut group,
+    pub grlist: *mut group_list,
+    pub gidlist: *mut gid_list,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct rbtree {
+    pub compar:
+        Option<unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> libc::c_int>,
+    pub root: rbnode,
+    pub nil: rbnode,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct rbnode {
+    pub left: *mut rbnode,
+    pub right: *mut rbnode,
+    pub parent: *mut rbnode,
+    pub data: *mut libc::c_void,
+    pub color: rbcolor,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct alias {
+    pub name: *mut libc::c_char,
+    pub type0: libc::c_ushort,
+    pub used: libc::c_short,
+    pub lineno: libc::c_int,
+    pub file: *mut libc::c_char,
+    pub members: member_list,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct member_list {
+    pub tqh_first: *mut member,
+    pub tqh_last: *mut *mut member,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct member {
+    pub entries: TAILQ_ENTRY_member,
+    pub name: *mut libc::c_char,
+    pub type0: libc::c_short,
+    pub negated: libc::c_short,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct TAILQ_ENTRY_member {
+    pub tqe_next: *mut member,
+    pub tqe_prev: *mut *mut member,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct defaults_list {
+    pub tqh_first: *mut defaults,
+    pub tqh_last: *mut *mut defaults,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct defaults {
+    pub entries: C2RustUnnamed_2,
+    pub var: *mut libc::c_char,
+    pub val: *mut libc::c_char,
+    pub binding: *mut member_list,
+    pub file: *mut libc::c_char,
+    pub type_0: libc::c_short,
+    pub op: libc::c_char,
+    pub error: libc::c_char,
+    pub lineno: libc::c_int,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_1 {
+    pub tqe_next: *mut member,
+    pub tqe_prev: *mut *mut member,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_2 {
+    pub tqe_next: *mut defaults,
+    pub tqe_prev: *mut *mut defaults,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct def_values {
+    pub sval: *mut libc::c_char,
+    pub nval: def_tuple,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_defs_types {
+    pub name: *mut libc::c_char,
+    pub type_0: libc::c_int,
+    pub desc: *mut libc::c_char,
+    pub values: *mut def_values,
+    pub callback: Option<unsafe extern "C" fn(*const sudo_defs_val) -> bool>,
+    pub sd_un: sudo_defs_val,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct list_member {
+    pub entries: TAILQ_ENTRY_list_member,
+    pub value: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct TAILQ_ENTRY_list_member {
+    pub sle_next: *mut list_member,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct list_members {
+    pub slh_first: *mut list_member,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union sudo_defs_val {
+    pub flag: libc::c_int,
+    pub ival: libc::c_int,
+    pub uival: libc::c_uint,
+    pub tuple: def_tuple,
+    pub str_0: *mut libc::c_char,
+    pub mode: mode_t,
+    pub tspec: timespec,
+    pub list: list_members,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub enum def_tuple {
+    never,
+    once,
+    always,
+    any,
+    all,
+    digest_only,
+    global,
+    ppid,
+    tty,
+    kernel,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct command_options {
+    pub notbefore: time_t,
+    pub notafter: time_t,
+    pub timeout: libc::c_int,
+    pub role: *mut libc::c_char,
+    pub type_0: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct dirent {
+    pub d_ino: __ino_t,
+    pub d_off: __off_t,
+    pub d_reclen: libc::c_ushort,
+    pub d_type: libc::c_uchar,
+    pub d_name: [libc::c_char; 256],
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_user {
+    pub pw: *mut passwd,
+    pub _runas_pw: *mut passwd,
+    pub _runas_gr: *mut group,
+    pub cmnd_stat: *mut stat,
+    pub name: *mut libc::c_char,
+    pub path: *mut libc::c_char,
+    pub tty: *mut libc::c_char,
+    pub ttypath: *mut libc::c_char,
+    pub host: *mut libc::c_char,
+    pub shost: *mut libc::c_char,
+    pub runhost: *mut libc::c_char,
+    pub srunhost: *mut libc::c_char,
+    pub prompt: *mut libc::c_char,
+    pub cmnd: *mut libc::c_char,
+    pub cmnd_args: *mut libc::c_char,
+    pub cmnd_base: *mut libc::c_char,
+    pub cmnd_safe: *mut libc::c_char,
+    pub class_name: *mut libc::c_char,
+    pub krb5_ccname: *mut libc::c_char,
+    pub gid_list: *mut gid_list,
+    pub env_vars: *const *mut libc::c_char,
+    pub role: *mut libc::c_char,
+    pub type_0: *mut libc::c_char,
+    pub cwd: *const libc::c_char,
+    pub iolog_file: *mut libc::c_char,
+    pub gids: *mut gid_t,
+    pub execfd: libc::c_int,
+    pub ngids: libc::c_int,
+    pub closefrom: libc::c_int,
+    pub lines: libc::c_int,
+    pub cols: libc::c_int,
+    pub flags: libc::c_int,
+    pub max_groups: libc::c_int,
+    pub timeout: libc::c_int,
+    pub umask: mode_t,
+    pub uid: uid_t,
+    pub gid: uid_t,
+    pub sid: pid_t,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct tm {
+    pub tm_sec: libc::c_int,
+    pub tm_min: libc::c_int,
+    pub tm_hour: libc::c_int,
+    pub tm_mday: libc::c_int,
+    pub tm_mon: libc::c_int,
+    pub tm_year: libc::c_int,
+    pub tm_wday: libc::c_int,
+    pub tm_yday: libc::c_int,
+    pub tm_isdst: libc::c_int,
+    pub tm_gmtoff: libc::c_long,
+    pub tm_zone: *const libc::c_char,
+}
+
