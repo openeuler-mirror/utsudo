@@ -248,4 +248,142 @@ macro_rules! SUDO_CONV_CALLBACK_VERSION {
     };
 }
 
+/*
+ * Called when getpass is suspended so we can drop the lock.
+ */
+unsafe extern "C" fn getpass_suspend(
+    mut signo: libc::c_int,
+    mut vclosure: *mut libc::c_void,
+) -> libc::c_int {
+    let mut closure: *mut getpass_closure = vclosure as *mut getpass_closure;
+
+    timestamp_close((*closure).cookie);
+    (*closure).cookie = 0 as *mut libc::c_void;
+    return 0;
+}
+
+/*
+ * Called when getpass is resumed so we can reacquire the lock.
+ */
+unsafe extern "C" fn getpass_resume(
+    mut signo: libc::c_int,
+    mut vclosure: *mut libc::c_void,
+) -> libc::c_int {
+    let mut closure: *mut getpass_closure = vclosure as *mut getpass_closure;
+
+    (*closure).cookie = timestamp_open(user_name!(), user_sid!());
+    if (*closure).cookie.is_null() {
+        return -(1 as libc::c_int);
+    }
+    if !timestamp_lock((*closure).cookie, (*closure).auth_pw) {
+        return -(1 as libc::c_int);
+    }
+    return 0;
+}
+
+/*
+ * Returns true if the user successfully authenticates, false if not
+ * or -1 on fatal error.
+ */
+unsafe extern "C" fn check_user_interactive(
+    mut validated: libc::c_int,
+    mut mode: libc::c_int,
+    mut closure: *mut getpass_closure,
+) -> libc::c_int {
+    let mut cb: sudo_conv_callback = sudo_conv_callback {
+        version: 0,
+        closure: 0 as *mut libc::c_void,
+        on_suspend: None,
+        on_resume: None,
+    };
+    let mut callback: *mut sudo_conv_callback = 0 as *mut sudo_conv_callback;
+    let mut ret: libc::c_int = -1;
+    let mut prompt: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut lectured: bool = false;
+    debug_decl!(SUDOERS_DEBUG_AUTH!());
+
+    /* Open, lock and read time stamp file if we are using it. */
+    if ISSET!(mode, MODE_IGNORE_TICKET) == 0 {
+        /* Open time stamp file and check its status. */
+        (*closure).cookie = timestamp_open(user_name!(), user_sid!());
+        if timestamp_lock((*closure).cookie, (*closure).auth_pw) {
+            (*closure).tstat = timestamp_status((*closure).cookie, (*closure).auth_pw);
+        }
+        /* Construct callback for getpass function. */
+        memset(
+            &mut cb as *mut sudo_conv_callback as *mut libc::c_void,
+            0,
+            ::std::mem::size_of::<sudo_conv_callback>() as libc::c_ulong,
+        );
+        cb.version = SUDO_CONV_CALLBACK_VERSION!() as libc::c_uint;
+        cb.closure = closure as *mut libc::c_void;
+        cb.on_suspend = Some(
+            getpass_suspend as unsafe extern "C" fn(libc::c_int, *mut libc::c_void) -> libc::c_int,
+        );
+        cb.on_resume = Some(
+            getpass_resume as unsafe extern "C" fn(libc::c_int, *mut libc::c_void) -> libc::c_int,
+        );
+        callback = &mut cb;
+    }
+
+    'done: loop {
+        match (*closure).tstat {
+            TS_FATAL => {
+                /* Fatal error (usually setuid failure), unsafe to proceed. */
+                break 'done;
+            }
+            TS_CURRENT | _ => {
+                if (*closure).tstat == TS_CURRENT {
+                    /* Time stamp file is valid and current. */
+                    if ISSET!(validated, FLAG_CHECK_USER) == 0 {
+                        ret = true as libc::c_int;
+                        break;
+                    }
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_INFO,
+                        b"%s: check user flag overrides time stamp\0" as *const u8
+                            as *const libc::c_char,
+                        get_function_name!()
+                    );
+                    /* FALLTHROUGH */
+                }
+
+                /* Bail out if we are non-interactive and a password is required */
+                if ISSET!(mode, MODE_NONINTERACTIVE) != 0 {
+                    validated |= FLAG_NON_INTERACTIVE;
+                    log_auth_failure(validated, 0);
+                    break 'done;
+                }
+
+                /* XXX - should not lecture if askpass helper is being used. */
+                lectured = display_lecture((*closure).tstat);
+
+                /* Expand any escapes in the prompt. */
+                prompt = expand_prompt(
+                    if !user_prompt!().is_null() {
+                        user_prompt!()
+                    } else {
+                        def_passprompt!()
+                    },
+                    (*(*closure).auth_pw).pw_name,
+                );
+
+                if prompt.is_null() {
+                    break 'done;
+                }
+
+                ret = verify_user((*closure).auth_pw, prompt, validated, callback);
+                if ret == true as libc::c_int && lectured {
+                    set_lectured(); /* lecture error not fatal */
+                }
+                free(prompt as *mut libc::c_void);
+                //break;
+            }
+        }
+        break 'done;
+    }
+
+    debug_return_int!(ret);
+}
+
 
