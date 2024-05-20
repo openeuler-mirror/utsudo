@@ -387,3 +387,200 @@ unsafe extern "C" fn check_user_interactive(
 }
 
 
+/*
+ * Returns true if the user successfully authenticates, false if not
+ * or -1 on error.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn check_user(
+    mut validated: libc::c_int,
+    mut mode: libc::c_int,
+) -> libc::c_int {
+    let mut closure: getpass_closure = {
+        let mut init = getpass_closure {
+            tstat: 3 as libc::c_int,
+            cookie: 0 as *mut libc::c_void,
+            auth_pw: 0 as *mut passwd,
+        };
+        init
+    };
+    let mut ret: libc::c_int = -1;
+    let mut exempt: bool = false;
+    debug_decl!(SUDOERS_DEBUG_AUTH!());
+
+    /*
+     * Init authentication system regardless of whether we need a password.
+     * Required for proper PAM session support.
+     */
+    'done: loop {
+        closure.auth_pw = get_authpw(mode);
+        if (closure.auth_pw).is_null() {
+            break 'done;
+        }
+        if sudo_auth_init(closure.auth_pw) == -1 {
+            break 'done;
+        }
+
+        /*
+         * Don't prompt for the root passwd or if the user is exempt.
+         * If the user is not changing uid/gid, no need for a password.
+         */
+        if def_authenticate!() == 0 || user_is_exempt() as libc::c_int != 0 {
+            sudo_debug_printf!(
+                SUDO_DEBUG_INFO,
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                if def_authenticate!() == 0 {
+                    b"authentication disabled\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"user exempt from authentication\0" as *const u8 as *const libc::c_char
+                }
+            );
+            exempt = true;
+            ret = true as libc::c_int;
+            break 'done;
+        }
+        if user_uid!() == 0 as libc::c_uint
+            || user_uid!() == (*runas_pw!()).pw_uid
+                && ((runas_gr!()).is_null()
+                    || user_in_group(sudo_user.pw, (*runas_gr!()).gr_name) as libc::c_int != 0)
+        {
+            if (user_role!()).is_null() && (user_type!()).is_null() {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_INFO,
+                    b"%s: user running command as self\0" as *const u8 as *const libc::c_char,
+                    get_function_name!()
+                );
+                ret = true as libc::c_int;
+                break 'done;
+            }
+        }
+
+        ret = check_user_interactive(validated, mode, &mut closure);
+        break;
+    }
+
+    //done:
+    if ret == true as libc::c_int {
+        /* The approval function may disallow a user post-authentication. */
+        ret = sudo_auth_approval(closure.auth_pw, validated, exempt);
+
+        /*
+         * Only update time stamp if user validated and was approved.
+         * Failure to update the time stamp is not a fatal error.
+         */
+        if ret == true as libc::c_int && closure.tstat != TS_ERROR {
+            if ISSET!(validated, VALIDATE_SUCCESS) != 0 {
+                timestamp_update(closure.cookie, closure.auth_pw);
+            }
+        }
+    }
+
+    timestamp_close(closure.cookie);
+    sudo_auth_cleanup(closure.auth_pw);
+    if !(closure.auth_pw).is_null() {
+        sudo_pw_delref(closure.auth_pw);
+    }
+
+    debug_return_int!(ret);
+}
+
+/*
+ * Display sudo lecture (standard or custom).
+ * Returns true if the user was lectured, else false.
+ */
+unsafe extern "C" fn display_lecture(mut status: libc::c_int) -> bool {
+    let mut fp: *mut FILE = 0 as *mut FILE;
+    let mut buf: [libc::c_char; BUFSIZ as usize] = [0; BUFSIZ as usize];
+    let mut nread: ssize_t = 0;
+    let mut msg: sudo_conv_message = sudo_conv_message {
+        msg_type: 0,
+        timeout: 0,
+        msg: 0 as *const libc::c_char,
+    };
+    let mut repl: sudo_conv_reply = sudo_conv_reply {
+        reply: 0 as *mut libc::c_char,
+    };
+    debug_decl!(SUDOERS_DEBUG_AUTH!());
+
+    if def_lecture!() as libc::c_uint == def_tuple::never as libc::c_uint
+        || def_lecture!() as libc::c_uint == def_tuple::once as libc::c_uint
+            && already_lectured(status) as libc::c_int != 0
+    {
+        debug_return_bool!(false);
+    }
+
+    memset(
+        &mut msg as *mut sudo_conv_message as *mut libc::c_void,
+        0,
+        ::core::mem::size_of::<sudo_conv_message>() as libc::c_ulong,
+    );
+    memset(
+        &mut repl as *mut sudo_conv_reply as *mut libc::c_void,
+        0,
+        ::core::mem::size_of::<sudo_conv_reply>() as libc::c_ulong,
+    );
+
+    fp = fopen(
+        def_lecture_file!(),
+        b"r\0" as *const u8 as *const libc::c_char,
+    );
+    if !def_lecture_file!().is_null() && !fp.is_null() {
+        loop {
+            nread = fread(
+                buf.as_mut_ptr() as *mut libc::c_void,
+                ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
+                (::core::mem::size_of::<[libc::c_char; 8192]>() as libc::c_ulong)
+                    .wrapping_sub(1 as libc::c_ulong),
+                fp,
+            ) as ssize_t;
+            if !(nread != 0 as libc::c_long) {
+                break;
+            }
+            buf[nread as usize] = '\0' as i32 as libc::c_char;
+            msg.msg_type = SUDO_CONV_ERROR_MSG | SUDO_CONV_PREFER_TTY;
+            msg.msg = buf.as_mut_ptr();
+            sudo_conv.expect("non-null function pointer")(
+                1,
+                &mut msg as *mut sudo_conv_message as *const sudo_conv_message,
+                &mut repl,
+                0 as *mut sudo_conv_callback,
+            );
+        }
+        fclose(fp);
+    } else {
+        msg.msg_type = SUDO_CONV_ERROR_MSG | SUDO_CONV_PREFER_TTY;
+
+        msg.msg = dcgettext(
+            b"sudoers\0" as *const u8 as *const libc::c_char,
+            b"\nWe trust you have received the usual lecture from the local System
+Administrator. It usually boils down to these three things:\n
+        #1) Respect the privacy of others.
+        #2) Think before you type.
+        #3) With great power comes great responsibility.\n\n\0" as *const u8
+                as *const libc::c_char,
+            5,
+        );
+        sudo_conv.expect("non-null function pointer")(
+            1,
+            &mut msg as *mut sudo_conv_message as *const sudo_conv_message,
+            &mut repl,
+            0 as *mut sudo_conv_callback,
+        );
+    }
+    debug_return_bool!(true);
+}
+
+/*
+ * Checks if the user is exempt from supplying a password.
+ */
+#[no_mangle]
+unsafe extern "C" fn user_is_exempt() -> bool {
+    let mut ret: bool = false;
+    debug_decl!(SUDOERS_DEBUG_AUTH!());
+
+    if !def_exempt_group!().is_null() {
+        ret = user_in_group(sudo_user.pw, def_exempt_group!());
+    }
+    debug_return_bool!(ret);
+}
