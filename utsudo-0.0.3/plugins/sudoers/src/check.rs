@@ -584,3 +584,88 @@ unsafe extern "C" fn user_is_exempt() -> bool {
     }
     debug_return_bool!(ret);
 }
+
+/*
+ * Get passwd entry for the user we are going to authenticate as.
+ * By default, this is the user invoking sudo.  In the most common
+ * case, this matches sudo_user.pw or runas_pw.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn get_authpw(mut mode: libc::c_int) -> *mut passwd {
+    let mut pw: *mut passwd = 0 as *mut passwd;
+    debug_decl!(SUDOERS_DEBUG_AUTH!());
+
+    if ISSET!(mode, (MODE_CHECK | MODE_LIST)) != 0 {
+        /* In list mode we always prompt for the user's password. */
+        sudo_pw_addref(sudo_user.pw);
+        pw = sudo_user.pw;
+    } else if def_rootpw!() != 0 {
+        pw = sudo_getpwuid(ROOT_UID as uid_t);
+        if pw.is_null() {
+            log_warningx(
+                SLOG_SEND_MAIL,
+                b"unknown uid: %u\0" as *const u8 as *const libc::c_char,
+                ROOT_UID,
+            );
+        }
+    } else if def_runaspw!() != 0 {
+        pw = sudo_getpwnam(def_runas_default!());
+        if pw.is_null() {
+            log_warningx(
+                SLOG_SEND_MAIL,
+                b"unknown user: %s\0" as *const u8 as *const libc::c_char,
+                def_runas_default!(),
+            );
+        }
+    } else if def_targetpw!() != 0 {
+        if ((*runas_pw!()).pw_name).is_null() {
+            /* This should never be NULL as we fake up the passwd struct */
+            log_warningx(
+                SLOG_RAW_MSG,
+                b"unknown uid: %u\0" as *const u8 as *const libc::c_char,
+                (*runas_pw!()).pw_uid,
+            );
+        } else {
+            sudo_pw_addref(runas_pw!());
+            pw = runas_pw!();
+        }
+    } else {
+        sudo_pw_addref(sudo_user.pw);
+        pw = sudo_user.pw;
+    }
+    debug_return_ptr!(pw);
+}
+
+/*
+ * Returns true if the specified shell is allowed by /etc/shells, else false.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn check_user_shell(mut pw: *const passwd) -> bool {
+    let mut shell: *const libc::c_char = 0 as *const libc::c_char;
+    debug_decl!(SUDOERS_DEBUG_AUTH!());
+
+    if def_runas_check_shell!() == 0 {
+        debug_return_bool!(true);
+    }
+
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"%s: checking /etc/shells for %s\0" as *const u8 as *const libc::c_char,
+        get_function_name!(),
+        (*pw).pw_shell
+    );
+
+    setusershell();
+    loop {
+        shell = getusershell();
+        if shell.is_null() {
+            break;
+        }
+        if strcmp(shell, (*pw).pw_shell) == 0 {
+            debug_return_bool!(true);
+        }
+    }
+    endusershell();
+
+    debug_return_bool!(false);
+}
