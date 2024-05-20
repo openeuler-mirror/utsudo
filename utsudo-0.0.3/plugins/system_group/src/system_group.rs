@@ -123,3 +123,69 @@ unsafe extern "C" fn sysgroup_cleanup() {
     }
 }
 
+/*
+ * Returns true if "user" is a member of "group", else false.
+ */
+unsafe extern "C" fn sysgroup_query(
+    mut user: *const libc::c_char,
+    mut group: *const libc::c_char,
+    mut pwd: *const passwd,
+) -> libc::c_int {
+    let mut member: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut grp: *mut group = 0 as *mut group;
+    grp = sysgroup_getgrnam.expect("non-null function pointer")(group);
+    if grp.is_null()
+        && *group.offset(0 as libc::c_int as isize) as libc::c_int == '#' as i32
+        && *group.offset(1 as libc::c_int as isize) as libc::c_int != '\0' as i32
+    {
+        let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+        let mut gid: gid_t = sudo_strtoid_v2(group.offset(1 as libc::c_int as isize), &mut errstr);
+        if errstr.is_null() {
+            grp = sysgroup_getgrgid.expect("non-null function pointer")(gid);
+        }
+    }
+    if !grp.is_null() {
+        if !((*grp).gr_mem).is_null() {
+            member = (*grp).gr_mem;
+            while !(*member).is_null() {
+                if strcasecmp(user, *member) == 0 as libc::c_int {
+                    if sysgroup_gr_delref.is_some() {
+                        sysgroup_gr_delref.expect("non-null function pointer")(grp);
+                    }
+                    return 1 as libc::c_int;
+                }
+                member = member.offset(1);
+            }
+        }
+        if sysgroup_gr_delref.is_some() {
+            sysgroup_gr_delref.expect("non-null function pointer")(grp);
+        }
+    }
+    return 0 as libc::c_int;
+}
+#[no_mangle]
+pub static mut group_plugin: sudoers_group_plugin = unsafe {
+    {
+        let mut init = sudoers_group_plugin {
+            version: ((1 as libc::c_int) << 16 as libc::c_int | 0 as libc::c_int) as libc::c_uint,
+            init: Some(
+                sysgroup_init
+                    as unsafe extern "C" fn(
+                        libc::c_int,
+                        sudo_printf_t,
+                        *const *mut libc::c_char,
+                    ) -> libc::c_int,
+            ),
+            cleanup: Some(sysgroup_cleanup as unsafe extern "C" fn() -> ()),
+            query: Some(
+                sysgroup_query
+                    as unsafe extern "C" fn(
+                        *const libc::c_char,
+                        *const libc::c_char,
+                        *const passwd,
+                    ) -> libc::c_int,
+            ),
+        };
+        init
+    }
+};
