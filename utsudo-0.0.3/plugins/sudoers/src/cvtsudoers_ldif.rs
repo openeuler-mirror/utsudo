@@ -231,8 +231,390 @@ pub type sudo_lbuf_output_t = Option<unsafe extern "C" fn(*const libc::c_char) -
 static mut seen_users: *mut rbtree = 0 as *const rbtree as *mut rbtree;
 
 
-
-
+unsafe extern "C" fn seen_user_compare(
+    mut aa: *const libc::c_void,
+    mut bb: *const libc::c_void,
+) -> libc::c_int {
+    let mut a: *const seen_user = aa as *const seen_user;
+    let mut b: *const seen_user = bb as *const seen_user;
+    return strcasecmp((*a).name, (*b).name);
+}
+unsafe extern "C" fn seen_user_free(mut v: *mut libc::c_void) {
+    let mut su: *mut seen_user = v as *mut seen_user;
+    free((*su).name as *mut libc::c_void);
+    free(su as *mut libc::c_void);
+}
+unsafe extern "C" fn safe_string(mut str: *const libc::c_char) -> bool {
+    str = str.offset(1);
+    let mut ch: libc::c_uint = *str as libc::c_uint;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    /* Initial char must be <= 127 and not LF, CR, SPACE, ':', '<' */
+    match ch as u8 as char {
+        '\0' => {
+            debug_return_bool!(true);
+        }
+        '\n' | '\r' | ' ' | ':' | '<' => {
+            debug_return_bool!(false);
+        }
+        _ => {
+            if ch > 127 {
+                debug_return_bool!(false);
+            }
+        }
+    }
+    /* Any value <= 127 decimal except NUL, LF, and CR is safe */
+    loop {
+        str = str.offset(1);
+        ch = *str as libc::c_uint;
+        if !(ch != '\0' as i32 as libc::c_uint) {
+            break;
+        }
+        if ch > 127 as libc::c_uint
+            || ch == '\n' as i32 as libc::c_uint
+            || ch == '\r' as i32 as libc::c_uint
+        {
+            debug_return_bool!(false);
+        }
+    }
+    debug_return_bool!(true);
+}
+unsafe extern "C" fn print_attribute_ldif(
+    mut fp: *mut FILE,
+    mut name: *const libc::c_char,
+    mut value: *const libc::c_char,
+) -> bool {
+    let mut uvalue: *const libc::c_uchar = value as *mut libc::c_uchar;
+    let mut encoded: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut esize: size_t = 0;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    if !safe_string(value) {
+        let vlen: size_t = strlen(value);
+        esize = vlen
+            .wrapping_add(2 as libc::c_ulong)
+            .wrapping_div(3 as libc::c_ulong)
+            .wrapping_mul(4 as libc::c_ulong)
+            .wrapping_add(1 as libc::c_ulong);
+        encoded = malloc(esize) as *mut libc::c_char;
+        if encoded.is_null() {
+            debug_return_bool!(false);
+        }
+        if base64_encode(uvalue, vlen, encoded, esize) == -(1 as libc::c_int) as size_t {
+            free(encoded as *mut libc::c_void);
+            debug_return_bool!(false);
+        }
+        fprintf(
+            fp,
+            b"%s:: %s\n\0" as *const u8 as *const libc::c_char,
+            name,
+            encoded,
+        );
+        free(encoded as *mut libc::c_void);
+    } else if *value as libc::c_int != '\0' as i32 {
+        fprintf(
+            fp,
+            b"%s: %s\n\0" as *const u8 as *const libc::c_char,
+            name,
+            value,
+        );
+    } else {
+        fprintf(fp, b"%s:\n\0" as *const u8 as *const libc::c_char, name);
+    }
+    debug_return_bool!(true);
+}
+/*
+ * Print sudoOptions from a defaults_list.
+ */
+unsafe extern "C" fn print_options_ldif(
+    mut fp: *mut FILE,
+    mut options: *mut defaults_list,
+) -> bool {
+    let mut opt: *mut defaults = 0 as *mut defaults;
+    let mut attr_val: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut len: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    opt = (*options).tqh_first;
+    while !opt.is_null() {
+        if !((*opt).type_0 as libc::c_int != DEFAULTS) {
+            if !((*opt).val).is_null() {
+                /* There is no need to double quote values here. */
+                len = asprintf(
+                    &mut attr_val as *mut *mut libc::c_char,
+                    b"%s%s%s\0" as *const u8 as *const libc::c_char,
+                    (*opt).var,
+                    if (*opt).op as libc::c_int == '+' as i32 {
+                        b"+=\0" as *const u8 as *const libc::c_char
+                    } else if (*opt).op as libc::c_int == '-' as i32 {
+                        b"-=\0" as *const u8 as *const libc::c_char
+                    } else {
+                        b"=\0" as *const u8 as *const libc::c_char
+                    },
+                    (*opt).val,
+                );
+            } else {
+                /* Boolean flag. */
+                len = asprintf(
+                    &mut attr_val as *mut *mut libc::c_char,
+                    b"%s%s\0" as *const u8 as *const libc::c_char,
+                    if (*opt).op as libc::c_int == false as libc::c_int {
+                        b"!\0" as *const u8 as *const libc::c_char
+                    } else {
+                        b"\0" as *const u8 as *const libc::c_char
+                    },
+                    (*opt).var,
+                );
+            }
+            if len == -(1 as libc::c_int) {
+                sudo_fatalx!(
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    get_function_name!(),
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                );
+            }
+            print_attribute_ldif(
+                fp,
+                b"sudoOption\0" as *const u8 as *const libc::c_char,
+                attr_val,
+            );
+            free(attr_val as *mut libc::c_void);
+        }
+        opt = (*opt).entries.tqe_next;
+    }
+    debug_return_bool!(ferror(fp) == 0);
+}
+/*
+ * Print global Defaults in a single sudoRole object.
+ */
+unsafe extern "C" fn print_global_defaults_ldif(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut base: *const libc::c_char,
+) -> bool {
+    let mut count: libc::c_uint = 0 as libc::c_uint;
+    let mut lbuf: sudo_lbuf = sudo_lbuf {
+        output: None,
+        buf: 0 as *mut libc::c_char,
+        continuation: 0 as *const libc::c_char,
+        indent: 0,
+        len: 0,
+        size: 0,
+        cols: 0,
+        error: 0,
+    };
+    let mut opt: *mut defaults = 0 as *mut defaults;
+    let mut dn: *mut libc::c_char = 0 as *mut libc::c_char;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    sudo_lbuf_init_v1(
+        &mut lbuf,
+        None,
+        0 as libc::c_int,
+        0 as *const libc::c_char,
+        80 as libc::c_int,
+    );
+    opt = (*parse_tree).defaults.tqh_first;
+    while !opt.is_null() {
+        /* Skip bound Defaults (unsupported). */
+        if (*opt).type_0 as libc::c_int == DEFAULTS {
+            count = count.wrapping_add(1);
+        } else {
+            lbuf.len = 0 as libc::c_int;
+            sudo_lbuf_append_v1(
+                &mut lbuf as *mut sudo_lbuf,
+                b"# \0" as *const u8 as *const libc::c_char,
+            );
+            sudoers_format_default_line(
+                &mut lbuf,
+                parse_tree,
+                opt,
+                false as libc::c_int as *mut *mut defaults,
+                true,
+            );
+            fprintf(
+                fp,
+                b"# Unable to translate %s:%d\n%s\n\0" as *const u8 as *const libc::c_char,
+                (*opt).file,
+                (*opt).lineno,
+                lbuf.buf,
+            );
+        }
+        opt = (*opt).entries.tqe_next;
+    }
+    sudo_lbuf_destroy_v1(&mut lbuf);
+    if count == 0 as libc::c_uint {
+        debug_return_bool!(true);
+    }
+    if asprintf(
+        &mut dn as *mut *mut libc::c_char,
+        b"cn=defaults,%s\0" as *const u8 as *const libc::c_char,
+        base,
+    ) == -(1 as libc::c_int)
+    {
+        sudo_fatalx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            get_function_name!(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+    }
+    print_attribute_ldif(fp, b"dn\0" as *const u8 as *const libc::c_char, dn);
+    free(dn as *mut libc::c_void);
+    print_attribute_ldif(
+        fp,
+        b"objectClass\0" as *const u8 as *const libc::c_char,
+        b"top\0" as *const u8 as *const libc::c_char,
+    );
+    print_attribute_ldif(
+        fp,
+        b"objectClass\0" as *const u8 as *const libc::c_char,
+        b"sudoRole\0" as *const u8 as *const libc::c_char,
+    );
+    print_attribute_ldif(
+        fp,
+        b"cn\0" as *const u8 as *const libc::c_char,
+        b"defaults\0" as *const u8 as *const libc::c_char,
+    );
+    print_attribute_ldif(
+        fp,
+        b"description\0" as *const u8 as *const libc::c_char,
+        b"Default sudoOption's go here\0" as *const u8 as *const libc::c_char,
+    );
+    print_options_ldif(fp, &mut (*parse_tree).defaults);
+    putc('\n' as i32, fp);
+    debug_return_bool!(ferror(fp) == 0);
+}
+/*
+ * Print struct member in LDIF format as the specified attribute.
+ * See print_member_int() in parse.c.
+ */
+unsafe extern "C" fn print_member_ldif(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut name: *mut libc::c_char,
+    mut type_0: libc::c_int,
+    mut negated: bool,
+    mut alias_type: libc::c_int,
+    mut attr_name: *const libc::c_char,
+) {
+    let mut a: *mut alias = 0 as *mut alias;
+    let mut m: *mut member = 0 as *mut member;
+    let mut c: *mut sudo_command = 0 as *mut sudo_command;
+    let mut attr_val: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut len: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    match type_0 {
+        ALL => {
+            print_attribute_ldif(
+                fp,
+                attr_name,
+                if negated as libc::c_int != 0 {
+                    b"!ALL\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"ALL\0" as *const u8 as *const libc::c_char
+                },
+            );
+        }
+        MYSELF => {
+            /* Only valid for sudoRunasUser */
+            print_attribute_ldif(fp, attr_name, b"\0" as *const u8 as *const libc::c_char);
+        }
+        COMMAND => {
+            c = name as *mut sudo_command;
+            len = asprintf(
+                &mut attr_val as *mut *mut libc::c_char,
+                b"%s%s%s%s%s%s%s%s\0" as *const u8 as *const libc::c_char,
+                if !((*c).digest).is_null() {
+                    digest_type_to_name((*(*c).digest).digest_type as libc::c_int)
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+                if !((*c).digest).is_null() {
+                    b":\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+                if !((*c).digest).is_null() {
+                    (*(*c).digest).digest_str as *const libc::c_char
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+                if !((*c).digest).is_null() {
+                    b" \0" as *const u8 as *const libc::c_char
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+                if negated as libc::c_int != 0 {
+                    b"!\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+                (*c).cmnd,
+                if !((*c).args).is_null() {
+                    b" \0" as *const u8 as *const libc::c_char
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+                if !((*c).args).is_null() {
+                    (*c).args as *const libc::c_char
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+            );
+            if len == -(1 as libc::c_int) {
+                sudo_fatalx!(
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    get_function_name!(),
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                );
+                print_attribute_ldif(fp, attr_name, attr_val);
+                free(attr_val as *mut libc::c_void);
+            }
+        }
+        ALIAS | _ => {
+            if type_0 == ALIAS {
+                a = alias_get(parse_tree, name, alias_type);
+                if !a.is_null() {
+                    m = (*a).members.tqh_first;
+                    while !m.is_null() {
+                        print_member_ldif(
+                            fp,
+                            parse_tree,
+                            (*m).name,
+                            (*m).type0 as libc::c_int,
+                            if negated as libc::c_int != 0 {
+                                ((*m).negated == 0) as libc::c_int
+                            } else {
+                                (*m).negated as libc::c_int
+                            } != 0,
+                            alias_type,
+                            attr_name,
+                        );
+                        m = (*m).entries.tqe_next;
+                    }
+                    alias_put(a);
+                }
+            }
+            /* FALLTHROUGH */
+            len = asprintf(
+                &mut attr_val as *mut *mut libc::c_char,
+                b"%s%s\0" as *const u8 as *const libc::c_char,
+                if negated as libc::c_int != 0 {
+                    b"!\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+                name,
+            );
+            if len == -(1 as libc::c_int) {
+                sudo_fatalx!(
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    get_function_name!(),
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                );
+            }
+            print_attribute_ldif(fp, attr_name, attr_val);
+            free(attr_val as *mut libc::c_void);
+        }
+    }
+    debug_return!();
+}
 
 
 
