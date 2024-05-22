@@ -96,3 +96,31 @@ extern "C" {
         subsys: libc::c_int,
     );
 }
+pub const DEFAULTS_CMND: libc::c_int = 269;
+pub const DEFAULTS_RUNAS: libc::c_int = 268;
+pub const DEFAULTS_USER: libc::c_int = 267;
+pub const DEFAULTS_HOST: libc::c_int = 266;
+
+pub const T_MASK: libc::c_int = 0x0FF;
+pub const T_FLAG: libc::c_int = 0x004;
+pub const T_LIST: libc::c_int = 0x006;
+
+pub const IMPLIED: libc::c_int = 2;
+
+pub const SUPPRESS_DEFAULTS: libc::c_int = 0x01;
+pub const SUPPRESS_ALIASES: libc::c_int = 0x02;
+pub const SUPPRESS_PRIVS: libc::c_int = 0x04;
+
+/*
+ * Print "indent" number of blank characters.
+ */
+unsafe extern "C" fn print_indent(mut fp: *mut FILE, mut indent: libc::c_int) {
+    loop {
+        let fresh0 = indent;
+        indent = indent - 1;
+        if !(fresh0 != 0) {
+            break;
+        }
+        putc(' ' as i32, fp);
+    }
+}
