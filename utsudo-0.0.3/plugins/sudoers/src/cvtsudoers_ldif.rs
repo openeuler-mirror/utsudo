@@ -616,7 +616,591 @@ unsafe extern "C" fn print_member_ldif(
     debug_return!();
 }
 
-
+/*
+ * Print a Cmnd_Spec in LDIF format.
+ * A pointer to the next Cmnd_Spec is passed in to make it possible to
+ * merge adjacent entries that are identical in all but the command.
+ */
+unsafe extern "C" fn print_cmndspec_ldif(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut cs: *mut cmndspec,
+    mut nextp: *mut *mut cmndspec,
+    mut options: *mut defaults_list,
+) {
+    let mut next: *mut cmndspec = *nextp;
+    let mut m: *mut member = 0 as *mut member;
+    let mut tp: *mut tm = 0 as *mut tm;
+    let mut last_one: bool = false;
+    let mut timebuf: [libc::c_char; 16] = [0; 16];
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    /* Print runasuserlist as sudoRunAsUser attributes */
+    if !((*cs).runasuserlist).is_null() {
+        m = (*(*cs).runasuserlist).tqh_first;
+        while !m.is_null() {
+            print_member_ldif(
+                fp,
+                parse_tree,
+                (*m).name,
+                (*m).type0 as libc::c_int,
+                (*m).negated != 0,
+                RUNASALIAS,
+                b"sudoRunAsUser\0" as *const u8 as *const libc::c_char,
+            );
+            m = (*m).entries.tqe_next;
+        }
+    }
+    /* Print runasgrouplist as sudoRunAsGroup attributes */
+    if !((*cs).runasgrouplist).is_null() {
+        m = (*(*cs).runasgrouplist).tqh_first;
+        while !m.is_null() {
+            print_member_ldif(
+                fp,
+                parse_tree,
+                (*m).name,
+                (*m).type0 as libc::c_int,
+                (*m).negated != 0,
+                RUNASALIAS,
+                b"sudoRunAsGroup\0" as *const u8 as *const libc::c_char,
+            );
+            m = (*m).entries.tqe_next;
+        }
+    }
+    /* Print sudoNotBefore and sudoNotAfter attributes */
+    if (*cs).notbefore != UNSPEC as libc::c_long {
+        tp = gmtime(&mut (*cs).notbefore);
+        if tp.is_null() {
+            sudo_warn!(b"unable to get GMT time\0" as *const u8 as *const libc::c_char,);
+        } else {
+            if strftime(
+                timebuf.as_mut_ptr(),
+                ::core::mem::size_of::<[libc::c_char; 16]>() as libc::c_ulong,
+                b"%Y%m%d%H%M%SZ\0" as *const u8 as *const libc::c_char,
+                tp,
+            ) == 0 as libc::c_int as libc::c_ulong
+            {
+                sudo_warn!(b"unable to format timestamp\0" as *const u8 as *const libc::c_char,);
+            } else {
+                print_attribute_ldif(
+                    fp,
+                    b"sudoNotBefore\0" as *const u8 as *const libc::c_char,
+                    timebuf.as_mut_ptr(),
+                );
+            }
+        }
+    }
+    if (*cs).notafter != UNSPEC as libc::c_long {
+        tp = gmtime(&mut (*cs).notafter);
+        if tp.is_null() {
+            sudo_warn!(b"unable to get GMT time\0" as *const u8 as *const libc::c_char,);
+        } else {
+            if strftime(
+                timebuf.as_mut_ptr(),
+                ::core::mem::size_of::<[libc::c_char; 16]>() as libc::c_ulong,
+                b"%Y%m%d%H%M%SZ\0" as *const u8 as *const libc::c_char,
+                tp,
+            ) == 0 as libc::c_int as libc::c_ulong
+            {
+                sudo_warnx!(b"unable to format timestamp\0" as *const u8 as *const libc::c_char,);
+            } else {
+                print_attribute_ldif(
+                    fp,
+                    b"sudoNotAfter\0" as *const u8 as *const libc::c_char,
+                    timebuf.as_mut_ptr(),
+                );
+            }
+        }
+    }
+    /* Print timeout as a sudoOption. */
+    if (*cs).timeout > 0 as libc::c_int {
+        let mut attr_val: *mut libc::c_char = 0 as *mut libc::c_char;
+        if asprintf(
+            &mut attr_val as *mut *mut libc::c_char,
+            b"command_timeout=%d\0" as *const u8 as *const libc::c_char,
+            (*cs).timeout,
+        ) == -(1 as libc::c_int)
+        {
+            sudo_fatalx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+        }
+        print_attribute_ldif(
+            fp,
+            b"sudoOption\0" as *const u8 as *const libc::c_char,
+            attr_val,
+        );
+        free(attr_val as *mut libc::c_void);
+    }
+    /* Print tags as sudoOption attributes */
+    if TAGS_SET!((*cs).tags) {
+        let mut tag: cmndtag = (*cs).tags;
+        if tag.nopasswd() != UNSPEC {
+            print_attribute_ldif(
+                fp,
+                b"sudoOption\0" as *const u8 as *const libc::c_char,
+                if tag.nopasswd() != 0 {
+                    b"!authenticate\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"authenticate\0" as *const u8 as *const libc::c_char
+                },
+            );
+        }
+        if tag.noexec() != UNSPEC {
+            print_attribute_ldif(
+                fp,
+                b"sudoOption\0" as *const u8 as *const libc::c_char,
+                if tag.noexec() != 0 {
+                    b"noexec\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"!noexec\0" as *const u8 as *const libc::c_char
+                },
+            );
+        }
+        if tag.send_mail() != UNSPEC {
+            if tag.send_mail() != 0 {
+                print_attribute_ldif(
+                    fp,
+                    b"sudoOption\0" as *const u8 as *const libc::c_char,
+                    b"mail_all_cmnds\0" as *const u8 as *const libc::c_char,
+                );
+            } else {
+                print_attribute_ldif(
+                    fp,
+                    b"sudoOption\0" as *const u8 as *const libc::c_char,
+                    b"!mail_all_cmnds\0" as *const u8 as *const libc::c_char,
+                );
+                print_attribute_ldif(
+                    fp,
+                    b"sudoOption\0" as *const u8 as *const libc::c_char,
+                    b"!mail_always\0" as *const u8 as *const libc::c_char,
+                );
+                print_attribute_ldif(
+                    fp,
+                    b"sudoOption\0" as *const u8 as *const libc::c_char,
+                    b"!mail_no_perms\0" as *const u8 as *const libc::c_char,
+                );
+            }
+        }
+        if tag.setenv() != UNSPEC && tag.setenv() != IMPLIED {
+            print_attribute_ldif(
+                fp,
+                b"sudoOption\0" as *const u8 as *const libc::c_char,
+                if tag.setenv() != 0 {
+                    b"setenv\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"!setenv\0" as *const u8 as *const libc::c_char
+                },
+            );
+        }
+        if tag.follow() != UNSPEC {
+            print_attribute_ldif(
+                fp,
+                b"sudoOption\0" as *const u8 as *const libc::c_char,
+                if tag.follow() != 0 {
+                    b"sudoedit_follow\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"!sudoedit_follow\0" as *const u8 as *const libc::c_char
+                },
+            );
+        }
+        if tag.log_input() != UNSPEC {
+            print_attribute_ldif(
+                fp,
+                b"sudoOption\0" as *const u8 as *const libc::c_char,
+                if tag.log_input() != 0 {
+                    b"log_input\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"!log_input\0" as *const u8 as *const libc::c_char
+                },
+            );
+        }
+        if tag.log_output() != UNSPEC {
+            print_attribute_ldif(
+                fp,
+                b"sudoOption\0" as *const u8 as *const libc::c_char,
+                if tag.log_output() != 0 {
+                    b"log_output\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"!log_output\0" as *const u8 as *const libc::c_char
+                },
+            );
+        }
+    }
+    print_options_ldif(fp, options);
+    /* Print SELinux role/type */
+    if !((*cs).role).is_null() && !((*cs).type_0).is_null() {
+        let mut attr_val_0: *mut libc::c_char = 0 as *mut libc::c_char;
+        let mut len: libc::c_int = 0;
+        len = asprintf(
+            &mut attr_val_0 as *mut *mut libc::c_char,
+            b"role=%s\0" as *const u8 as *const libc::c_char,
+            (*cs).role,
+        );
+        if len == -(1 as libc::c_int) {
+            sudo_fatalx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+        }
+        print_attribute_ldif(
+            fp,
+            b"sudoOption\0" as *const u8 as *const libc::c_char,
+            attr_val_0,
+        );
+        free(attr_val_0 as *mut libc::c_void);
+        len = asprintf(
+            &mut attr_val_0 as *mut *mut libc::c_char,
+            b"type=%s\0" as *const u8 as *const libc::c_char,
+            (*cs).type_0,
+        );
+        if len == -(1 as libc::c_int) {
+            sudo_fatalx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+        }
+        print_attribute_ldif(
+            fp,
+            b"sudoOption\0" as *const u8 as *const libc::c_char,
+            attr_val_0,
+        );
+        free(attr_val_0 as *mut libc::c_void);
+    }
+    /*
+     * Merge adjacent commands with matching tags, runas, SELinux
+     * role/type and Solaris priv settings.
+     */
+    loop {
+        /* Does the next entry differ only in the command itself? */
+        /* XXX - move into a function that returns bool */
+        /* XXX - TAG_SET does not account for implied SETENV */
+        last_one = next.is_null()
+            || RUNAS_CHANGED!(cs, next)
+            || TAGS_CHANGED!((*cs).tags, (*next).tags)
+            || (*cs).role != (*next).role
+            || (*cs).type_0 != (*next).type_0;
+        print_member_ldif(
+            fp,
+            parse_tree,
+            (*(*cs).cmnd).name,
+            (*(*cs).cmnd).type0 as libc::c_int,
+            (*(*cs).cmnd).negated != 0,
+            CMNDALIAS,
+            b"sudoCommand\0" as *const u8 as *const libc::c_char,
+        );
+        if last_one {
+            break;
+        }
+        cs = next;
+        next = (*cs).entries.tqe_next;
+    }
+    *nextp = next;
+    debug_return!();
+}
+/*
+ * Convert user name to cn, avoiding duplicates and quoting as needed.
+ * See http://www.faqs.org/rfcs/rfc2253.html
+ */
+unsafe extern "C" fn user_to_cn(mut user: *const libc::c_char) -> *mut libc::c_char {
+    let mut key: seen_user = seen_user {
+        name: 0 as *const libc::c_char,
+        count: 0,
+    };
+    let mut su: *mut seen_user = 0 as *mut seen_user;
+    let mut node: *mut rbnode = 0 as *mut rbnode;
+    let mut src: *const libc::c_char = 0 as *const libc::c_char;
+    let mut cn: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut dst: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut size: size_t = 0;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    /* Allocate as much as we could possibly need. */
+    'bad: loop {
+        size = (2 as libc::c_ulong)
+            .wrapping_mul(strlen(user))
+            .wrapping_add(64 as libc::c_ulong)
+            .wrapping_add(1 as libc::c_ulong);
+        cn = malloc(size) as *mut libc::c_char;
+        if cn.is_null() {
+            break 'bad;
+        }
+        /*
+         * Increment the number of times we have seen this user.
+         */
+        key.name = user;
+        node = rbfind(seen_users, &mut key as *mut seen_user as *mut libc::c_void);
+        if !node.is_null() {
+            su = (*node).data as *mut seen_user;
+        } else {
+            su = malloc(::core::mem::size_of::<seen_user>() as libc::c_ulong) as *mut seen_user;
+            if su.is_null() {
+                break 'bad;
+            }
+            (*su).count = 0 as libc::c_ulong;
+            (*su).name = strdup(user);
+            if ((*su).name).is_null() {
+                break 'bad;
+            }
+            if rbinsert(seen_users, su as *mut libc::c_void, 0 as *mut *mut rbnode)
+                != 0 as libc::c_int
+            {
+                break 'bad;
+            }
+        }
+        /* Build cn, quoting special chars as needed (we allocated 2 x len). */
+        src = user;
+        dst = cn;
+        while *src as libc::c_int != '\0' as i32 {
+            match *src as u8 as char {
+                ',' | '+' | '"' | '\\' | '<' | '>' | '#' | ';' => {
+                    *dst = '\\' as i32 as libc::c_char; /* always escape */
+                    dst = dst.offset(1);
+                }
+                ' ' => {
+                    if src == user || *src.offset(1 as isize) as libc::c_int == '\0' as i32 {
+                        *dst = '\\' as i32 as libc::c_char; /* only escape at beginning or end of string */
+                        dst = dst.offset(1);
+                    }
+                }
+                _ => {}
+            }
+            *dst = *src;
+            dst = dst.offset(1);
+            src = src.offset(1);
+        }
+        *dst = '\0' as i32 as libc::c_char;
+        /* Append count if there are duplicate users (cn must be unique). */
+        if (*su).count != 0 as libc::c_ulong {
+            size = (size as libc::c_ulong)
+                .wrapping_sub(dst.offset_from(cn) as libc::c_long as size_t)
+                as size_t as size_t;
+            if snprintf(
+                dst,
+                size,
+                b"_%lu\0" as *const u8 as *const libc::c_char,
+                (*su).count,
+            ) as size_t
+                >= size
+            {
+                sudo_warnx!(
+                    b"internal error, %s overflow\0" as *const u8 as *const libc::c_char,
+                    get_function_name!()
+                );
+                break 'bad;
+            }
+        }
+        (*su).count = ((*su).count).wrapping_add(1);
+        debug_return_str!(cn as *mut libc::c_char);
+    }
+    //bad:
+    if !su.is_null() && (*su).count == 0 as libc::c_int as libc::c_ulong {
+        seen_user_free(su as *mut libc::c_void);
+    }
+    free(cn as *mut libc::c_void);
+    debug_return_str!(0 as *mut libc::c_char);
+}
+/*
+ * Print a single User_Spec.
+ */
+unsafe extern "C" fn print_userspec_ldif(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut us: *mut userspec,
+    mut conf: *mut cvtsudoers_config,
+) -> bool {
+    let mut priv_0: *mut privilege = 0 as *mut privilege;
+    let mut m: *mut member = 0 as *mut member;
+    let mut cs: *mut cmndspec = 0 as *mut cmndspec;
+    let mut next: *mut cmndspec = 0 as *mut cmndspec;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    /*
+     * Each userspec struct may contain multiple privileges for
+     * the user.  We export each privilege as a separate sudoRole
+     * object for simplicity's sake.
+     */
+    priv_0 = (*us).privileges.tqh_first;
+    while !priv_0.is_null() {
+        cs = (*priv_0).cmndlist.tqh_first;
+        while !cs.is_null() && {
+            next = (*cs).entries.tqe_next;
+            1 as libc::c_int != 0
+        } {
+            let mut base: *const libc::c_char = (*conf).sudoers_base;
+            let mut cn: *mut libc::c_char = 0 as *mut libc::c_char;
+            let mut dn: *mut libc::c_char = 0 as *mut libc::c_char;
+            /*
+             * Increment the number of times we have seen this user.
+             * If more than one user is listed, just use the first one.
+             */
+            m = (*us).users.tqh_first;
+            cn = user_to_cn(if (*m).type0 as libc::c_int == ALL {
+                b"ALL\0" as *const u8 as *const libc::c_char
+            } else {
+                (*m).name as *const libc::c_char
+            });
+            if cn.is_null()
+                || asprintf(
+                    &mut dn as *mut *mut libc::c_char,
+                    b"cn=%s,%s\0" as *const u8 as *const libc::c_char,
+                    cn,
+                    base,
+                ) == -(1 as libc::c_int)
+            {
+                sudo_fatalx!(
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    get_function_name!(),
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                );
+            }
+            print_attribute_ldif(fp, b"dn\0" as *const u8 as *const libc::c_char, dn);
+            print_attribute_ldif(
+                fp,
+                b"objectClass\0" as *const u8 as *const libc::c_char,
+                b"top\0" as *const u8 as *const libc::c_char,
+            );
+            print_attribute_ldif(
+                fp,
+                b"objectClass\0" as *const u8 as *const libc::c_char,
+                b"sudoRole\0" as *const u8 as *const libc::c_char,
+            );
+            print_attribute_ldif(fp, b"cn\0" as *const u8 as *const libc::c_char, cn);
+            free(cn as *mut libc::c_void);
+            free(dn as *mut libc::c_void);
+            m = (*us).users.tqh_first;
+            while !m.is_null() {
+                print_member_ldif(
+                    fp,
+                    parse_tree,
+                    (*m).name,
+                    (*m).type0 as libc::c_int,
+                    (*m).negated != 0,
+                    USERALIAS,
+                    b"sudoUser\0" as *const u8 as *const libc::c_char,
+                );
+                m = (*m).entries.tqe_next;
+            }
+            m = (*priv_0).hostlist.tqh_first;
+            while !m.is_null() {
+                print_member_ldif(
+                    fp,
+                    parse_tree,
+                    (*m).name,
+                    (*m).type0 as libc::c_int,
+                    (*m).negated != 0,
+                    HOSTALIAS,
+                    b"sudoHost\0" as *const u8 as *const libc::c_char,
+                );
+                m = (*m).entries.tqe_next;
+            }
+            print_cmndspec_ldif(fp, parse_tree, cs, &mut next, &mut (*priv_0).defaults);
+            if (*conf).sudo_order != 0 as libc::c_uint {
+                let mut numbuf: [libc::c_char; 13] = [0; 13];
+                if (*conf).order_max != 0 as libc::c_int as libc::c_uint
+                    && (*conf).sudo_order > (*conf).order_max
+                {
+                    sudo_fatalx!(
+                        b"too many sudoers entries, maximum %u\0" as *const u8
+                            as *const libc::c_char,
+                        (*conf).order_padding
+                    );
+                }
+                snprintf(
+                    numbuf.as_mut_ptr(),
+                    ::core::mem::size_of::<[libc::c_char; 13]>() as libc::c_ulong,
+                    b"%u\0" as *const u8 as *const libc::c_char,
+                    (*conf).sudo_order,
+                );
+                print_attribute_ldif(
+                    fp,
+                    b"sudoOrder\0" as *const u8 as *const libc::c_char,
+                    numbuf.as_mut_ptr(),
+                );
+                putc('\n' as i32, fp);
+                (*conf).sudo_order = ((*conf).sudo_order).wrapping_add((*conf).order_increment);
+            }
+            cs = next;
+        }
+        priv_0 = (*priv_0).entries.tqe_next;
+    }
+    debug_return_bool!(ferror(fp) == 0);
+}
+/*
+ * Print User_Specs.
+ */
+unsafe extern "C" fn print_userspecs_ldif(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut conf: *mut cvtsudoers_config,
+) -> bool {
+    let mut us: *mut userspec = 0 as *mut userspec;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    us = (*parse_tree).userspecs.tqh_first;
+    while !us.is_null() {
+        if !print_userspec_ldif(fp, parse_tree, us, conf) {
+            debug_return_bool!(false);
+        }
+        us = (*us).entries.tqe_next;
+    }
+    debug_return_bool!(true);
+}
+/*
+ * Export the parsed sudoers file in LDIF format.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn convert_sudoers_ldif(
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut output_file: *const libc::c_char,
+    mut conf: *mut cvtsudoers_config,
+) -> bool {
+    let mut ret: bool = true;
+    let mut output_fp: *mut FILE = stdout;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    if ((*conf).sudoers_base).is_null() {
+        sudo_fatalx!(
+            b"the SUDOERS_BASE environment variable is not set and the -b option was not specified.\0" as *const u8 as *const libc::c_char,
+        );
+    }
+    if !output_file.is_null()
+        && strcmp(output_file, b"-\0" as *const u8 as *const libc::c_char) != 0 as libc::c_int
+    {
+        output_fp = fopen(output_file, b"w\0" as *const u8 as *const libc::c_char);
+        if output_fp.is_null() {
+            sudo_fatal!(
+                b"unable to open %s\0" as *const u8 as *const libc::c_char,
+                output_file,
+            );
+        }
+    }
+    /* Create a dictionary of already-seen users. */
+    seen_users = rbcreate(Some(
+        seen_user_compare
+            as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> libc::c_int,
+    ));
+    /* Dump global Defaults in LDIF format. */
+    if ISSET!((*conf).suppress as libc::c_int, SUPPRESS_DEFAULTS) == 0 {
+        print_global_defaults_ldif(output_fp, parse_tree, (*conf).sudoers_base);
+    }
+    /* Dump User_Specs in LDIF format, expanding Aliases. */
+    if ISSET!((*conf).suppress as libc::c_int, SUPPRESS_PRIVS) == 0 {
+        print_userspecs_ldif(output_fp, parse_tree, conf);
+    }
+    /* Clean up. */
+    rbdestroy(
+        seen_users,
+        Some(seen_user_free as unsafe extern "C" fn(*mut libc::c_void) -> ()),
+    );
+    fflush(output_fp);
+    if ferror(output_fp) != 0 {
+        ret = false;
+    }
+    if output_fp != stdout {
+        fclose(output_fp);
+    }
+    debug_return_bool!(ret);
+}
 
 
 
