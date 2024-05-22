@@ -46,6 +46,41 @@ extern "C" {
 
 pub const MAX_UID_T_LEN: usize = 10;
 pub const _SC_LOGIN_NAME_MAX: libc::c_uint = 71;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct cache_item {
+    pub refcnt: libc::c_uint,
+    pub type_0: libc::c_uint,
+    pub registry: [libc::c_char; 16],
+    pub k: C2RustUnnamed_1,
+    pub d: C2RustUnnamed_0,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union C2RustUnnamed_0 {
+    pub pw: *mut passwd,
+    pub gr: *mut group,
+    pub grlist: *mut group_list,
+    pub gidlist: *mut gid_list,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union C2RustUnnamed_1 {
+    pub uid: uid_t,
+    pub gid: gid_t,
+    pub name: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudoers_string {
+    pub entries: C2RustUnnamed_2,
+    pub str_0: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_2 {
+    pub stqe_next: *mut sudoers_string,
+}
 
 /*
  * Dynamically allocate space for a struct item plus the key and data
