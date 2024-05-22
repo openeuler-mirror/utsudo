@@ -148,6 +148,30 @@ pub struct comment_list {
     pub stqh_first: *mut sudoers_comment,
     pub stqh_last: *mut *mut sudoers_comment,
 }
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudoers_comment {
+    pub entries: C2RustUnnamed_3,
+    pub str_0: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_3 {
+    pub stqe_next: *mut sudoers_comment,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_6 {
+    pub tqe_next: *mut userspec,
+    pub tqe_prev: *mut *mut userspec,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct privilege_list {
+    pub tqh_first: *mut privilege,
+    pub tqh_last: *mut *mut privilege,
+}
 /*
  * Print "indent" number of blank characters.
  */
@@ -159,5 +183,48 @@ unsafe extern "C" fn print_indent(mut fp: *mut FILE, mut indent: libc::c_int) {
             break;
         }
         putc(' ' as i32, fp);
+    }
+}
+
+/*
+ * Print a JSON string, escaping special characters.
+ * Does not support unicode escapes.
+ */
+unsafe extern "C" fn print_string_json_unquoted(mut fp: *mut FILE, mut str: *const libc::c_char) {
+    let mut ch: libc::c_char = 0;
+
+    loop {
+        ch = *str;
+        str = str.offset(1);
+        if !(ch as libc::c_int != '\0' as i32) {
+            break;
+        }
+        match ch as libc::c_int {
+            34 | 92 => {
+                putc('\\' as i32, fp);
+            }
+            8 => {
+                ch = 'b' as i32 as libc::c_char;
+                putc('\\' as i32, fp);
+            }
+            12 => {
+                ch = 'f' as i32 as libc::c_char;
+                putc('\\' as i32, fp);
+            }
+            10 => {
+                ch = 'n' as i32 as libc::c_char;
+                putc('\\' as i32, fp);
+            }
+            13 => {
+                ch = 'r' as i32 as libc::c_char;
+                putc('\\' as i32, fp);
+            }
+            9 => {
+                ch = 't' as i32 as libc::c_char;
+                putc('\\' as i32, fp);
+            }
+            _ => {}
+        }
+        putc(ch as libc::c_int, fp);
     }
 }
