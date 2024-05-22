@@ -111,6 +111,43 @@ pub const SUPPRESS_DEFAULTS: libc::c_int = 0x01;
 pub const SUPPRESS_ALIASES: libc::c_int = 0x02;
 pub const SUPPRESS_PRIVS: libc::c_int = 0x04;
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct cvtsudoers_config {
+    pub sudo_order: libc::c_uint,
+    pub order_increment: libc::c_uint,
+    pub order_padding: libc::c_uint,
+    pub order_max: libc::c_uint,
+    pub defaults: libc::c_short,
+    pub suppress: libc::c_short,
+    pub expand_aliases: bool,
+    pub store_options: bool,
+    pub prune_matches: bool,
+    pub sudoers_base: *mut libc::c_char,
+    pub input_format: *mut libc::c_char,
+    pub output_format: *mut libc::c_char,
+    pub filter: *mut libc::c_char,
+    pub defstr: *mut libc::c_char,
+    pub supstr: *mut libc::c_char,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct userspec {
+    pub entries: C2RustUnnamed_6,
+    pub users: member_list,
+    pub privileges: privilege_list,
+    pub comments: comment_list,
+    pub lineno: libc::c_int,
+    pub file: *mut libc::c_char,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct comment_list {
+    pub stqh_first: *mut sudoers_comment,
+    pub stqh_last: *mut *mut sudoers_comment,
+}
 /*
  * Print "indent" number of blank characters.
  */
