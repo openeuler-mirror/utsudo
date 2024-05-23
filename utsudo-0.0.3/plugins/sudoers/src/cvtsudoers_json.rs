@@ -272,3 +272,81 @@ unsafe extern "C" fn print_string_json(mut fp: *mut FILE, mut str: *const libc::
     print_string_json_unquoted(fp, str);
     putc('"' as i32, fp);
 }
+
+/*
+ * Print a JSON name: value pair with proper quoting and escaping.
+ */
+unsafe extern "C" fn print_pair_json(
+    mut fp: *mut FILE,
+    mut pre: *const libc::c_char,
+    mut name: *const libc::c_char,
+    mut value: *const json_value,
+    mut post: *const libc::c_char,
+    mut indent: libc::c_int,
+) {
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    print_indent(fp, indent);
+
+    /* prefix */
+    if !pre.is_null() {
+        fputs(pre, fp);
+    }
+
+    /* name */
+    print_string_json(fp, name);
+    putc(':' as i32, fp);
+    putc(' ' as i32, fp);
+
+    /* value */
+    match (*value).type_0 {
+        json_value_type::JSON_STRING => {
+            print_string_json(fp, (*value).u.string);
+        }
+        json_value_type::JSON_ID => {
+            fprintf(
+                fp,
+                b"%u\0" as *const u8 as *const libc::c_char,
+                (*value).u.id,
+            );
+        }
+        json_value_type::JSON_NUMBER => {
+            fprintf(
+                fp,
+                b"%d\0" as *const u8 as *const libc::c_char,
+                (*value).u.number,
+            );
+        }
+        json_value_type::JSON_NULL => {
+            fputs(b"null\0" as *const u8 as *const libc::c_char, fp);
+        }
+        json_value_type::JSON_BOOL => {
+            fputs(
+                if (*value).u.boolean as libc::c_int != 0 {
+                    b"true\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"false\0" as *const u8 as *const libc::c_char
+                },
+                fp,
+            );
+        }
+        json_value_type::JSON_OBJECT => {
+            sudo_fatalx!(
+                b"internal error: can't print JSON_OBJECT\0" as *const u8 as *const libc::c_char,
+            );
+        }
+        json_value_type::JSON_ARRAY => {
+            sudo_fatalx!(
+                b"internal error: can't print JSON_ARRAY\0" as *const u8 as *const libc::c_char,
+            );
+        }
+        _ => {}
+    }
+
+    /* postfix */
+    if !post.is_null() {
+        fputs(post, fp);
+    }
+
+    debug_return!();
+}
