@@ -82,6 +82,36 @@ pub struct C2RustUnnamed_2 {
     pub stqe_next: *mut sudoers_string,
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudoers_str_list {
+    pub stqh_first: *mut sudoers_string,
+    pub stqh_last: *mut *mut sudoers_string,
+    pub refcnt: libc::c_uint,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct cvtsudoers_filter {
+    pub users: sudoers_str_list,
+    pub groups: sudoers_str_list,
+    pub hosts: sudoers_str_list,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct cache_item_pw {
+    pub cache: cache_item,
+    pub pw: passwd,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct cache_item_gr {
+    pub cache: cache_item,
+    pub gr: group,
+}
+
+static mut gidlist_item: *mut cache_item_gidlist =
+    0 as *const cache_item_gidlist as *mut cache_item_gidlist;
+
 /*
  * Dynamically allocate space for a struct item plus the key and data
  * elements.  If name is non-NULL it is used as the key, else the
