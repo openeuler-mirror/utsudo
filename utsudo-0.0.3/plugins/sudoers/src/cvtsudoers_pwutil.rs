@@ -235,3 +235,178 @@ pub unsafe extern "C" fn cvtsudoers_make_pwitem(
 
     debug_return_ptr!(&mut (*pwitem).cache as *mut cache_item);
 }
+
+/*
+ * Dynamically allocate space for a struct item plus the key and data
+ * elements.  If name is non-NULL it is used as the key, else the
+ * gid is the key.  Fills in datum from the groups filter.
+ * Returns NULL on calloc error or unknown name/id, setting errno
+ * to ENOMEM or ENOENT respectively.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn cvtsudoers_make_gritem(
+    mut gid: gid_t,
+    mut name: *const libc::c_char,
+) -> *mut cache_item {
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut gidstr: [libc::c_char; MAX_UID_T_LEN + 2] = [0; MAX_UID_T_LEN + 2];
+    let mut nsize: size_t = 0;
+    let mut psize: size_t = 0;
+    let mut nmem: size_t = 0;
+    let mut total: size_t = 0;
+    let mut len: size_t = 0;
+    let mut gritem: *mut cache_item_gr = 0 as *mut cache_item_gr;
+    let mut gr: group = group {
+        gr_name: 0 as *mut libc::c_char,
+        gr_passwd: 0 as *mut libc::c_char,
+        gr_gid: 0,
+        gr_mem: 0 as *mut *mut libc::c_char,
+    };
+    let mut newgr: *mut group = 0 as *mut group;
+    let mut s: *mut sudoers_string = 0 as *mut sudoers_string;
+    debug_decl!(SUDOERS_DEBUG_NSS!());
+
+    /* Look up name or gid in filter list. */
+    if !name.is_null() {
+        s = (*filters).groups.stqh_first;
+        while !s.is_null() {
+            if strcasecmp(name, (*s).str_0) == 0 as libc::c_int {
+                gid = -(1 as libc::c_int) as gid_t;
+                break;
+            } else {
+                s = (*s).entries.stqe_next;
+            }
+        }
+    } else {
+        s = (*filters).groups.stqh_first;
+        while !s.is_null() {
+            let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+            let mut filter_gid: gid_t = 0;
+
+            if !(*((*s).str_0).offset(0 as libc::c_int as isize) as libc::c_int != '#' as i32) {
+                filter_gid =
+                    sudo_strtoid_v2(((*s).str_0).offset(1 as libc::c_int as isize), &mut errstr);
+                if errstr.is_null() {
+                    if !(gid != filter_gid) {
+                        snprintf(
+                            gidstr.as_mut_ptr(),
+                            ::core::mem::size_of::<[libc::c_char; 12]>() as libc::c_ulong,
+                            b"#%u\0" as *const u8 as *const libc::c_char,
+                            gid,
+                        );
+                        break;
+                    }
+                }
+            }
+            s = (*s).entries.stqe_next;
+        }
+    }
+    if s.is_null() {
+        *__errno_location() = ENOENT;
+        debug_return_ptr!(0 as *mut cache_item);
+    }
+
+    /* Fake up a group struct with all filter users as members. */
+    memset(
+        &mut gr as *mut group as *mut libc::c_void,
+        0 as libc::c_int,
+        ::core::mem::size_of::<group>() as libc::c_ulong,
+    );
+    gr.gr_name = if !name.is_null() {
+        (*s).str_0
+    } else {
+        gidstr.as_mut_ptr()
+    };
+    gr.gr_gid = gid;
+
+    /* Allocate in one big chunk for easy freeing. */
+    nmem = 0 as size_t;
+    psize = nmem;
+    nsize = psize;
+    total = ::core::mem::size_of::<cache_item_gr>() as libc::c_ulong;
+    FIELD_SIZE!(gr.gr_name, nsize, total);
+    FIELD_SIZE!(gr.gr_passwd, psize, total);
+    if !((*filters).users.stqh_first).is_null() {
+        s = (*filters).users.stqh_first;
+        while !s.is_null() {
+            total = (total as libc::c_ulong)
+                .wrapping_add((strlen((*s).str_0)).wrapping_add(1 as libc::c_int as libc::c_ulong))
+                as size_t as size_t;
+            nmem = nmem.wrapping_add(1);
+            s = (*s).entries.stqe_next;
+        }
+        total = (total as libc::c_ulong).wrapping_add(
+            (::core::mem::size_of::<*mut libc::c_char>() as libc::c_ulong).wrapping_mul(nmem),
+        ) as size_t as size_t;
+    }
+    if !name.is_null() {
+        total = (total as libc::c_ulong)
+            .wrapping_add((strlen(name)).wrapping_add(1 as libc::c_int as libc::c_ulong))
+            as size_t as size_t;
+    }
+
+    gritem = calloc(1 as libc::c_ulong, total) as *mut cache_item_gr;
+    if gritem.is_null() {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        debug_return_ptr!(0 as *mut cache_item);
+    }
+
+    /*
+     * Copy in group contents and make strings relative to space
+     * at the end of the buffer.  Note that gr_mem must come
+     * immediately after struct group to guarantee proper alignment.
+     */
+    newgr = &mut (*gritem).gr;
+    memcpy(
+        newgr as *mut libc::c_void,
+        &mut gr as *mut group as *const libc::c_void,
+        ::core::mem::size_of::<group>() as libc::c_ulong,
+    );
+    cp = gritem.offset(1 as isize) as *mut libc::c_char;
+    if nmem != 0 as libc::c_ulong {
+        (*newgr).gr_mem = cp as *mut *mut libc::c_char;
+        cp = cp.offset(
+            (::core::mem::size_of::<*mut libc::c_char>() as libc::c_ulong).wrapping_mul(nmem)
+                as isize,
+        );
+        nmem = 0 as size_t;
+        s = (*filters).users.stqh_first;
+        while !s.is_null() {
+            len = (strlen((*s).str_0)).wrapping_add(1 as libc::c_ulong);
+            memcpy(
+                cp as *mut libc::c_void,
+                (*s).str_0 as *const libc::c_void,
+                len,
+            );
+            let fresh0 = nmem;
+            nmem = nmem.wrapping_add(1);
+            let ref mut fresh1 = *((*newgr).gr_mem).offset(fresh0 as isize);
+            *fresh1 = cp;
+            cp = cp.offset(len as isize);
+            s = (*s).entries.stqe_next;
+        }
+        let ref mut fresh2 = *((*newgr).gr_mem).offset(nmem as isize);
+        *fresh2 = 0 as *mut libc::c_char;
+    }
+    FIELD_COPY!(gr.gr_passwd, (*newgr).gr_passwd, psize, cp);
+    FIELD_COPY!(gr.gr_name, (*newgr).gr_name, nsize, cp);
+
+    /* Set key and datum. */
+    if !name.is_null() {
+        memcpy(
+            cp as *mut libc::c_void,
+            name as *const libc::c_void,
+            (strlen(name)).wrapping_add(1 as libc::c_int as libc::c_ulong),
+        );
+        (*gritem).cache.k.name = cp;
+    } else {
+        (*gritem).cache.k.gid = gr.gr_gid;
+    }
+    (*gritem).cache.d.gr = newgr;
+    (*gritem).cache.refcnt = 1 as libc::c_uint;
+
+    debug_return_ptr!(&mut (*gritem).cache as *mut cache_item);
+}
