@@ -172,6 +172,40 @@ pub struct privilege_list {
     pub tqh_first: *mut privilege,
     pub tqh_last: *mut *mut privilege,
 }
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudoers_parse_tree {
+    pub userspecs: userspec_list,
+    pub defaults: defaults_list,
+    pub aliases: *mut rbtree,
+    pub shost: *const libc::c_char,
+    pub lhost: *const libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct userspec_list {
+    pub tqh_first: *mut userspec,
+    pub tqh_last: *mut *mut userspec,
+}
+
+/*
+ * JSON values may be of the following types.
+ */
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub enum json_value_type {
+    JSON_STRING,
+    JSON_ID,
+    JSON_NUMBER,
+    JSON_OBJECT,
+    JSON_ARRAY,
+    JSON_BOOL,
+    JSON_NULL,
+}
+
+
+
 /*
  * Print "indent" number of blank characters.
  */
@@ -227,4 +261,14 @@ unsafe extern "C" fn print_string_json_unquoted(mut fp: *mut FILE, mut str: *con
         }
         putc(ch as libc::c_int, fp);
     }
+}
+
+/*
+ * Print a quoted JSON string, escaping special characters.
+ * Does not support unicode escapes.
+ */
+unsafe extern "C" fn print_string_json(mut fp: *mut FILE, mut str: *const libc::c_char) {
+    putc('"' as i32, fp);
+    print_string_json_unquoted(fp, str);
+    putc('"' as i32, fp);
 }
