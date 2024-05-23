@@ -108,8 +108,43 @@ pub struct cache_item_gr {
     pub cache: cache_item,
     pub gr: group,
 }
+#[macro_export]
+macro_rules! _PATH_BSHELL {
+    () => {
+        (b"/bin/sh\0" as *const u8 as *const libc::c_char as *mut libc::c_char)
+    };
+}
+#[macro_export]
+macro_rules! FIELD_SIZE {
+    ($src:expr, $size:expr, $total:expr) => {{
+        if !($src).is_null() {
+            $size = (strlen($src)).wrapping_add(1 as libc::c_ulong);
+            $total = ($total as libc::c_ulong).wrapping_add($size) as size_t as size_t;
+        }
+    }};
+}
+#[macro_export]
+macro_rules! FIELD_COPY {
+    ($src:expr, $dst:expr, $size:expr, $cp:expr) => {{
+        if !($src).is_null() {
+            memcpy($cp as *mut libc::c_void, $src as *const libc::c_void, $size);
+            $dst = $cp;
+            $cp = $cp.offset($size as isize);
+        }
+    }};
+}
+#[macro_export]
+macro_rules! MAX {
+    ($a:expr, $b:expr) => {
+        (if ($a) > ($b) { ($a) } else { ($b) })
+    };
+}
+
 
 static mut gidlist_item: *mut cache_item_gidlist =
+    0 as *const cache_item_gidlist as *mut cache_item_gidlist;
+
+static mut grlist_item: *mut cache_item_gidlist =
     0 as *const cache_item_gidlist as *mut cache_item_gidlist;
 
 /*
