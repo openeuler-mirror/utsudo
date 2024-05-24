@@ -646,4 +646,797 @@ pub unsafe extern "C" fn matches_env_keep(
     debug_return_bool!(keepit);
 }
 
+#[no_mangle]
+unsafe extern "C" fn env_should_delete(mut var: *const libc::c_char) -> bool {
+    let mut delete_it: libc::c_int = 0 as libc::c_int;
+    let mut full_match: bool = false as bool;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    delete_it = matches_env_delete(var) as libc::c_int;
+    if delete_it == 0 {
+        delete_it = (matches_env_check(var, &mut full_match) == 0) as libc::c_int;
+    }
+    if delete_it != 0 {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"delete %s: %s\0" as *const u8 as *const libc::c_char,
+            var,
+            b"YES\0" as *const u8 as *const libc::c_char
+        );
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"delete %s: %s\0" as *const u8 as *const libc::c_char,
+            var,
+            b"NO\0" as *const u8 as *const libc::c_char
+        );
+    }
+    debug_return_bool!(delete_it as libc::c_int != 0);
+}
+#[no_mangle]
+pub unsafe extern "C" fn env_should_keep(mut var: *const libc::c_char) -> bool {
+    let mut keepit: libc::c_int = 0;
+    let mut full_match: bool = 0 as libc::c_int != 0;
+    let mut cp: *const libc::c_char = 0 as *const libc::c_char;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    keepit = matches_env_check(var, &mut full_match);
+    if keepit == -1 {
+        keepit = matches_env_keep(var, &mut full_match) as libc::c_int;
+    }
+    if keepit != 0 && !full_match {
+        cp = strchr(var, '=' as i32);
+        if !cp.is_null() {
+            if strncmp(cp, b"=() \0" as *const u8 as *const libc::c_char, 4) == 0 {
+                keepit = false as libc::c_int;
+            }
+        }
+    }
+    if keepit == 1 {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"keep %s: %s\0" as *const u8 as *const libc::c_char,
+            var,
+            b"YES\0" as *const u8 as *const libc::c_char
+        );
+    } else {
+        sudo_debug_printf!(
+            SUDO_DEBUG_INFO,
+            b"keep %s: %s\0" as *const u8 as *const libc::c_char,
+            var,
+            b"NO\0" as *const u8 as *const libc::c_char
+        );
+    }
+    debug_return_bool!(keepit == 1 as libc::c_int);
+}
+#[no_mangle]
+pub unsafe extern "C" fn env_merge(mut envp: *const *mut libc::c_char) -> bool {
+    let mut ep: *const *mut libc::c_char = 0 as *const *mut libc::c_char;
+    let mut ret: bool = 1 as libc::c_int != 0;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    ep = envp;
+    while !(*ep).is_null() {
+        let mut overwrite: bool = if (*sudo_defs_table.as_mut_ptr().offset(I_ENV_RESET as isize))
+            .sd_un
+            .flag
+            != 0
+        {
+            !env_should_keep(*ep) as libc::c_int
+        } else {
+            env_should_delete(*ep) as libc::c_int
+        } != 0;
+        if sudo_putenv(*ep, true, overwrite) == -1 {
+            ret = false;
+            break;
+        }
+        ep = ep.offset(1);
+    }
+    debug_return_bool!(ret);
+}
+pub const DID_HOME: libc::c_int = 4;
+pub const DID_LOGNAME: libc::c_int = 16;
+pub const DID_MAIL: libc::c_int = 128;
+pub const DID_PATH: libc::c_int = 2;
+pub const DID_SHELL: libc::c_int = 8;
+pub const DID_TERM: libc::c_int = 1;
+pub const DID_USER: libc::c_int = 32;
+pub const KEPT_HOME: libc::c_uint = 262144;
+#[no_mangle]
+unsafe extern "C" fn env_update_didvar(mut ep: *const libc::c_char, mut didvar: *mut libc::c_uint) {
+    match *ep as u8 as char {
+        'H' => {
+            if strncmp(ep, b"HOME=" as *const u8 as *const libc::c_char, 5) == 0 {
+                *didvar |= DID_HOME as libc::c_uint;
+            }
+        }
+        'L' => {
+            if strncmp(ep, b"LOGNAME=" as *const u8 as *const libc::c_char, 8) == 0 {
+                *didvar |= DID_LOGNAME as libc::c_uint;
+            }
+        }
+        'M' => {
+            if strncmp(ep, b"MAIL=" as *const u8 as *const libc::c_char, 5) == 0 {
+                *didvar |= DID_MAIL as libc::c_uint;
+            }
+        }
+        'P' => {
+            if strncmp(ep, b"PATH=" as *const u8 as *const libc::c_char, 5) == 0 {
+                *didvar |= DID_PATH as libc::c_uint;
+            }
+        }
+        'S' => {
+            if strncmp(ep, b"SHELL=" as *const u8 as *const libc::c_char, 6) == 0 {
+                *didvar |= DID_SHELL as libc::c_uint;
+            }
+        }
+        'T' => {
+            if strncmp(ep, b"TERM=" as *const u8 as *const libc::c_char, 5) == 0 {
+                *didvar |= DID_TERM as libc::c_uint;
+            }
+        }
+        'U' => {
+            if strncmp(ep, b"USER=" as *const u8 as *const libc::c_char, 5) == 0 {
+                *didvar |= DID_USER as libc::c_uint;
+            }
+        }
+        _ => {}
+    } //end of match
+}
+pub const MAX_UID_T_LEN: libc::c_int = 10;
+pub const MODE_RUN: libc::c_int = 1;
+pub const MODE_RESET_HOME: libc::c_int = 1048576;
+pub const MODE_LOGIN_SHELL: libc::c_int = 262144;
+pub const MODE_SHELL: libc::c_int = 131072;
+#[no_mangle]
+pub unsafe extern "C" fn rebuild_env() -> bool {
+    let mut current_block: u64;
+    let mut ep: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut ps1: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut idbuf: [libc::c_char; 11] = [0; 11];
+    let mut didvar: libc::c_uint = 0;
+    let mut reset_home: bool = 0 as libc::c_int != 0;
+    let sudo_debug_subsys_tmp: libc::c_int = *sudoers_subsystem_ids
+        .as_mut_ptr()
+        .offset(4 as libc::c_int as isize)
+        as libc::c_int;
+    sudo_debug_enter_v1(
+        (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"rebuild_env\0")).as_ptr(),
+        b"env.c\0" as *const u8 as *const libc::c_char,
+        890 as libc::c_int,
+        sudo_debug_subsys_tmp,
+    );
+    ps1 = 0 as *mut libc::c_char;
+    didvar = 0 as libc::c_int as libc::c_uint;
+    env.env_len = 0 as libc::c_int as size_t;
+    env.env_size = 128 as libc::c_int as size_t;
+    free(env.old_envp as *mut libc::c_void);
+    env.old_envp = env.envp;
+    env.envp = reallocarray(
+        0 as *mut libc::c_void,
+        env.env_size,
+        ::core::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+    ) as *mut *mut libc::c_char;
+    if (env.envp).is_null() {
+        sudo_debug_printf2_v1(
+            (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"rebuild_env\0")).as_ptr(),
+            b"env.c\0" as *const u8 as *const libc::c_char,
+            904 as libc::c_int,
+            2 as libc::c_int | (1 as libc::c_int) << 5 as libc::c_int | sudo_debug_subsys_tmp,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char,
+        );
+        env.env_size = 0 as libc::c_int as size_t;
+    } else {
+        let ref mut fresh5 = *(env.envp).offset(0 as libc::c_int as isize);
+        *fresh5 = 0 as *mut libc::c_char;
+        if sudo_mode & 0x1 as libc::c_int != 0 {
+            if (*sudo_defs_table
+                .as_mut_ptr()
+                .offset(20 as libc::c_int as isize))
+            .sd_un
+            .flag
+                != 0
+                || sudo_mode & (0x100000 as libc::c_int | 0x40000 as libc::c_int) != 0
+                || sudo_mode & 0x20000 as libc::c_int != 0
+                    && (*sudo_defs_table
+                        .as_mut_ptr()
+                        .offset(19 as libc::c_int as isize))
+                    .sd_un
+                    .flag
+                        != 0
+            {
+                reset_home = 1 as libc::c_int != 0;
+            }
+        }
+        if (*sudo_defs_table
+            .as_mut_ptr()
+            .offset(61 as libc::c_int as isize))
+        .sd_un
+        .flag
+            != 0
+            || sudo_mode & 0x40000 as libc::c_int != 0
+        {
+            if sudo_mode & 0x40000 as libc::c_int == 0 {
+                ep = env.envp;
+                while !(*ep).is_null() {
+                    env_update_didvar(*ep, &mut didvar);
+                    ep = ep.offset(1);
+                }
+            }
+            ep = env.old_envp;
+            loop {
+                if (*ep).is_null() {
+                    current_block = 3437258052017859086;
+                    break;
+                }
+                let mut keepit: bool = false;
+                keepit = env_should_keep(*ep);
+                if strncmp(
+                    *ep,
+                    b"SUDO_PS1=\0" as *const u8 as *const libc::c_char,
+                    9 as libc::c_int as libc::c_ulong,
+                ) == 0 as libc::c_int
+                {
+                    ps1 = (*ep).offset(5 as libc::c_int as isize);
+                }
+                if keepit {
+                    if sudo_putenv(*ep, 1 as libc::c_int != 0, 0 as libc::c_int != 0)
+                        == -(1 as libc::c_int)
+                    {
+                        current_block = 655114396176293719;
+                        break;
+                    }
+                    env_update_didvar(*ep, &mut didvar);
+                }
+                ep = ep.offset(1);
+            }
+            match current_block {
+                655114396176293719 => {}
+                _ => {
+                    didvar |= didvar << 16 as libc::c_int;
+                    if sudo_mode & 0x40000 as libc::c_int != 0 {
+                        if sudo_setenv2(
+                            b"SHELL\0" as *const u8 as *const libc::c_char,
+                            (*sudo_user._runas_pw).pw_shell,
+                            didvar & 0x8 as libc::c_int as libc::c_uint != 0,
+                            1 as libc::c_int != 0,
+                        ) == -(1 as libc::c_int)
+                        {
+                            current_block = 655114396176293719;
+                        } else if sudo_setenv2(
+                            b"LOGNAME\0" as *const u8 as *const libc::c_char,
+                            (*sudo_user._runas_pw).pw_name,
+                            didvar & 0x10 as libc::c_int as libc::c_uint != 0,
+                            1 as libc::c_int != 0,
+                        ) == -(1 as libc::c_int)
+                        {
+                            current_block = 655114396176293719;
+                        } else if sudo_setenv2(
+                            b"USER\0" as *const u8 as *const libc::c_char,
+                            (*sudo_user._runas_pw).pw_name,
+                            didvar & 0x20 as libc::c_int as libc::c_uint != 0,
+                            1 as libc::c_int != 0,
+                        ) == -(1 as libc::c_int)
+                        {
+                            current_block = 655114396176293719;
+                        } else {
+                            current_block = 10399321362245223758;
+                        }
+                    } else if (*sudo_defs_table
+                        .as_mut_ptr()
+                        .offset(30 as libc::c_int as isize))
+                    .sd_un
+                    .flag
+                        == 0
+                    {
+                        if didvar & 0x10 as libc::c_int as libc::c_uint == 0 {
+                            if sudo_setenv2(
+                                b"LOGNAME\0" as *const u8 as *const libc::c_char,
+                                sudo_user.name,
+                                0 as libc::c_int != 0,
+                                1 as libc::c_int != 0,
+                            ) == -(1 as libc::c_int)
+                            {
+                                current_block = 655114396176293719;
+                            } else {
+                                current_block = 5330834795799507926;
+                            }
+                        } else {
+                            current_block = 5330834795799507926;
+                        }
+                        match current_block {
+                            655114396176293719 => {}
+                            _ => {
+                                if didvar & 0x20 as libc::c_int as libc::c_uint == 0 {
+                                    if sudo_setenv2(
+                                        b"USER\0" as *const u8 as *const libc::c_char,
+                                        sudo_user.name,
+                                        0 as libc::c_int != 0,
+                                        1 as libc::c_int != 0,
+                                    ) == -(1 as libc::c_int)
+                                    {
+                                        current_block = 655114396176293719;
+                                    } else {
+                                        current_block = 10399321362245223758;
+                                    }
+                                } else {
+                                    current_block = 10399321362245223758;
+                                }
+                            }
+                        }
+                    } else {
+                        current_block = 10399321362245223758;
+                    }
+                    match current_block {
+                        655114396176293719 => {}
+                        _ => {
+                            if didvar & 0x40000 as libc::c_int as libc::c_uint == 0 {
+                                reset_home = 1 as libc::c_int != 0;
+                            }
+                            if sudo_mode & 0x40000 as libc::c_int != 0
+                                || didvar & 0x800000 as libc::c_int as libc::c_uint == 0
+                            {
+                                if (*::core::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(
+                                    b"/var/mail\0",
+                                ))[(::core::mem::size_of::<
+                                    [libc::c_char; 10],
+                                >(
+                                )
+                                    as libc::c_ulong)
+                                    .wrapping_sub(2 as libc::c_int as libc::c_ulong)
+                                    as usize] as libc::c_int
+                                    == '/' as i32
+                                {
+                                    if asprintf(
+                                        &mut cp as *mut *mut libc::c_char,
+                                        b"MAIL=%s%s\0" as *const u8 as *const libc::c_char,
+                                        b"/var/mail\0" as *const u8 as *const libc::c_char,
+                                        (*sudo_user._runas_pw).pw_name,
+                                    ) == -(1 as libc::c_int)
+                                    {
+                                        current_block = 655114396176293719;
+                                    } else {
+                                        current_block = 2290177392965769716;
+                                    }
+                                } else if asprintf(
+                                    &mut cp as *mut *mut libc::c_char,
+                                    b"MAIL=%s/%s\0" as *const u8 as *const libc::c_char,
+                                    b"/var/mail\0" as *const u8 as *const libc::c_char,
+                                    (*sudo_user._runas_pw).pw_name,
+                                ) == -(1 as libc::c_int)
+                                {
+                                    current_block = 655114396176293719;
+                                } else {
+                                    current_block = 2290177392965769716;
+                                }
+                                match current_block {
+                                    655114396176293719 => {}
+                                    _ => {
+                                        if sudo_putenv(
+                                            cp,
+                                            didvar & 0x80 as libc::c_int as libc::c_uint != 0,
+                                            1 as libc::c_int != 0,
+                                        ) == -(1 as libc::c_int)
+                                        {
+                                            free(cp as *mut libc::c_void);
+                                            current_block = 655114396176293719;
+                                        } else {
+                                            sudoers_gc_add(GC_PTR, cp as *mut libc::c_void);
+                                            current_block = 14298507163138330979;
+                                        }
+                                    }
+                                }
+                            } else {
+                                current_block = 14298507163138330979;
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            ep = env.old_envp;
+            loop {
+                if (*ep).is_null() {
+                    current_block = 14298507163138330979;
+                    break;
+                }
+                if !env_should_delete(*ep) {
+                    if strncmp(
+                        *ep,
+                        b"SUDO_PS1=\0" as *const u8 as *const libc::c_char,
+                        9 as libc::c_int as libc::c_ulong,
+                    ) == 0 as libc::c_int
+                    {
+                        ps1 = (*ep).offset(5 as libc::c_int as isize);
+                    } else if strncmp(
+                        *ep,
+                        b"SHELL=\0" as *const u8 as *const libc::c_char,
+                        6 as libc::c_int as libc::c_ulong,
+                    ) == 0 as libc::c_int
+                    {
+                        didvar |= 0x8 as libc::c_int as libc::c_uint;
+                    } else if strncmp(
+                        *ep,
+                        b"PATH=\0" as *const u8 as *const libc::c_char,
+                        5 as libc::c_int as libc::c_ulong,
+                    ) == 0 as libc::c_int
+                    {
+                        didvar |= 0x2 as libc::c_int as libc::c_uint;
+                    } else if strncmp(
+                        *ep,
+                        b"TERM=\0" as *const u8 as *const libc::c_char,
+                        5 as libc::c_int as libc::c_ulong,
+                    ) == 0 as libc::c_int
+                    {
+                        didvar |= 0x1 as libc::c_int as libc::c_uint;
+                    }
+                    if sudo_putenv(*ep, 1 as libc::c_int != 0, 0 as libc::c_int != 0)
+                        == -(1 as libc::c_int)
+                    {
+                        current_block = 655114396176293719;
+                        break;
+                    }
+                }
+                ep = ep.offset(1);
+            }
+        }
+        match current_block {
+            655114396176293719 => {}
+            _ => {
+                if !((*sudo_defs_table
+                    .as_mut_ptr()
+                    .offset(52 as libc::c_int as isize))
+                .sd_un
+                .str_0)
+                    .is_null()
+                    && !user_is_exempt()
+                {
+                    if sudo_setenv2(
+                        b"PATH\0" as *const u8 as *const libc::c_char,
+                        (*sudo_defs_table
+                            .as_mut_ptr()
+                            .offset(52 as libc::c_int as isize))
+                        .sd_un
+                        .str_0,
+                        1 as libc::c_int != 0,
+                        1 as libc::c_int != 0,
+                    ) == -(1 as libc::c_int)
+                    {
+                        current_block = 655114396176293719;
+                    } else {
+                        didvar |= 0x2 as libc::c_int as libc::c_uint;
+                        current_block = 10435735846551762309;
+                    }
+                } else {
+                    current_block = 10435735846551762309;
+                }
+                match current_block {
+                    655114396176293719 => {}
+                    _ => {
+                        if (*sudo_defs_table
+                            .as_mut_ptr()
+                            .offset(30 as libc::c_int as isize))
+                        .sd_un
+                        .flag
+                            != 0
+                            && sudo_mode & 0x40000 as libc::c_int == 0
+                        {
+                            if didvar
+                                & (0x100000 as libc::c_int | 0x200000 as libc::c_int)
+                                    as libc::c_uint
+                                == 0 as libc::c_int as libc::c_uint
+                            {
+                                if sudo_setenv2(
+                                    b"LOGNAME\0" as *const u8 as *const libc::c_char,
+                                    (*sudo_user._runas_pw).pw_name,
+                                    1 as libc::c_int != 0,
+                                    1 as libc::c_int != 0,
+                                ) == -(1 as libc::c_int)
+                                {
+                                    current_block = 655114396176293719;
+                                } else if sudo_setenv2(
+                                    b"USER\0" as *const u8 as *const libc::c_char,
+                                    (*sudo_user._runas_pw).pw_name,
+                                    1 as libc::c_int != 0,
+                                    1 as libc::c_int != 0,
+                                ) == -(1 as libc::c_int)
+                                {
+                                    current_block = 655114396176293719;
+                                } else {
+                                    current_block = 6040267449472925966;
+                                }
+                            } else if didvar
+                                & (0x100000 as libc::c_int | 0x200000 as libc::c_int)
+                                    as libc::c_uint
+                                != (0x100000 as libc::c_int | 0x200000 as libc::c_int)
+                                    as libc::c_uint
+                            {
+                                if didvar & 0x100000 as libc::c_int as libc::c_uint != 0 {
+                                    cp = sudo_getenv(
+                                        b"LOGNAME\0" as *const u8 as *const libc::c_char,
+                                    );
+                                } else if didvar & 0x200000 as libc::c_int as libc::c_uint != 0 {
+                                    cp = sudo_getenv(b"USER\0" as *const u8 as *const libc::c_char);
+                                } else {
+                                    cp = 0 as *mut libc::c_char;
+                                }
+                                if !cp.is_null() {
+                                    if didvar & 0x100000 as libc::c_int as libc::c_uint == 0 {
+                                        if sudo_setenv2(
+                                            b"LOGNAME\0" as *const u8 as *const libc::c_char,
+                                            cp,
+                                            1 as libc::c_int != 0,
+                                            1 as libc::c_int != 0,
+                                        ) == -(1 as libc::c_int)
+                                        {
+                                            current_block = 655114396176293719;
+                                        } else {
+                                            current_block = 178030534879405462;
+                                        }
+                                    } else {
+                                        current_block = 178030534879405462;
+                                    }
+                                    match current_block {
+                                        655114396176293719 => {}
+                                        _ => {
+                                            if didvar & 0x200000 as libc::c_int as libc::c_uint == 0
+                                            {
+                                                if sudo_setenv2(
+                                                    b"USER\0" as *const u8 as *const libc::c_char,
+                                                    cp,
+                                                    1 as libc::c_int != 0,
+                                                    1 as libc::c_int != 0,
+                                                ) == -(1 as libc::c_int)
+                                                {
+                                                    current_block = 655114396176293719;
+                                                } else {
+                                                    current_block = 6040267449472925966;
+                                                }
+                                            } else {
+                                                current_block = 6040267449472925966;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    current_block = 6040267449472925966;
+                                }
+                            } else {
+                                current_block = 6040267449472925966;
+                            }
+                        } else {
+                            current_block = 6040267449472925966;
+                        }
+                        match current_block {
+                            655114396176293719 => {}
+                            _ => {
+                                if reset_home {
+                                    if sudo_setenv2(
+                                        b"HOME\0" as *const u8 as *const libc::c_char,
+                                        (*sudo_user._runas_pw).pw_dir,
+                                        1 as libc::c_int != 0,
+                                        1 as libc::c_int != 0,
+                                    ) == -(1 as libc::c_int)
+                                    {
+                                        current_block = 655114396176293719;
+                                    } else {
+                                        current_block = 4691324637564808323;
+                                    }
+                                } else {
+                                    current_block = 4691324637564808323;
+                                }
+                                match current_block {
+                                    655114396176293719 => {}
+                                    _ => {
+                                        if didvar & 0x8 as libc::c_int as libc::c_uint == 0 {
+                                            if sudo_setenv2(
+                                                b"SHELL\0" as *const u8 as *const libc::c_char,
+                                                (*sudo_user._runas_pw).pw_shell,
+                                                0 as libc::c_int != 0,
+                                                0 as libc::c_int != 0,
+                                            ) == -(1 as libc::c_int)
+                                            {
+                                                current_block = 655114396176293719;
+                                            } else {
+                                                current_block = 2904036176499606090;
+                                            }
+                                        } else {
+                                            current_block = 2904036176499606090;
+                                        }
+                                        match current_block {
+                                            655114396176293719 => {}
+                                            _ => {
+                                                if didvar & 0x1 as libc::c_int as libc::c_uint == 0
+                                                {
+                                                    if sudo_putenv(
+                                                        b"TERM=unknown\0" as *const u8
+                                                            as *const libc::c_char
+                                                            as *mut libc::c_char,
+                                                        0 as libc::c_int != 0,
+                                                        0 as libc::c_int != 0,
+                                                    ) == -(1 as libc::c_int)
+                                                    {
+                                                        current_block = 655114396176293719;
+                                                    } else {
+                                                        current_block = 2432552683059077439;
+                                                    }
+                                                } else {
+                                                    current_block = 2432552683059077439;
+                                                }
+                                                match current_block {
+                                                    655114396176293719 => {}
+                                                    _ => {
+                                                        if didvar
+                                                            & 0x2 as libc::c_int as libc::c_uint
+                                                            == 0
+                                                        {
+                                                            if sudo_setenv2(
+                                                                b"PATH\0" as *const u8
+                                                                    as *const libc::c_char,
+                                                                b"/usr/bin:/bin:/usr/sbin:/sbin\0"
+                                                                    as *const u8
+                                                                    as *const libc::c_char,
+                                                                0 as libc::c_int != 0,
+                                                                1 as libc::c_int != 0,
+                                                            ) == -(1 as libc::c_int)
+                                                            {
+                                                                current_block = 655114396176293719;
+                                                            } else {
+                                                                current_block =
+                                                                    14913924298693586572;
+                                                            }
+                                                        } else {
+                                                            current_block = 14913924298693586572;
+                                                        }
+                                                        match current_block {
+                                                            655114396176293719 => {}
+                                                            _ => {
+                                                                if !ps1.is_null() {
+                                                                    if sudo_putenv(
+                                                                        ps1,
+                                                                        1 as libc::c_int != 0,
+                                                                        1 as libc::c_int != 0,
+                                                                    ) == -(1 as libc::c_int)
+                                                                    {
+                                                                        current_block =
+                                                                            655114396176293719;
+                                                                    } else {
+                                                                        current_block =
+                                                                            14612007084265645573;
+                                                                    }
+                                                                } else {
+                                                                    current_block =
+                                                                        14612007084265645573;
+                                                                }
+                                                                match current_block {
+                                                                    655114396176293719 => {}
+                                                                    _ => {
+                                                                        if !(sudo_user.cmnd_args).is_null() {
+                                                                            if asprintf(
+                                                                                &mut cp as *mut *mut libc::c_char,
+                                                                                b"SUDO_COMMAND=%s %s\0" as *const u8 as *const libc::c_char,
+                                                                                sudo_user.cmnd,
+                                                                                sudo_user.cmnd_args,
+                                                                            ) == -(1 as libc::c_int)
+                                                                            {
+                                                                                current_block = 655114396176293719;
+                                                                            } else if sudo_putenv(
+                                                                                cp,
+                                                                                1 as libc::c_int != 0,
+                                                                                1 as libc::c_int != 0,
+                                                                            ) == -(1 as libc::c_int)
+                                                                            {
+                                                                                free(cp as *mut libc::c_void);
+                                                                                current_block = 655114396176293719;
+                                                                            } else {
+                                                                                sudoers_gc_add(GC_PTR, cp as *mut libc::c_void);
+                                                                                current_block = 6407515180622463684;
+                                                                            }
+                                                                        } else if sudo_setenv2(
+                                                                            b"SUDO_COMMAND\0" as *const u8 as *const libc::c_char,
+                                                                            sudo_user.cmnd,
+                                                                            1 as libc::c_int != 0,
+                                                                            1 as libc::c_int != 0,
+                                                                        ) == -(1 as libc::c_int)
+                                                                        {
+                                                                            current_block = 655114396176293719;
+                                                                        } else {
+                                                                            current_block = 6407515180622463684;
+                                                                        }
+                                                                        match current_block {
+                                                                            655114396176293719 => {}
+                                                                            _ => {
+                                                                                if !(sudo_setenv2(
+                                                                                    b"SUDO_USER\0" as *const u8 as *const libc::c_char,
+                                                                                    sudo_user.name,
+                                                                                    1 as libc::c_int != 0,
+                                                                                    1 as libc::c_int != 0,
+                                                                                ) == -(1 as libc::c_int))
+                                                                                {
+                                                                                    snprintf(
+                                                                                        idbuf.as_mut_ptr(),
+                                                                                        ::core::mem::size_of::<[libc::c_char; 11]>()
+                                                                                            as libc::c_ulong,
+                                                                                        b"%u\0" as *const u8 as *const libc::c_char,
+                                                                                        sudo_user.uid,
+                                                                                    );
+                                                                                    if !(sudo_setenv2(
+                                                                                        b"SUDO_UID\0" as *const u8 as *const libc::c_char,
+                                                                                        idbuf.as_mut_ptr(),
+                                                                                        1 as libc::c_int != 0,
+                                                                                        1 as libc::c_int != 0,
+                                                                                    ) == -(1 as libc::c_int))
+                                                                                    {
+                                                                                        snprintf(
+                                                                                            idbuf.as_mut_ptr(),
+                                                                                            ::core::mem::size_of::<[libc::c_char; 11]>()
+                                                                                                as libc::c_ulong,
+                                                                                            b"%u\0" as *const u8 as *const libc::c_char,
+                                                                                            sudo_user.gid,
+                                                                                        );
+                                                                                        if !(sudo_setenv2(
+                                                                                            b"SUDO_GID\0" as *const u8 as *const libc::c_char,
+                                                                                            idbuf.as_mut_ptr(),
+                                                                                            1 as libc::c_int != 0,
+                                                                                            1 as libc::c_int != 0,
+                                                                                        ) == -(1 as libc::c_int))
+                                                                                        {
+                                                                                            let mut sudo_debug_ret: bool = 1 as libc::c_int != 0;
+                                                                                            sudo_debug_exit_bool_v1(
+                                                                                                (*::core::mem::transmute::<
+                                                                                                    &[u8; 12],
+                                                                                                    &[libc::c_char; 12],
+                                                                                                >(b"rebuild_env\0"))
+                                                                                                    .as_ptr(),
+                                                                                                b"env.c\0" as *const u8 as *const libc::c_char,
+                                                                                                1129 as libc::c_int,
+                                                                                                sudo_debug_subsys_tmp,
+                                                                                                sudo_debug_ret,
+                                                                                            );
+                                                                                            return sudo_debug_ret;
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    sudo_debug_printf2_v1(
+        (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"rebuild_env\0")).as_ptr(),
+        b"env.c\0" as *const u8 as *const libc::c_char,
+        1132 as libc::c_int,
+        3 as libc::c_int
+            | (1 as libc::c_int) << 5 as libc::c_int
+            | (1 as libc::c_int) << 4 as libc::c_int
+            | sudo_debug_subsys_tmp,
+        b"sudoers\0" as *const u8 as *const libc::c_char,
+        b"unable to rebuild the environment\0" as *const u8 as *const libc::c_char,
+    );
+    sudo_warn_nodebug_v1(
+        b"sudoers\0" as *const u8 as *const libc::c_char,
+        b"unable to rebuild the environment\0" as *const u8 as *const libc::c_char,
+    );
+    let mut sudo_debug_ret_0: bool = 0 as libc::c_int != 0;
+    sudo_debug_exit_bool_v1(
+        (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"rebuild_env\0")).as_ptr(),
+        b"env.c\0" as *const u8 as *const libc::c_char,
+        1133 as libc::c_int,
+        sudo_debug_subsys_tmp,
+        sudo_debug_ret_0,
+    );
+    return sudo_debug_ret_0;
+}
+
 
