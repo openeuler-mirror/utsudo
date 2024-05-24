@@ -114,3 +114,290 @@ pub struct environment {
     pub env_size: size_t,
     pub env_len: size_t,
 }
+
+
+static mut env: environment = environment {
+    envp: 0 as *const *mut libc::c_char as *mut *mut libc::c_char,
+    old_envp: 0 as *const *mut libc::c_char as *mut *mut libc::c_char,
+    env_size: 0,
+    env_len: 0,
+};
+#[no_mangle]
+pub unsafe extern "C" fn env_init(mut envp: *const *mut libc::c_char) -> bool {
+    let mut ep: *const *mut libc::c_char = 0 as *const *mut libc::c_char;
+    let mut len: size_t = 0 as size_t;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    if envp.is_null() {
+        free(env.old_envp as *mut libc::c_void);
+        env.old_envp = env.envp;
+        env.envp = 0 as *mut *mut libc::c_char;
+        env.env_size = 0 as size_t;
+        env.env_len = 0 as size_t;
+    } else {
+        ep = envp;
+        loop {
+            if (*ep).is_null() {
+                break;
+            }
+            ep = ep.offset(1);
+        }
+        len = ep.offset_from(envp) as size_t;
+        env.env_len = len;
+        env.env_size = len.wrapping_add(1 as size_t).wrapping_add(128 as size_t);
+        env.envp = reallocarray(
+            0 as *mut libc::c_void,
+            env.env_size,
+            ::std::mem::size_of::<*mut libc::c_char>() as size_t,
+        ) as *mut *mut libc::c_char;
+        if env.envp.is_null() {
+            env.env_size = 0;
+            env.env_len = 0;
+            //sudo_warnx(U_("%s: %s"), __func__, U_("unable to allocate memory"));
+            sudo_warnx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            debug_return_bool!(false);
+        }
+        memcpy(
+            env.envp as *mut libc::c_void,
+            envp as *const libc::c_void,
+            len.wrapping_mul(::std::mem::size_of::<*mut libc::c_char>() as size_t) as size_t,
+        );
+        *(env.envp).offset(len as isize) = 0 as *mut libc::c_char;
+        free(env.old_envp as *mut libc::c_void);
+        env.old_envp = 0 as *mut *mut libc::c_char;
+    } //else
+    debug_return_bool!(true);
+}
+#[no_mangle]
+pub unsafe extern "C" fn env_get(_: libc::c_void) -> *mut *mut libc::c_char {
+    return env.envp;
+}
+#[no_mangle]
+pub unsafe extern "C" fn env_swap_old(_: libc::c_void) -> bool {
+    let mut old_envp: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    if env.old_envp.is_null() {
+        return false;
+    }
+    old_envp = env.old_envp;
+    env.old_envp = env.envp;
+    env.envp = old_envp;
+    return true;
+}
+pub const SIZE_MAX: size_t = 18446744073709551615;
+pub const EOVERFLOW: libc::c_int = 75;
+#[no_mangle]
+pub unsafe extern "C" fn sudo_putenv_nodebug(
+    mut str_0: *mut libc::c_char,
+    mut dupcheck: bool,
+    mut overwrite: bool,
+) -> libc::c_int {
+    let mut ep: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut len: size_t = 0;
+    let mut found: bool = false as bool;
+    if env.env_size > 2 && env.env_len > (env.env_size).wrapping_sub(2 as size_t) {
+        let mut nenvp: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+        let mut nsize: size_t = 0 as size_t;
+        if env.env_size > SIZE_MAX.wrapping_sub(128 as size_t) {
+            sudo_warnx_nodebug_v1(b"sudo_putenv_nodebug\0" as *const u8 as *const libc::c_char);
+            *__errno_location() = EOVERFLOW;
+            return -1;
+        }
+        nsize = (env.env_size).wrapping_add(128 as size_t);
+        if nsize > SIZE_MAX.wrapping_div(::std::mem::size_of::<*mut libc::c_char>() as size_t) {
+            sudo_warnx_nodebug_v1(b"sudo_putenv_nodebug\0" as *const u8 as *const libc::c_char);
+            *__errno_location() = EOVERFLOW;
+            return -1;
+        }
+        nenvp = reallocarray(
+            env.envp as *mut libc::c_void,
+            nsize as size_t,
+            ::std::mem::size_of::<*mut libc::c_char>() as size_t,
+        ) as *mut *mut libc::c_char;
+        if nenvp.is_null() {
+            return -1;
+        }
+        env.envp = nenvp;
+        env.env_size = nsize;
+    }
+    if dupcheck {
+        len = (strchr(str_0, '=' as i32).offset_from(str_0)) as size_t + 1 as size_t;
+        ep = env.envp;
+        while !(*ep).is_null() {
+            if strncmp(str_0, *ep, len) == 0 {
+                if overwrite {
+                    *ep = str_0;
+                }
+                found = true;
+                break;
+            }
+            ep = ep.offset(1 as isize);
+        }
+        if found && overwrite {
+            loop {
+                ep = ep.offset(1);
+                if (*ep).is_null() {
+                    break;
+                }
+                if strncmp(str_0, *ep, len) == 0 {
+                    let mut cur: *mut *mut libc::c_char = ep as *mut *mut libc::c_char;
+                    loop {
+                        *cur = (*cur).offset(1 as isize);
+                        if (*cur).is_null() {
+                            break;
+                        }
+                        cur = cur.offset(1 as isize);
+                    }
+                    ep = ep.offset(-1 as isize);
+                }
+            }
+            env.env_len = ep.offset_from(env.envp) as size_t;
+        }
+    }
+    if !found {
+        ep = (env.envp).offset(env.env_len as isize);
+        env.env_len = (env.env_len).wrapping_add(1 as size_t);
+        *ep = str_0;
+        ep = ep.offset(1);
+        *ep = 0 as *mut libc::c_char;
+    }
+    return 0;
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_putenv(
+    mut str_1: *mut libc::c_char,
+    mut dupcheck: bool,
+    mut overwrite: bool,
+) -> libc::c_int {
+    let mut ret: libc::c_int = 0 as libc::c_int;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"sudo_putenv: %s\0" as *const u8 as *const libc::c_char,
+        str_1
+    );
+    ret = sudo_putenv_nodebug(str_1, dupcheck, overwrite);
+    if ret == -1 {}
+    debug_return_int!(ret);
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_setenv2(
+    mut var: *const libc::c_char,
+    mut val: *const libc::c_char,
+    mut dupcheck: bool,
+    mut overwrite: bool,
+) -> libc::c_int {
+    let mut estring: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut esize: size_t = 0 as size_t;
+    let mut ret: libc::c_int = -1 as libc::c_int;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    esize = strlen(var)
+        .wrapping_add(1)
+        .wrapping_add(strlen(val))
+        .wrapping_add(1);
+    estring = malloc(esize) as *mut libc::c_char;
+    if estring.is_null() {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        debug_return_int!(-1);
+    }
+    if sudo_strlcpy(estring, var, esize) >= esize
+        || sudo_strlcat(estring, b"=\0" as *const u8 as *const libc::c_char, esize) >= esize
+        || sudo_strlcat(estring, val, esize) >= esize
+    {
+        sudo_warnx!(
+            b"internal error,%s overflow\0" as *const u8 as *const libc::c_char,
+            get_function_name!()
+        );
+        *__errno_location() = EOVERFLOW;
+    } else {
+        ret = sudo_putenv(estring, dupcheck, overwrite);
+    }
+    if ret == -1 {
+        free(estring as *mut libc::c_void);
+    } else {
+        sudoers_gc_add(GC_PTR, estring as *mut libc::c_void);
+    }
+    debug_return_int!(ret);
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_setenv(
+    mut var: *const libc::c_char,
+    mut val: *const libc::c_char,
+    mut overwrite: libc::c_int,
+) -> libc::c_int {
+    return sudo_setenv2(var, val, true, overwrite != 0);
+}
+pub const EINVAL: libc::c_int = 22;
+#[no_mangle]
+unsafe extern "C" fn sudo_setenv_nodebug(
+    mut var: *const libc::c_char,
+    mut val: *const libc::c_char,
+    mut overwrite: libc::c_int,
+) -> libc::c_int {
+    let mut ep: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut estring: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut cp: *const libc::c_char = 0 as *const libc::c_char;
+    let mut esize: size_t = 0;
+    let mut ret: libc::c_int = -(1 as libc::c_int);
+    if val.is_null() || *var as libc::c_int == '\u{0}' as i32 {
+        *__errno_location() = EINVAL;
+        if ret == -1 {
+            free(estring as *mut libc::c_void);
+        } else {
+            sudoers_gc_add(GC_PTR, estring as *mut libc::c_void);
+        }
+        return ret;
+    }
+    cp = var;
+    while *cp != 0 && *cp as libc::c_int != '=' as i32 {
+        cp = cp.offset(1);
+    }
+    esize = cp.offset_from(var).wrapping_add(2) as size_t;
+    if !val.is_null() {
+        esize = esize.wrapping_add(strlen(val) as size_t) as size_t;
+    }
+    ep = malloc(esize) as *mut libc::c_char;
+    estring = ep;
+    if estring.is_null() {
+        if ret == -1 {
+            free(estring as *mut libc::c_void);
+        } else {
+            sudoers_gc_add(GC_PTR, estring as *mut libc::c_void);
+        }
+        return ret;
+    }
+    cp = var;
+    while *cp != 0 && *cp as libc::c_int != '=' as i32 {
+        *ep = *cp;
+        ep = ep.offset(1);
+        cp = cp.offset(1);
+    }
+    *ep = '=' as i32 as libc::c_char;
+    ep = ep.offset(1);
+    if !val.is_null() {
+        cp = val;
+        while *cp != 0 {
+            *ep = *cp;
+            ep = ep.offset(1);
+            cp = cp.offset(1);
+        }
+    }
+    *ep = '\u{0}' as i32 as libc::c_char;
+    ret = sudo_putenv_nodebug(estring, true, overwrite != 0);
+    //done;
+    if ret == -1 {
+        free(estring as *mut libc::c_void);
+    } else {
+        sudoers_gc_add(GC_PTR, estring as *mut libc::c_void);
+    }
+    return ret;
+}
+
+
+
+
