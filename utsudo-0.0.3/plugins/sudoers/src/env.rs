@@ -399,5 +399,251 @@ unsafe extern "C" fn sudo_setenv_nodebug(
 }
 
 
+#[no_mangle]
+unsafe extern "C" fn sudo_unsetenv_nodebug(mut var: *const libc::c_char) -> libc::c_int {
+    let mut ep: *mut *mut libc::c_char = env.envp;
+    let mut len: size_t = 0;
+    if ep.is_null()
+        || var.is_null()
+        || *var as libc::c_int == '\u{0}' as i32
+        || !strchr(var, '=' as i32).is_null()
+    {
+        *__errno_location() = EINVAL;
+        return -1;
+    }
+    len = strlen(var);
+    while !(*ep).is_null() {
+        if strncmp(var, *ep, len) == 0 && (*ep).offset(len as isize) as libc::c_int == '=' as i32 {
+            let mut cur: *mut *mut libc::c_char = ep as *mut *mut libc::c_char;
+            loop {
+                *cur = *cur.offset(1 as libc::c_int as isize);
+                if (*cur).is_null() {
+                    break;
+                }
+                cur = cur.offset(1);
+            }
+            env.env_len = (env.env_len).wrapping_sub(1);
+        } else {
+            ep = ep.offset(1);
+        }
+    }
+    return 0;
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_unsetenv(mut name: *const libc::c_char) -> libc::c_int {
+    let mut ret: libc::c_int = 0 as libc::c_int;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"sudo_unsetenv: %s\0" as *const u8 as *const libc::c_char,
+        name
+    );
+    ret = sudo_unsetenv_nodebug(name);
+    debug_return_int!(ret);
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_getenv_nodebug(mut name: *const libc::c_char) -> *mut libc::c_char {
+    let mut ep: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut val: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut namelen: size_t = 0 as libc::c_int as size_t;
+    if env.env_len != 0 {
+        while *name.offset(namelen as isize) as libc::c_int != '\u{0}' as i32
+            && *name.offset(namelen as isize) as libc::c_int != '=' as i32
+        {
+            namelen = namelen.wrapping_add(1);
+        }
+        ep = env.envp;
+        while !(*ep).is_null() {
+            if strncmp(*ep, name, namelen) == 0
+                && (*ep).offset(namelen as isize) as libc::c_int == '=' as i32
+            {
+                val = (*ep).offset(namelen as isize).offset(1 as isize);
+                break;
+            }
+            ep = ep.offset(1);
+        }
+    }
+    return val;
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_getenv(name: *const libc::c_char) -> *mut libc::c_char {
+    let mut val: *mut libc::c_char = 0 as *mut libc::c_char;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"sudo_getenv: %s\0" as *const u8 as *const libc::c_char,
+        name
+    );
+    val = sudo_getenv_nodebug(name);
+    debug_return_str!(val);
+}
+#[no_mangle]
+pub unsafe extern "C" fn matches_env_list(
+    mut var: *const libc::c_char,
+    mut list: *mut list_members,
+    mut full_match: *mut bool,
+) -> bool {
+    let mut cur: *mut list_member = 0 as *mut list_member;
+    let mut is_logname: bool = 0 as libc::c_int != 0;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    match *var as u8 as char {
+        'L' => {
+            if strncmp(var, b"LOGNAME=\0" as *const u8 as *const libc::c_char, 8) == 0 {
+                is_logname = true;
+            }
+        }
+        'U' => {
+            if strncmp(var, b"USER=\0" as *const u8 as *const libc::c_char, 5) == 0 {
+                is_logname = true;
+            }
+        }
+        _ => {}
+    }
+    if is_logname {
+        cur = (*list).slh_first;
+        while !cur.is_null() {
+            if matches_env_pattern(
+                (*cur).value,
+                b"LOGNAME\0" as *const u8 as *const libc::c_char,
+                full_match,
+            ) == true
+                || matches_env_pattern(
+                    (*cur).value,
+                    b"USER\0" as *const u8 as *const libc::c_char,
+                    full_match,
+                ) == true
+            {
+                debug_return_bool!(true);
+            }
+            cur = (*cur).entries.sle_next;
+        }
+    } else {
+        cur = (*list).slh_first;
+        while !cur.is_null() {
+            if matches_env_pattern((*cur).value, var, full_match) {
+                debug_return_bool!(true);
+            }
+            cur = (*cur).entries.sle_next;
+        }
+    } //else
+    debug_return_bool!(false);
+}
+#[no_mangle]
+pub unsafe extern "C" fn matches_env_delete(mut var: *const libc::c_char) -> bool {
+    let mut full_match: bool = false;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    debug_return_bool!(matches_env_list(
+        var,
+        &mut (*sudo_defs_table.as_mut_ptr().offset(I_ENV_DELETE as isize))
+            .sd_un
+            .list,
+        &mut full_match
+    ));
+}
+#[no_mangle]
+pub unsafe extern "C" fn tz_is_sane(mut tzval: *const libc::c_char) -> bool {
+    let mut cp: *const libc::c_char = 0 as *const libc::c_char;
+    let mut lastch: libc::c_char = 0;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    if tzval.offset(0 as isize) as libc::c_int == ':' as i32 {
+        tzval = tzval.offset(1 as isize);
+    }
+    if tzval.offset(0 as isize) as libc::c_int == '/' as i32 {
+        if (strncmp(
+            tzval,
+            b"/usr/share/zoneinfo\0" as *const u8 as *const libc::c_char,
+            (::std::mem::size_of::<[libc::c_char; 20]>() as size_t).wrapping_sub(1 as size_t),
+        ) != 0)
+            || (tzval.offset(
+                (::std::mem::size_of::<[libc::c_char; 20]>() as size_t).wrapping_sub(1 as size_t)
+                    as isize,
+            ) as libc::c_int
+                != '/' as i32)
+        {
+            debug_return_bool!(false);
+        }
+    }
+    lastch = '/' as libc::c_char;
+    cp = tzval;
+    while *cp as libc::c_int != '\u{0}' as i32 {
+        if *(*__ctype_b_loc()).offset(*cp as libc::c_uchar as libc::c_int as isize) as libc::c_int
+            & _ISspace as libc::c_int as libc::c_ushort as libc::c_int
+            != 0
+            || *(*__ctype_b_loc()).offset(*cp as libc::c_uchar as libc::c_int as isize)
+                as libc::c_int
+                & _ISprint as libc::c_int as libc::c_ushort as libc::c_int
+                == 0
+        {
+            debug_return_bool!(false);
+        }
+        if lastch as libc::c_int == '/' as i32
+            && cp.offset(0 as isize) as libc::c_int == '.' as i32
+            && cp.offset(1 as isize) as libc::c_int == '.' as i32
+            && (cp.offset(2 as isize) as libc::c_int == '/' as i32
+                || cp.offset(2 as isize) as libc::c_int == '\u{0}' as i32)
+        {
+            debug_return_bool!(false);
+        }
+        lastch = *cp;
+        cp = cp.offset(1 as isize);
+    }
+    if cp.offset_from(tzval) as size_t >= PATH_MAX as size_t {
+        debug_return_bool!(false);
+    }
+    debug_return_bool!(true);
+}
+#[no_mangle]
+pub unsafe extern "C" fn matches_env_check(
+    mut var: *const libc::c_char,
+    mut full_match: *mut bool,
+) -> libc::c_int {
+    let mut keepit: libc::c_int = -1 as libc::c_int;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    if matches_env_list(
+        var,
+        &mut (*sudo_defs_table.as_mut_ptr().offset(I_ENV_CHECK as isize))
+            .sd_un
+            .list,
+        full_match,
+    ) {
+        if strncmp(var, b"TZ=\0" as *const u8 as *const libc::c_char, 3) == 0 {
+            keepit = tz_is_sane(var.offset(3 as isize)) as libc::c_int;
+        } else {
+            let mut val: *const libc::c_char = strchr(var, '=' as i32) as *const libc::c_char;
+            if !val.is_null() {
+                val = val.offset(1);
+                keepit = (strpbrk(val, b"/%\0" as *const u8 as *const libc::c_char)).is_null()
+                    as libc::c_int;
+            }
+        }
+    }
+    debug_return_int!(keepit);
+}
+#[no_mangle]
+pub unsafe extern "C" fn matches_env_keep(
+    mut var: *const libc::c_char,
+    mut full_match: *mut bool,
+) -> bool {
+    let mut keepit: bool = false as bool;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    if sudo_mode & MODE_SHELL as libc::c_int != 0
+        && strncmp(
+            var,
+            b"SHELL=\0" as *const u8 as *const libc::c_char,
+            6 as size_t,
+        ) == 0 as libc::c_int
+    {
+        keepit = true;
+    } else if matches_env_list(
+        var,
+        &mut (*sudo_defs_table.as_mut_ptr().offset(I_ENV_KEEP as isize))
+            .sd_un
+            .list,
+        full_match,
+    ) {
+        keepit = true;
+    }
+    debug_return_bool!(keepit);
+}
 
 
