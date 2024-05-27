@@ -619,3 +619,133 @@ pub unsafe extern "C" fn cvtsudoers_make_gidlist_item(
 
     debug_return_ptr!(&mut (*glitem).cache as *mut cache_item);
 }
+
+/*
+ * Dynamically allocate space for a struct item plus the key and data
+ * elements.  Fills in group names from the groups filter.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn cvtsudoers_make_grlist_item(
+    mut pw: *const passwd,
+    mut unused1: *const *mut libc::c_char,
+) -> *mut cache_item {
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut nsize: size_t = 0;
+    let mut ngroups: size_t = 0;
+    let mut total: size_t = 0;
+    let mut len: size_t = 0;
+    let mut grlitem: *mut cache_item_grlist = 0 as *mut cache_item_grlist;
+    let mut s: *mut sudoers_string = 0 as *mut sudoers_string;
+    let mut grlist: *mut group_list = 0 as *mut group_list;
+    let mut groupname_len: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_NSS!());
+
+    /*
+     * There's only a single group list.
+     */
+    if !grlist_item.is_null() {
+        (*grlist_item).cache.refcnt = ((*grlist_item).cache.refcnt).wrapping_add(1);
+        debug_return_ptr!(&mut (*grlist_item).cache as *mut cache_item);
+    }
+
+    /* Count number of groups in the filter. */
+    ngroups = 0 as size_t;
+    s = (*filters).groups.stqh_first;
+    while !s.is_null() {
+        ngroups = ngroups.wrapping_add(1);
+        s = (*s).entries.stqe_next;
+    }
+
+    groupname_len = MAX!(
+        sysconf(_SC_LOGIN_NAME_MAX as libc::c_int) as libc::c_int,
+        32 as libc::c_int
+    );
+
+    /* Allocate in one big chunk for easy freeing. */
+    nsize = (strlen((*pw).pw_name)).wrapping_add(1 as libc::c_int as libc::c_ulong);
+    total = (::core::mem::size_of::<cache_item_grlist>() as libc::c_ulong).wrapping_add(nsize);
+    total = (total as libc::c_ulong)
+        .wrapping_add((groupname_len as libc::c_ulong).wrapping_mul(ngroups)) as size_t
+        as size_t;
+
+    'again: loop {
+        grlitem = calloc(1 as libc::c_ulong, total) as *mut cache_item_grlist;
+        if grlitem.is_null() {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            debug_return_ptr!(0 as *mut cache_item);
+        }
+
+        /*
+         * Copy in group list and make pointers relative to space
+         * at the end of the buffer.  Note that the groups array must come
+         * immediately after struct group to guarantee proper alignment.
+         */
+        grlist = &mut (*grlitem).grlist;
+        cp = grlitem.offset(1 as isize) as *mut libc::c_char;
+        (*grlist).groups = cp as *mut *mut libc::c_char;
+        cp = cp.offset(
+            (::core::mem::size_of::<*mut libc::c_char>() as libc::c_ulong).wrapping_mul(ngroups)
+                as isize,
+        );
+
+        /* Set key and datum. */
+        memcpy(
+            cp as *mut libc::c_void,
+            (*pw).pw_name as *const libc::c_void,
+            nsize,
+        );
+        (*grlitem).cache.k.name = cp;
+        (*grlitem).cache.d.grlist = grlist;
+        (*grlitem).cache.refcnt = 1 as libc::c_uint;
+        cp = cp.offset(nsize as isize);
+
+        /*
+         * Copy groups from filter.
+         */
+        ngroups = 0 as size_t;
+        s = (*filters).groups.stqh_first;
+        loop {
+            if s.is_null() {
+                break 'again;
+            }
+            if *((*s).str_0).offset(0 as isize) as libc::c_int == '#' as i32 {
+                let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+                sudo_strtoid_v2(((*s).str_0).offset(1 as libc::c_int as isize), &mut errstr);
+                if errstr.is_null() {
+                    /* Group ID not name, ignore it. */
+                    continue;
+                }
+            }
+            len = (strlen((*s).str_0)).wrapping_add(1 as libc::c_ulong);
+            if (cp.offset_from(grlitem as *mut libc::c_char) as libc::c_long as libc::c_ulong)
+                .wrapping_add(len)
+                > total
+            {
+                total = (total as libc::c_ulong)
+                    .wrapping_add(len.wrapping_add(groupname_len as libc::c_ulong))
+                    as size_t as size_t;
+                free(grlitem as *mut libc::c_void);
+                break;
+            } else {
+                memcpy(
+                    cp as *mut libc::c_void,
+                    (*s).str_0 as *const libc::c_void,
+                    len,
+                );
+                let fresh4 = ngroups;
+                ngroups = ngroups.wrapping_add(1);
+                let ref mut fresh5 = *((*grlist).groups).offset(fresh4 as isize);
+                *fresh5 = cp;
+                cp = cp.offset(len as isize);
+            }
+            s = (*s).entries.stqe_next;
+        }
+    }
+
+    (*grlist).ngroups = ngroups as libc::c_int;
+
+    debug_return_ptr!(&mut (*grlitem).cache as *mut cache_item);
+}
