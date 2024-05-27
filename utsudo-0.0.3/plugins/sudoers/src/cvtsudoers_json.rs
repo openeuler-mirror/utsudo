@@ -545,3 +545,38 @@ unsafe extern "C" fn print_command_json(
     debug_return!();
 }
 
+/*
+ * Map an alias type to enum word_type.
+ */
+unsafe extern "C" fn alias_to_word_type(mut alias_type: libc::c_int) -> word_type {
+    match alias_type {
+        CMNDALIAS => return word_type::TYPE_COMMAND,
+        HOSTALIAS => return word_type::TYPE_HOSTNAME,
+        RUNASALIAS => return word_type::TYPE_RUNASUSER,
+        USERALIAS => return word_type::TYPE_USERNAME,
+        _ => {
+            sudo_fatalx_nodebug_v1(
+                b"unexpected alias type %d\0" as *const u8 as *const libc::c_char,
+                alias_type,
+            );
+        }
+    };
+}
+
+/*
+ * Map a Defaults type to enum word_type.
+ */
+unsafe extern "C" fn defaults_to_word_type(mut defaults_type: libc::c_int) -> word_type {
+    match defaults_type {
+        DEFAULTS_CMND => return word_type::TYPE_COMMAND,
+        DEFAULTS_HOST => return word_type::TYPE_HOSTNAME,
+        DEFAULTS_RUNAS => return word_type::TYPE_RUNASUSER,
+        DEFAULTS_USER => return word_type::TYPE_USERNAME,
+        _ => {
+            sudo_fatalx_nodebug_v1(
+                b"unexpected defaults type %d\0" as *const u8 as *const libc::c_char,
+                defaults_type,
+            );
+        }
+    };
+}
