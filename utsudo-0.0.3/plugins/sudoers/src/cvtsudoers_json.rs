@@ -203,6 +203,51 @@ pub enum json_value_type {
     JSON_BOOL,
     JSON_NULL,
 }
+/*
+ * JSON value suitable for printing.
+ * Note: this does not support object or array values.
+ */
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct json_value {
+    pub type_0: json_value_type,
+    pub u: json_value_u,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union json_value_u {
+    pub string: *mut libc::c_char,
+    pub number: libc::c_int,
+    pub id: id_t,
+    pub boolean: bool,
+}
+
+/*
+ * Closure used to store state when iterating over all aliases.
+ */
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct json_alias_closure {
+    pub fp: *mut FILE,
+    pub title: *const libc::c_char,
+    pub count: libc::c_uint,
+    pub alias_type: libc::c_int,
+    pub indent: libc::c_int,
+    pub need_comma: bool,
+}
+
+/*
+ * Type values used to disambiguate the generic WORD and ALIAS types.
+ */
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub enum word_type {
+    TYPE_COMMAND,
+    TYPE_HOSTNAME,
+    TYPE_RUNASGROUP,
+    TYPE_RUNASUSER,
+    TYPE_USERNAME,
+}
 
 
 
@@ -350,3 +395,31 @@ unsafe extern "C" fn print_pair_json(
 
     debug_return!();
 }
+
+/*
+ * Print a JSON string with optional prefix and postfix to fp.
+ * Strings are not quoted but are escaped as per the JSON spec.
+ */
+unsafe extern "C" fn printstr_json(
+    mut fp: *mut FILE,
+    mut pre: *const libc::c_char,
+    mut str: *const libc::c_char,
+    mut post: *const libc::c_char,
+    mut indent: libc::c_int,
+) {
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    print_indent(fp, indent);
+    if !pre.is_null() {
+        fputs(pre, fp);
+    }
+    if !str.is_null() {
+        print_string_json_unquoted(fp, str);
+    }
+    if !post.is_null() {
+        fputs(post, fp);
+    }
+
+    debug_return!();
+}
+
