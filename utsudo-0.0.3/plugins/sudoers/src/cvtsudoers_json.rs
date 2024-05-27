@@ -423,3 +423,125 @@ unsafe extern "C" fn printstr_json(
     debug_return!();
 }
 
+
+/*
+ * Print sudo command member in JSON format, with specified indentation.
+ * If last_one is false, a comma will be printed before the newline
+ * that closes the object.
+ */
+unsafe extern "C" fn print_command_json(
+    mut fp: *mut FILE,
+    mut name: *const libc::c_char,
+    mut type_0: libc::c_int,
+    mut negated: bool,
+    mut indent: libc::c_int,
+    mut last_one: bool,
+) {
+    let mut c: *mut sudo_command = name as *mut sudo_command;
+    let mut value: json_value = json_value {
+        type_0: json_value_type::JSON_STRING,
+        u: json_value_u {
+            string: 0 as *mut libc::c_char,
+        },
+    };
+    let mut digest_name: *const libc::c_char = 0 as *const libc::c_char;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    printstr_json(
+        fp,
+        b"{\0" as *const u8 as *const libc::c_char,
+        0 as *const libc::c_char,
+        0 as *const libc::c_char,
+        indent,
+    );
+    if negated as libc::c_int != 0 || !((*c).digest).is_null() {
+        putc('\n' as i32, fp);
+        indent += 4 as libc::c_int;
+    } else {
+        putc(' ' as i32, fp);
+        indent = 0 as libc::c_int;
+    }
+
+    /* Print command with optional command line args. */
+    if !((*c).args).is_null() {
+        printstr_json(
+            fp,
+            b"\"\0" as *const u8 as *const libc::c_char,
+            b"command\0" as *const u8 as *const libc::c_char,
+            b"\": \0" as *const u8 as *const libc::c_char,
+            indent,
+        );
+        printstr_json(
+            fp,
+            b"\"\0" as *const u8 as *const libc::c_char,
+            (*c).cmnd,
+            b" \0" as *const u8 as *const libc::c_char,
+            0 as libc::c_int,
+        );
+        printstr_json(
+            fp,
+            0 as *const libc::c_char,
+            (*c).args,
+            b"\"\0" as *const u8 as *const libc::c_char,
+            0 as libc::c_int,
+        );
+    } else {
+        value.type_0 = json_value_type::JSON_STRING;
+        value.u.string = (*c).cmnd;
+        print_pair_json(
+            fp,
+            0 as *const libc::c_char,
+            b"command\0" as *const u8 as *const libc::c_char,
+            &mut value,
+            0 as *const libc::c_char,
+            indent,
+        );
+    }
+
+    /* Optional digest. */
+    if !((*c).digest).is_null() {
+        fputs(b",\n\0" as *const u8 as *const libc::c_char, fp);
+        digest_name = digest_type_to_name((*(*c).digest).digest_type as libc::c_int);
+        value.type_0 = json_value_type::JSON_STRING;
+        value.u.string = (*(*c).digest).digest_str;
+        print_pair_json(
+            fp,
+            0 as *const libc::c_char,
+            digest_name,
+            &mut value,
+            0 as *const libc::c_char,
+            indent,
+        );
+    }
+
+    /* Command may be negated. */
+    if negated {
+        fputs(b",\n\0" as *const u8 as *const libc::c_char, fp);
+        value.type_0 = json_value_type::JSON_BOOL;
+        value.u.boolean = true;
+        print_pair_json(
+            fp,
+            0 as *const libc::c_char,
+            b"negated\0" as *const u8 as *const libc::c_char,
+            &mut value,
+            0 as *const libc::c_char,
+            indent,
+        );
+    }
+
+    if indent != 0 as libc::c_int {
+        indent -= 4 as libc::c_int;
+        putc('\n' as i32, fp);
+        print_indent(fp, indent);
+    } else {
+        putc(' ' as i32, fp);
+    }
+    putc('}' as i32, fp);
+    if !last_one {
+        putc(',' as i32, fp);
+    }
+    putc('\n' as i32, fp);
+
+    debug_return!();
+}
+
