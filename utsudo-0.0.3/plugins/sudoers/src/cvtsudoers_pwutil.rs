@@ -108,6 +108,20 @@ pub struct cache_item_gr {
     pub cache: cache_item,
     pub gr: group,
 }
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct cache_item_gidlist {
+    pub cache: cache_item,
+    pub gidlist: gid_list,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct cache_item_grlist {
+    pub cache: cache_item,
+    pub grlist: group_list,
+}
+
+
 #[macro_export]
 macro_rules! _PATH_BSHELL {
     () => {
@@ -474,4 +488,134 @@ pub unsafe extern "C" fn cvtsudoers_make_gritem(
     (*gritem).cache.refcnt = 1 as libc::c_uint;
 
     debug_return_ptr!(&mut (*gritem).cache as *mut cache_item);
+}
+
+/*
+ * Dynamically allocate space for a struct item plus the key and data
+ * elements.  Fills in datum from the groups filter.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn cvtsudoers_make_gidlist_item(
+    mut pw: *const passwd,
+    mut unused1: *const *mut libc::c_char,
+    mut type_0: libc::c_uint,
+) -> *mut cache_item {
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut nsize: size_t = 0;
+    let mut total: size_t = 0;
+    let mut glitem: *mut cache_item_gidlist = 0 as *mut cache_item_gidlist;
+    let mut s: *mut sudoers_string = 0 as *mut sudoers_string;
+    let mut gidlist: *mut gid_list = 0 as *mut gid_list;
+    let mut gids: *mut gid_t = 0 as *mut gid_t;
+    let mut i: libc::c_int = 0;
+    let mut ngids: libc::c_int = 0 as libc::c_int;
+    debug_decl!(SUDOERS_DEBUG_NSS!());
+
+    /*
+     * There's only a single gid list.
+     */
+    if !gidlist_item.is_null() {
+        (*gidlist_item).cache.refcnt = ((*gidlist_item).cache.refcnt).wrapping_add(1);
+        debug_return_ptr!(&mut (*gidlist_item).cache as *mut cache_item);
+    }
+
+    /* Count number of possible gids in the filter. */
+    s = (*filters).groups.stqh_first;
+    while !s.is_null() {
+        if *((*s).str_0).offset(0 as isize) as libc::c_int == '#' as i32 {
+            ngids += 1;
+        }
+        s = (*s).entries.stqe_next;
+    }
+
+    /* Allocate gids[] array and fill it with parsed gids. */
+    if ngids != 0 as libc::c_int {
+        gids = reallocarray(
+            0 as *mut libc::c_void,
+            ngids as size_t,
+            ::core::mem::size_of::<gid_t>() as libc::c_ulong,
+        ) as *mut gid_t;
+        if gids.is_null() {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            debug_return_ptr!(0 as *mut cache_item);
+        }
+        ngids = 0 as libc::c_int;
+        s = (*filters).groups.stqh_first;
+        while !s.is_null() {
+            if *((*s).str_0).offset(0 as libc::c_int as isize) as libc::c_int == '#' as i32 {
+                let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+                let mut gid: gid_t =
+                    sudo_strtoid_v2(((*s).str_0).offset(1 as libc::c_int as isize), &mut errstr);
+                if errstr.is_null() {
+                    ngids = ngids + 1;
+                    /* Valid gid. */
+                    *gids.offset(ngids as isize) = gid;
+                }
+            }
+            s = (*s).entries.stqe_next;
+        }
+    }
+    if ngids == 0 as libc::c_int {
+        free(gids as *mut libc::c_void);
+        *__errno_location() = ENOENT;
+        debug_return_ptr!(0 as *mut cache_item);
+    }
+
+    /* Allocate in one big chunk for easy freeing. */
+    nsize = (strlen((*pw).pw_name)).wrapping_add(1 as libc::c_ulong);
+    total = (::core::mem::size_of::<cache_item_gidlist>() as libc::c_ulong).wrapping_add(nsize);
+    total = (total as libc::c_ulong).wrapping_add(
+        (::core::mem::size_of::<*mut gid_t>() as libc::c_ulong)
+            .wrapping_mul(ngids as libc::c_ulong),
+    ) as size_t as size_t;
+
+    glitem = calloc(1 as libc::c_ulong, total) as *mut cache_item_gidlist;
+    if glitem.is_null() {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        free(gids as *mut libc::c_void);
+        debug_return_ptr!(0 as *mut cache_item);
+    }
+
+    /*
+     * Copy in group list and make pointers relative to space
+     * at the end of the buffer.  Note that the groups array must come
+     * immediately after struct group to guarantee proper alignment.
+     */
+    gidlist = &mut (*glitem).gidlist;
+    cp = glitem.offset(1 as isize) as *mut libc::c_char;
+    (*gidlist).gids = cp as *mut gid_t;
+    cp = cp.offset(
+        (::core::mem::size_of::<gid_t>() as libc::c_ulong).wrapping_mul(ngids as libc::c_ulong)
+            as isize,
+    );
+
+    /* Set key and datum. */
+    memcpy(
+        cp as *mut libc::c_void,
+        (*pw).pw_name as *const libc::c_void,
+        nsize,
+    );
+    (*glitem).cache.k.name = cp;
+    (*glitem).cache.d.gidlist = gidlist;
+    (*glitem).cache.refcnt = 1 as libc::c_uint;
+    (*glitem).cache.type_0 = type_0;
+
+    /*
+     * Store group IDs.
+     */
+    i = 0 as libc::c_int;
+    while i < ngids {
+        *((*gidlist).gids).offset(i as isize) = *gids.offset(i as isize);
+        i += 1;
+    }
+    (*gidlist).ngids = ngids;
+    free(gids as *mut libc::c_void);
+
+    debug_return_ptr!(&mut (*glitem).cache as *mut cache_item);
 }
