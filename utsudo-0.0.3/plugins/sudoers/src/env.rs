@@ -1440,3 +1440,570 @@ pub unsafe extern "C" fn rebuild_env() -> bool {
 }
 
 
+#[no_mangle]
+pub unsafe extern "C" fn insert_env_vars(mut envp: *const *mut libc::c_char) -> bool {
+    let mut ep: *const *mut libc::c_char = 0 as *const *mut libc::c_char;
+    let mut ret: bool = true;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    if !envp.is_null() {
+        ep = envp;
+        while !(*ep).is_null() {
+            if sudo_putenv(*ep, true, true) == -1 {
+                ret = false;
+                break;
+            }
+            ep = ep.offset(1);
+        }
+    }
+    debug_return_bool!(ret);
+}
+#[no_mangle]
+pub unsafe extern "C" fn validate_env_vars(mut env_vars: *const *mut libc::c_char) -> bool {
+    let mut ep: *const *mut libc::c_char = 0 as *const *mut libc::c_char;
+    let mut eq: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut errbuf: [libc::c_char; 4096] = [0; 4096];
+    let mut okvar: bool = false;
+    let mut ret: bool = true;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    if env_vars.is_null() {
+        debug_return_bool!(true);
+    }
+    errbuf[0] = '\u{0}' as libc::c_char;
+    while !(*ep).is_null() {
+        if !((*sudo_defs_table.as_mut_ptr().offset(I_SECURE_PATH as isize))
+            .sd_un
+            .str_0)
+            .is_null()
+            && !user_is_exempt()
+            && strncmp(*ep, b"PATH=\0" as *const u8 as *const libc::c_char, 5) == 0
+        {
+            okvar = false;
+        } else if (*sudo_defs_table.as_mut_ptr().offset(I_ENV_RESET as isize))
+            .sd_un
+            .flag
+            != 0
+        {
+            okvar = env_should_keep(*ep);
+        } else {
+            okvar = !env_should_delete(*ep);
+        }
+        if okvar == false {
+            eq = strchr(*ep, '=' as i32);
+            if !eq.is_null() {
+                *eq = '\u{0}' as libc::c_char;
+            }
+            if errbuf[0] != '\u{0}' as libc::c_char {
+                sudo_strlcat(
+                    errbuf.as_mut_ptr(),
+                    b", \0" as *const u8 as *const libc::c_char,
+                    ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+                );
+            }
+            if sudo_strlcat(
+                errbuf.as_mut_ptr(),
+                *ep,
+                ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+            ) >= ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong
+            {
+                errbuf[(::std::mem::size_of::<[libc::c_char; 4096]>()).wrapping_sub(4)] =
+                    '\u{0}' as libc::c_char;
+                sudo_strlcat(
+                    errbuf.as_mut_ptr(),
+                    b"...\0" as *const u8 as *const libc::c_char,
+                    ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+                );
+            }
+            if !eq.is_null() {
+                *eq = '=' as libc::c_char;
+            }
+        }
+        ep = ep.offset(1);
+    }
+    if errbuf[0] != '\u{0}' as libc::c_char {
+        //trans  log_warningx(0,N_("sorry,you are not allowed to set the following environment variables: %s"),errbuf);
+        log_warningx(
+            0,
+            b"sorry,you are not allowed to set the following environment variables: %s\0"
+                as *const u8 as *const libc::c_char,
+            errbuf,
+        );
+        ret = false;
+    }
+    debug_return_bool!(ret);
+}
+pub struct env_file_local {
+    pub fp: *mut FILE,
+    pub line: *mut libc::c_char,
+    pub linesize: size_t,
+}
+#[no_mangle]
+pub unsafe extern "C" fn env_file_open_local(mut path: *const libc::c_char) -> *mut libc::c_void {
+    let mut efl: *mut env_file_local = 0 as *mut env_file_local;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    efl = calloc(
+        1 as libc::c_int as libc::c_ulong,
+        ::std::mem::size_of::<env_file_local>() as libc::c_ulong,
+    ) as *mut env_file_local;
+    if !efl.is_null() {
+        (*efl).fp = fopen(path, b"r\0" as *const u8 as *const libc::c_char);
+        if (*efl).fp.is_null() {
+            free(efl as *mut libc::c_void);
+            efl = 0 as *mut env_file_local;
+        }
+    }
+    debug_return_ptr!(efl as *mut libc::c_void);
+}
+#[no_mangle]
+pub unsafe extern "C" fn env_file_close_local(mut cookie: *mut libc::c_void) {
+    let mut efl: *mut env_file_local = cookie as *mut env_file_local;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    if !efl.is_null() {
+        if !((*efl).fp).is_null() {
+            fclose((*efl).fp);
+        }
+        free((*efl).line as *mut libc::c_void);
+        free(efl as *mut libc::c_void);
+    }
+    debug_return!();
+}
+pub const PARSELN_CONT_IGN: libc::c_int = 2;
+#[no_mangle]
+pub unsafe extern "C" fn env_file_next_local(
+    mut cookie: *mut libc::c_void,
+    mut errnum: *mut libc::c_int,
+) -> *mut libc::c_char {
+    let mut efl: *mut env_file_local = cookie as *mut env_file_local;
+    let mut var: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut val: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut ret: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut var_len: size_t = 0;
+    let mut val_len: size_t = 0;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    *errnum = 0;
+    loop {
+        if sudo_parseln_v2(
+            &mut (*efl).line,
+            &mut (*efl).linesize,
+            0 as *mut libc::c_uint,
+            (*efl).fp,
+            PARSELN_CONT_IGN,
+        ) == -1
+        {
+            if feof((*efl).fp) == 0 {
+                *errnum = *__errno_location();
+            }
+            break;
+        }
+        var = (*efl).line;
+        if *var as libc::c_int == '\u{0}' as i32 {
+            continue;
+        }
+        if strncmp(
+            var,
+            b"export\0" as *const u8 as *const libc::c_char,
+            6 as libc::c_int as libc::c_ulong,
+        ) == 0 as libc::c_int
+            && *(*__ctype_b_loc()).offset(
+                *var.offset(6 as libc::c_int as isize) as libc::c_uchar as libc::c_int as isize
+            ) as libc::c_int
+                & _ISspace as libc::c_int as libc::c_ushort as libc::c_int
+                != 0
+        {
+            var = var.offset(7 as libc::c_int as isize);
+            while *(*__ctype_b_loc()).offset(*var as libc::c_uchar as libc::c_int as isize)
+                as libc::c_int
+                & _ISspace as libc::c_int as libc::c_ushort as libc::c_int
+                != 0
+            {
+                var = var.offset(1);
+            }
+        }
+        val = var;
+        loop {
+            if *val == '\0' as libc::c_char || *val == '=' as libc::c_char {
+                break;
+            }
+            val = val.offset(1);
+        }
+        if var == val || *val as libc::c_int != '=' as i32 {
+            continue;
+        }
+        var_len = val.offset_from(var) as libc::c_long as size_t;
+        val = val.offset(1);
+        val_len = strlen(val);
+        if (*val.offset(0) as libc::c_int == '\'' as i32
+            || *val.offset(0) as libc::c_int == '\"' as i32)
+            && *val.offset(0) == *val.offset(val_len.wrapping_sub(1) as isize)
+        {
+            *val.offset(val_len.wrapping_sub(1) as isize) = '\u{0}' as libc::c_char;
+            val = val.offset(1);
+            val_len = val_len.wrapping_sub(2);
+        }
+        ret = malloc(
+            var_len
+                .wrapping_add(1)
+                .wrapping_add(val_len)
+                .wrapping_add(1),
+        ) as *mut libc::c_char;
+        if ret.is_null() {
+            *errnum = *__errno_location();
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+        } else {
+            memcpy(
+                ret as *mut libc::c_void,
+                var as *mut libc::c_void,
+                var_len + 1 as size_t,
+            );
+            memcpy(
+                ret.offset(var_len as isize).offset(1 as isize) as *mut libc::c_void,
+                val as *mut libc::c_void,
+                val_len + 1,
+            );
+            sudoers_gc_add(GC_PTR, ret as *mut libc::c_void);
+        }
+        break;
+    } //loop
+    debug_return_str!(ret);
+}
+static mut env_file_sudoers: sudoers_env_file = unsafe {
+    {
+        let mut init = sudoers_env_file {
+            open: Some(
+                env_file_open_local
+                    as unsafe extern "C" fn(*const libc::c_char) -> *mut libc::c_void,
+            ),
+            close: Some(env_file_close_local as unsafe extern "C" fn(*mut libc::c_void) -> ()),
+            next: Some(
+                env_file_next_local
+                    as unsafe extern "C" fn(
+                        *mut libc::c_void,
+                        *mut libc::c_int,
+                    ) -> *mut libc::c_char,
+            ),
+        };
+        init
+    }
+};
+static mut env_file_system: sudoers_env_file = unsafe {
+    {
+        let mut init = sudoers_env_file {
+            open: Some(
+                env_file_open_local
+                    as unsafe extern "C" fn(*const libc::c_char) -> *mut libc::c_void,
+            ),
+            close: Some(env_file_close_local as unsafe extern "C" fn(*mut libc::c_void) -> ()),
+            next: Some(
+                env_file_next_local
+                    as unsafe extern "C" fn(
+                        *mut libc::c_void,
+                        *mut libc::c_int,
+                    ) -> *mut libc::c_char,
+            ),
+        };
+        init
+    }
+};
+#[no_mangle]
+pub unsafe extern "C" fn register_env_file(
+    mut ef_open: Option<unsafe extern "C" fn(*const libc::c_char) -> *mut libc::c_void>,
+    mut ef_close: Option<unsafe extern "C" fn(*mut libc::c_void) -> ()>,
+    mut ef_next: Option<
+        unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_int) -> *mut libc::c_char,
+    >,
+    mut system: bool,
+) {
+    let mut ef: *mut sudoers_env_file = if system as libc::c_int != 0 {
+        &mut env_file_system
+    } else {
+        &mut env_file_sudoers
+    };
+    (*ef).open = ef_open;
+    (*ef).close = ef_close;
+    (*ef).next = ef_next;
+}
+#[no_mangle]
+pub unsafe extern "C" fn read_env_file(
+    mut path: *const libc::c_char,
+    mut overwrite: bool,
+    mut restricted: bool,
+) -> bool {
+    let mut ef: *mut sudoers_env_file = 0 as *mut sudoers_env_file;
+    let mut ret: bool = true;
+    let mut envstr: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut cookie: *mut libc::c_void = 0 as *mut libc::c_void;
+    let mut errnum: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    if path
+        == (*sudo_defs_table.as_mut_ptr().offset(I_ENV_FILE as isize))
+            .sd_un
+            .str_0
+        || path
+            == (*sudo_defs_table.as_mut_ptr().offset(I_ENV_FILE as isize))
+                .sd_un
+                .str_0
+    {
+        ef = &mut env_file_sudoers;
+    } else {
+        ef = &mut env_file_system;
+    }
+    cookie = ((*ef).open).expect("non-null function pointer")(path);
+    if cookie.is_null() {
+        debug_return_bool!(false);
+    }
+    loop {
+        envstr = ((*ef).next).expect("non-null function pointer")(cookie, &mut errnum);
+        if envstr.is_null() {
+            if errnum != 0 {
+                ret = false;
+            }
+            break;
+        }
+        if restricted {
+            if if (*sudo_defs_table
+                .as_mut_ptr()
+                .offset(I_ENV_RESET as libc::c_int as isize))
+            .sd_un
+            .flag
+                != 0
+            {
+                !env_should_keep(envstr) as libc::c_int
+            } else {
+                env_should_delete(envstr) as libc::c_int
+            } != 0
+            {
+                free(envstr as *mut libc::c_void);
+                continue;
+            }
+        }
+        if sudo_putenv(envstr, true, overwrite) == -1 {
+            ret = false;
+            break;
+        }
+    }
+    ((*ef).close).expect("non-null function pointer")(cookie);
+    debug_return_bool!(ret);
+}
+static mut initial_badenv_table: [*const libc::c_char; 38] = [
+    b"IFS\0" as *const u8 as *const libc::c_char,
+    b"CDPATH\0" as *const u8 as *const libc::c_char,
+    b"LOCALDOMAIN\0" as *const u8 as *const libc::c_char,
+    b"RES_OPTIONS\0" as *const u8 as *const libc::c_char,
+    b"HOSTALIASES\0" as *const u8 as *const libc::c_char,
+    b"NLSPATH\0" as *const u8 as *const libc::c_char,
+    b"PATH_LOCALE\0" as *const u8 as *const libc::c_char,
+    b"LD_*\0" as *const u8 as *const libc::c_char,
+    b"_RLD*\0" as *const u8 as *const libc::c_char,
+    b"TERMINFO\0" as *const u8 as *const libc::c_char,
+    b"TERMINFO_DIRS\0" as *const u8 as *const libc::c_char,
+    b"TERMPATH\0" as *const u8 as *const libc::c_char,
+    b"TERMCAP\0" as *const u8 as *const libc::c_char,
+    b"ENV\0" as *const u8 as *const libc::c_char,
+    b"BASH_ENV\0" as *const u8 as *const libc::c_char,
+    b"PS4\0" as *const u8 as *const libc::c_char,
+    b"GLOBIGNORE\0" as *const u8 as *const libc::c_char,
+    b"BASHOPTS\0" as *const u8 as *const libc::c_char,
+    b"SHELLOPTS\0" as *const u8 as *const libc::c_char,
+    b"JAVA_TOOL_OPTIONS\0" as *const u8 as *const libc::c_char,
+    b"PERLIO_DEBUG \0" as *const u8 as *const libc::c_char,
+    b"PERLLIB\0" as *const u8 as *const libc::c_char,
+    b"PERL5LIB\0" as *const u8 as *const libc::c_char,
+    b"PERL5OPT\0" as *const u8 as *const libc::c_char,
+    b"PERL5DB\0" as *const u8 as *const libc::c_char,
+    b"FPATH\0" as *const u8 as *const libc::c_char,
+    b"NULLCMD\0" as *const u8 as *const libc::c_char,
+    b"READNULLCMD\0" as *const u8 as *const libc::c_char,
+    b"ZDOTDIR\0" as *const u8 as *const libc::c_char,
+    b"TMPPREFIX\0" as *const u8 as *const libc::c_char,
+    b"PYTHONHOME\0" as *const u8 as *const libc::c_char,
+    b"PYTHONPATH\0" as *const u8 as *const libc::c_char,
+    b"PYTHONINSPECT\0" as *const u8 as *const libc::c_char,
+    b"PYTHONUSERBASE\0" as *const u8 as *const libc::c_char,
+    b"RUBYLIB\0" as *const u8 as *const libc::c_char,
+    b"RUBYOPT\0" as *const u8 as *const libc::c_char,
+    b"*=()*\0" as *const u8 as *const libc::c_char,
+    0 as *const libc::c_char,
+];
+static mut initial_checkenv_table: [*const libc::c_char; 8] = [
+    b"COLORTERM\0" as *const u8 as *const libc::c_char,
+    b"LANG\0" as *const u8 as *const libc::c_char,
+    b"LANGUAGE\0" as *const u8 as *const libc::c_char,
+    b"LC_*\0" as *const u8 as *const libc::c_char,
+    b"LINGUAS\0" as *const u8 as *const libc::c_char,
+    b"TERM\0" as *const u8 as *const libc::c_char,
+    b"TZ\0" as *const u8 as *const libc::c_char,
+    0 as *const libc::c_char,
+];
+static mut initial_keepenv_table: [*const libc::c_char; 11] = [
+    b"COLORS\0" as *const u8 as *const libc::c_char,
+    b"DISPLAY\0" as *const u8 as *const libc::c_char,
+    b"HOSTNAME\0" as *const u8 as *const libc::c_char,
+    b"KRB5CCNAME\0" as *const u8 as *const libc::c_char,
+    b"LS_COLORS\0" as *const u8 as *const libc::c_char,
+    b"PATH\0" as *const u8 as *const libc::c_char,
+    b"PS1\0" as *const u8 as *const libc::c_char,
+    b"PS2\0" as *const u8 as *const libc::c_char,
+    b"XAUTHORITY\0" as *const u8 as *const libc::c_char,
+    b"XAUTHORIZATION\0" as *const u8 as *const libc::c_char,
+    0 as *const libc::c_char,
+];
+#[no_mangle]
+pub unsafe extern "C" fn init_envtables() -> bool {
+    let mut cur: *mut list_member = 0 as *mut list_member;
+    let mut p: *mut *const libc::c_char = 0 as *mut *const libc::c_char;
+    debug_decl!(SUDOERS_DEBUG_ENV!());
+    p = initial_badenv_table.as_mut_ptr();
+    while !(*p).is_null() {
+        cur = calloc(1, ::std::mem::size_of::<list_member>() as libc::c_ulong) as *mut list_member;
+        (*cur).value = strdup(*p);
+        if cur.is_null() || ((*cur).value).is_null() {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            free(cur as *mut libc::c_void);
+            debug_return_bool!(false);
+        }
+        (*cur).entries.sle_next = (*sudo_defs_table
+            .as_mut_ptr()
+            .offset(I_ENV_DELETE as libc::c_int as isize))
+        .sd_un
+        .list
+        .slh_first;
+        (*sudo_defs_table.as_mut_ptr().offset(I_ENV_DELETE as isize))
+            .sd_un
+            .list
+            .slh_first = cur;
+        p = p.offset(1);
+    }
+    p = initial_checkenv_table.as_mut_ptr();
+    while !(*p).is_null() {
+        cur = calloc(1, ::std::mem::size_of::<list_member>() as libc::c_ulong) as *mut list_member;
+        (*cur).value = strdup(*p);
+        if cur.is_null() || ((*cur).value).is_null() {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            free(cur as *mut libc::c_void);
+            debug_return_bool!(false);
+        }
+        (*cur).entries.sle_next = (*sudo_defs_table
+            .as_mut_ptr()
+            .offset(I_ENV_CHECK as isize as libc::c_int as isize))
+        .sd_un
+        .list
+        .slh_first;
+        (*sudo_defs_table.as_mut_ptr().offset(I_ENV_CHECK as isize))
+            .sd_un
+            .list
+            .slh_first = cur;
+        p = p.offset(1);
+    }
+    p = initial_keepenv_table.as_mut_ptr();
+    while !(*p).is_null() {
+        cur = calloc(1, ::std::mem::size_of::<list_member>() as libc::c_ulong) as *mut list_member;
+        (*cur).value = strdup(*p);
+        if cur.is_null() || ((*cur).value).is_null() {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            free(cur as *mut libc::c_void);
+            debug_return_bool!(false);
+        }
+        (*cur).entries.sle_next = (*sudo_defs_table
+            .as_mut_ptr()
+            .offset(I_ENV_KEEP as libc::c_int as isize))
+        .sd_un
+        .list
+        .slh_first;
+        (*sudo_defs_table.as_mut_ptr().offset(I_ENV_KEEP as isize))
+            .sd_un
+            .list
+            .slh_first = cur;
+        p = p.offset(1);
+    }
+    debug_return_bool!(true);
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudoers_hook_getenv(
+    mut name: *const libc::c_char,
+    mut value: *mut *mut libc::c_char,
+    mut closure: *mut libc::c_void,
+) -> libc::c_int {
+    let mut in_progress: bool = false;
+    if in_progress as libc::c_int != 0 || (env.envp).is_null() {
+        return SUDO_HOOK_RET_NEXT;
+    }
+    in_progress = true;
+    if *name as libc::c_int == 'L' as i32 && sudoers_getlocale() == SUDOERS_LOCALE_SUDOERS {
+        if strcmp(name, b"LANGUAGE\0" as *const u8 as *const libc::c_char) == 0
+            || strcmp(name, b"LANG\0" as *const u8 as *const libc::c_char) == 0
+        {
+            *value = 0 as *mut libc::c_char;
+            in_progress = false;
+            return SUDO_HOOK_RET_STOP;
+        }
+        if strcmp(name, b"LC_ALL\0" as *const u8 as *const libc::c_char) == 0
+            || strcmp(name, b"LC_MESSAGES\0" as *const u8 as *const libc::c_char) == 0
+        {
+            *value = (*sudo_defs_table
+                .as_mut_ptr()
+                .offset(I_SUDOERS_LOCALE as isize))
+            .sd_un
+            .str_0;
+            in_progress = false;
+            return SUDO_HOOK_RET_STOP;
+        }
+    }
+    *value = sudo_getenv_nodebug(name);
+    in_progress = false;
+    return SUDO_HOOK_RET_STOP;
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudoers_hook_putenv(
+    mut string: *mut libc::c_char,
+    mut closure: *mut libc::c_void,
+) -> libc::c_int {
+    let mut in_progress: bool = false as bool;
+    if in_progress as libc::c_int != 0 || (env.envp).is_null() {
+        return SUDO_HOOK_RET_NEXT;
+    }
+    in_progress = true;
+    sudo_putenv_nodebug(string, true, true);
+    in_progress = false;
+    return SUDO_HOOK_RET_STOP;
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudoers_hook_setenv(
+    mut name: *const libc::c_char,
+    mut value: *const libc::c_char,
+    mut overwrite: libc::c_int,
+    mut closure: *mut libc::c_void,
+) -> libc::c_int {
+    let mut in_progress: bool = false as bool;
+    if in_progress as libc::c_int != 0 || (env.envp).is_null() {
+        return SUDO_HOOK_RET_NEXT;
+    }
+    in_progress = true;
+    sudo_setenv_nodebug(name, value, overwrite);
+    in_progress = false;
+    return SUDO_HOOK_RET_STOP;
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudoers_hook_unsetenv(
+    mut name: *const libc::c_char,
+    mut close: *mut libc::c_void,
+) -> libc::c_int {
+    let mut in_progress: bool = false as bool;
+    if in_progress as libc::c_int != 0 || (env.envp).is_null() {
+        return SUDO_HOOK_RET_NEXT;
+    }
+    in_progress = true;
+    sudo_unsetenv_nodebug(name);
+    in_progress = false;
+    return SUDO_HOOK_RET_STOP;
+}
