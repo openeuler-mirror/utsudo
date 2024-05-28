@@ -124,3 +124,137 @@ pub struct privilege_mid {
     pub tqe_next: *mut privilege,
     pub tqe_prev: *mut *mut privilege,
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn sudo_file_close(mut nss: *mut sudo_nss) -> libc::c_int {
+    debug_decl!(SUDOERS_DEBUG_NSS!());
+    let mut handle: *mut sudo_file_handle = (*nss).handle as *mut sudo_file_handle;
+    if !handle.is_null() {
+        fclose((*handle).fp);
+        sudoersin = 0 as *const FILE as *mut FILE;
+        free_parse_tree(&mut (*handle).parse_tree);
+        free(handle as *mut libc::c_void);
+        (*nss).handle = 0 as *mut libc::c_void;
+    }
+    debug_return_int!(0);
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_file_open(mut nss: *mut sudo_nss) -> libc::c_int {
+    debug_decl!(SUDOERS_DEBUG_NSS!());
+    let mut handle: *mut sudo_file_handle = 0 as *mut sudo_file_handle;
+    if (*sudo_defs_table
+        .as_mut_ptr()
+        .offset(I_IGNORE_LOCAL_SUDOERS as isize))
+    .sd_un
+    .flag
+        != 0
+    {
+        debug_return_int!(-1);
+    }
+    if !((*nss).handle).is_null() {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR,
+            b"%s: called with non-NULL handle %p\0" as *const u8 as *const libc::c_char,
+            get_function_name!(),
+            (*nss).handle
+        );
+        sudo_file_close(nss);
+    }
+    handle =
+        malloc(::std::mem::size_of::<sudo_file_handle>() as libc::c_ulong) as *mut sudo_file_handle;
+    if !handle.is_null() {
+        (*handle).fp = open_sudoers(sudoers_file, false, 0 as *mut bool);
+        if !((*handle).fp).is_null() {
+            init_parse_tree(
+                &mut (*handle).parse_tree,
+                0 as *const libc::c_char,
+                0 as *const libc::c_char,
+            );
+        } else {
+            free(handle as *mut libc::c_void);
+            handle = 0 as *mut sudo_file_handle;
+        }
+    }
+    (*nss).handle = handle as *mut libc::c_void;
+    debug_return_int!(if !((*nss).handle).is_null() { 0 } else { -1 });
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_file_parse(mut nss: *mut sudo_nss) -> *mut sudoers_parse_tree {
+    debug_decl!(SUDOERS_DEBUG_NSS!());
+    let mut handle: *mut sudo_file_handle = (*nss).handle as *mut sudo_file_handle;
+    if handle.is_null() || ((*handle).fp).is_null() {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR,
+            b"%s: called with NULL handle %s\0" as *const u8 as *const libc::c_char,
+            get_function_name!(),
+            if !handle.is_null() {
+                b"file pointer\0" as *const u8 as *const libc::c_char
+            } else {
+                b"handle\0" as *const u8 as *const libc::c_char
+            }
+        );
+        debug_return_ptr!(0 as *mut sudoers_parse_tree);
+    }
+    sudoersin = (*handle).fp as *mut FILE;
+    if sudoersparse() != 0 || parse_error as libc::c_int != 0 {
+        if errorlineno != -1 {
+            log_warningx(
+                SLOG_SEND_MAIL,
+                b"parse error in %s near line %d\0" as *const u8 as *const libc::c_char,
+                errorfile,
+                errorlineno,
+            );
+        } else {
+            log_warningx(
+                SLOG_SEND_MAIL,
+                b"parse error in %s\0" as *const u8 as *const libc::c_char,
+                errorfile,
+            );
+        }
+        debug_return_ptr!(0 as *mut sudoers_parse_tree);
+    }
+    reparent_parse_tree(&mut (*handle).parse_tree);
+    debug_return_ptr!(&mut (*handle).parse_tree as *mut sudoers_parse_tree);
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_file_query(
+    mut nss: *mut sudo_nss,
+    mut pw: *mut passwd,
+) -> libc::c_int {
+    debug_decl!(SUDOERS_DEBUG_NSS!());
+    debug_return_int!(0);
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_file_getdefs(mut nss: *mut sudo_nss) -> libc::c_int {
+    debug_decl!(SUDOERS_DEBUG_NSS!());
+    debug_return_int!(0);
+}
+#[no_mangle]
+pub static mut sudo_nss_file: sudo_nss = unsafe {
+    {
+        let mut init = sudo_nss {
+            entries: {
+                let mut init = sudo_nss_mid {
+                    tqe_next: 0 as *const sudo_nss as *mut sudo_nss,
+                    tqe_prev: 0 as *const *mut sudo_nss as *mut *mut sudo_nss,
+                };
+                init
+            },
+            open: Some(sudo_file_open as unsafe extern "C" fn(*mut sudo_nss) -> libc::c_int),
+            close: Some(sudo_file_close as unsafe extern "C" fn(*mut sudo_nss) -> libc::c_int),
+            parse: Some(
+                sudo_file_parse as unsafe extern "C" fn(*mut sudo_nss) -> *mut sudoers_parse_tree,
+            ),
+            query: Some(
+                sudo_file_query as unsafe extern "C" fn(*mut sudo_nss, *mut passwd) -> libc::c_int,
+            ),
+            getdefs: Some(sudo_file_getdefs as unsafe extern "C" fn(*mut sudo_nss) -> libc::c_int),
+            handle: 0 as *const libc::c_void as *mut libc::c_void,
+            parse_tree: 0 as *const sudoers_parse_tree as *mut sudoers_parse_tree,
+            ret_if_found: false,
+            ret_if_notfound: false,
+        };
+        init
+    }
+};
+
