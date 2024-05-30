@@ -580,3 +580,262 @@ unsafe extern "C" fn defaults_to_word_type(mut defaults_type: libc::c_int) -> wo
         }
     };
 }
+
+/*
+ * Print struct member in JSON format, with specified indentation.
+ * If last_one is false, a comma will be printed before the newline
+ * that closes the object.
+ */
+unsafe extern "C" fn print_member_json_int(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut name: *mut libc::c_char,
+    mut type_0: libc::c_int,
+    mut negated: bool,
+    mut word_type: word_type,
+    mut last_one: bool,
+    mut indent: libc::c_int,
+    mut expand_aliases: bool,
+) {
+    let mut value: json_value = json_value {
+        type_0: json_value_type::JSON_STRING,
+        u: json_value_u {
+            string: 0 as *mut libc::c_char,
+        },
+    };
+    let mut typestr: *const libc::c_char = 0 as *const libc::c_char;
+    let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+    let mut alias_type: libc::c_int = UNSPEC;
+    let mut id: id_t = 0;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    /* Most of the time we print a string. */
+    value.type_0 = json_value_type::JSON_STRING;
+    if !name.is_null() {
+        value.u.string = name;
+    } else {
+        match type_0 {
+            ALL => {
+                value.u.string = b"ALL\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+            }
+            MYSELF => {
+                value.u.string = b"\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+            }
+            _ => {
+                sudo_fatalx!(
+                    b"missing member name for type %d\0" as *const u8 as *const libc::c_char,
+                    type_0
+                );
+            }
+        }
+    }
+
+    match type_0 {
+        USERGROUP => {
+            value.u.string = (value.u.string).offset(1); /* skip leading '%' */
+            if *value.u.string as libc::c_int == ':' as i32 {
+                value.u.string = (value.u.string).offset(1);
+                typestr = b"nonunixgroup\0" as *const u8 as *const libc::c_char;
+                if *value.u.string as libc::c_int == '#' as i32 {
+                    id = sudo_strtoid_v2((value.u.string).offset(1 as isize), &mut errstr);
+                    if !errstr.is_null() {
+                        sudo_warnx!(
+                            b"internal error: non-Unix group-ID %s: \"%s\"\0" as *const u8
+                                as *const libc::c_char,
+                            errstr,
+                            (value.u.string).offset(1 as isize)
+                        );
+                    } else {
+                        value.type_0 = json_value_type::JSON_ID;
+                        value.u.id = id;
+                        typestr = b"nonunixgid\0" as *const u8 as *const libc::c_char;
+                    }
+                }
+            } else {
+                typestr = b"usergroup\0" as *const u8 as *const libc::c_char;
+                if *value.u.string as libc::c_int == '#' as i32 {
+                    id = sudo_strtoid_v2(
+                        (value.u.string).offset(1 as libc::c_int as isize),
+                        &mut errstr,
+                    );
+                    if !errstr.is_null() {
+                        sudo_warnx!(
+                            b"internal error: group-ID %s: \"%s\"\0" as *const u8
+                                as *const libc::c_char,
+                            errstr,
+                            (value.u.string).offset(1 as isize)
+                        );
+                    } else {
+                        value.type_0 = json_value_type::JSON_ID;
+                        value.u.id = id;
+                        typestr = b"usergid\0" as *const u8 as *const libc::c_char;
+                    }
+                }
+            }
+        }
+        NETGROUP => {
+            typestr = b"netgroup\0" as *const u8 as *const libc::c_char;
+            value.u.string = (value.u.string).offset(1); /* skip leading '+' */
+        }
+        NTWKADDR => {
+            typestr = b"networkaddr\0" as *const u8 as *const libc::c_char;
+        }
+        COMMAND => {
+            print_command_json(fp, name, type_0, negated, indent, last_one);
+            debug_return!();
+        }
+        ALL | MYSELF | WORD => match word_type {
+            word_type::TYPE_COMMAND => {
+                typestr = b"command\0" as *const u8 as *const libc::c_char;
+            }
+            word_type::TYPE_HOSTNAME => {
+                typestr = b"hostname\0" as *const u8 as *const libc::c_char;
+            }
+            word_type::TYPE_RUNASGROUP => {
+                typestr = b"usergroup\0" as *const u8 as *const libc::c_char;
+            }
+            word_type::TYPE_RUNASUSER | word_type::TYPE_USERNAME => {
+                typestr = b"username\0" as *const u8 as *const libc::c_char;
+                if *value.u.string as libc::c_int == '#' as i32 {
+                    id = sudo_strtoid_v2(
+                        (value.u.string).offset(1 as libc::c_int as isize),
+                        &mut errstr,
+                    );
+                    if !errstr.is_null() {
+                        sudo_warnx!(
+                            b"internal error: user-ID %s: \"%s\"\0" as *const u8
+                                as *const libc::c_char,
+                            errstr,
+                            name
+                        );
+                    } else {
+                        value.type_0 = json_value_type::JSON_ID;
+                        value.u.id = id;
+                        typestr = b"userid\0" as *const u8 as *const libc::c_char;
+                    }
+                }
+            }
+            _ => {
+                sudo_fatalx!(
+                    b"unexpected word type %d\0" as *const u8 as *const libc::c_char,
+                    word_type
+                );
+            }
+        },
+        ALIAS => match word_type {
+            word_type::TYPE_COMMAND => {
+                if expand_aliases {
+                    alias_type = CMNDALIAS;
+                } else {
+                    typestr = b"cmndalias\0" as *const u8 as *const libc::c_char;
+                }
+            }
+            word_type::TYPE_HOSTNAME => {
+                if expand_aliases {
+                    alias_type = HOSTALIAS;
+                } else {
+                    typestr = b"hostalias\0" as *const u8 as *const libc::c_char;
+                }
+            }
+            word_type::TYPE_RUNASGROUP | word_type::TYPE_RUNASUSER => {
+                if expand_aliases {
+                    alias_type = RUNASALIAS;
+                } else {
+                    typestr = b"runasalias\0" as *const u8 as *const libc::c_char;
+                }
+            }
+            word_type::TYPE_USERNAME => {
+                if expand_aliases {
+                    alias_type = USERALIAS;
+                } else {
+                    typestr = b"useralias\0" as *const u8 as *const libc::c_char;
+                }
+            }
+            _ => {
+                sudo_fatalx!(
+                    b"unexpected word type %d\0" as *const u8 as *const libc::c_char,
+                    word_type
+                );
+            }
+        },
+        _ => {
+            sudo_fatalx!(
+                b"unexpected member type %d\0" as *const u8 as *const libc::c_char,
+                type_0
+            );
+        }
+    }
+
+    if expand_aliases as libc::c_int != 0 && type_0 == ALIAS {
+        let mut a: *mut alias = 0 as *mut alias;
+        let mut m: *mut member = 0 as *mut member;
+
+        /* Print each member of the alias. */
+        a = alias_get(parse_tree, value.u.string, alias_type);
+        if !a.is_null() {
+            m = (*a).members.tqh_first;
+            while !m.is_null() {
+                print_member_json_int(
+                    fp,
+                    parse_tree,
+                    (*m).name,
+                    (*m).type0 as libc::c_int,
+                    if negated as libc::c_int != 0 {
+                        ((*m).negated == 0) as libc::c_int
+                    } else {
+                        (*m).negated as libc::c_int
+                    } != 0,
+                    alias_to_word_type(alias_type),
+                    last_one as libc::c_int != 0 && ((*m).entries.tqe_next).is_null(),
+                    indent,
+                    true,
+                );
+                m = (*m).entries.tqe_next;
+            }
+            alias_put(a);
+        }
+    } else {
+        if negated {
+            print_indent(fp, indent);
+            fputs(b"{\n\0" as *const u8 as *const libc::c_char, fp);
+            indent += 4 as libc::c_int;
+            print_pair_json(
+                fp,
+                0 as *const libc::c_char,
+                typestr,
+                &mut value,
+                b",\n\0" as *const u8 as *const libc::c_char,
+                indent,
+            );
+            value.type_0 = json_value_type::JSON_BOOL;
+            value.u.boolean = true;
+            print_pair_json(
+                fp,
+                0 as *const libc::c_char,
+                b"negated\0" as *const u8 as *const libc::c_char,
+                &mut value,
+                b"\n\0" as *const u8 as *const libc::c_char,
+                indent,
+            );
+            indent -= 4 as libc::c_int;
+            print_indent(fp, indent);
+            putc('}' as i32, fp);
+        } else {
+            print_pair_json(
+                fp,
+                b"{ \0" as *const u8 as *const libc::c_char,
+                typestr,
+                &mut value,
+                b" }\0" as *const u8 as *const libc::c_char,
+                indent,
+            );
+        }
+
+        if !last_one {
+            putc(',' as i32, fp);
+        }
+        putc('\n' as i32, fp);
+    }
+
+    debug_return!();
+}
