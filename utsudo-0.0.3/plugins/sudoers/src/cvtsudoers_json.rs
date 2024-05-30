@@ -980,3 +980,118 @@ unsafe extern "C" fn print_binding_json(
 
     debug_return!();
 }
+
+/*
+ * Print a Defaults list JSON format.
+ */
+unsafe extern "C" fn print_defaults_list_json(
+    mut fp: *mut FILE,
+    mut def: *mut defaults,
+    mut indent: libc::c_int,
+) {
+    let mut savech: libc::c_char = 0;
+    let mut start: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut end: *mut libc::c_char = (*def).val;
+    let mut value: json_value = json_value {
+        type_0: json_value_type::JSON_STRING,
+        u: json_value_u {
+            string: 0 as *mut libc::c_char,
+        },
+    };
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    fprintf(
+        fp,
+        b"%*s{\n\0" as *const u8 as *const libc::c_char,
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+    indent += 4 as libc::c_int;
+    value.type_0 = json_value_type::JSON_STRING;
+    match (*def).op as libc::c_int {
+        43 => {
+            value.u.string = b"list_add\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        }
+        45 => {
+            value.u.string =
+                b"list_remove\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        }
+        1 => {
+            value.u.string =
+                b"list_assign\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        }
+        _ => {
+            sudo_warnx!(
+                b"internal error: unexpected list op %d\0" as *const u8 as *const libc::c_char,
+                (*def).op as libc::c_int
+            );
+            value.u.string =
+                b"unsupported\0" as *const u8 as *const libc::c_char as *mut libc::c_char;
+        }
+    }
+    print_pair_json(
+        fp,
+        0 as *const libc::c_char,
+        b"operation\0" as *const u8 as *const libc::c_char,
+        &mut value,
+        b",\n\0" as *const u8 as *const libc::c_char,
+        indent,
+    );
+    printstr_json(
+        fp,
+        b"\"\0" as *const u8 as *const libc::c_char,
+        (*def).var,
+        b"\": [\n\0" as *const u8 as *const libc::c_char,
+        indent,
+    );
+    indent += 4 as libc::c_int;
+    print_indent(fp, indent);
+    /* Split value into multiple space-separated words. */
+    loop {
+        /* Remove leading blanks, must have a non-empty string. */
+        start = end;
+        while isblank!(*start as libc::c_uchar as libc::c_int as isize) != 0 {
+            start = start.offset(1);
+        }
+        if *start as libc::c_int == '\0' as i32 {
+            break;
+        }
+
+        /* Find the end and print it. */
+        end = start;
+        while *end as libc::c_int != 0
+            && isblank!(*end as libc::c_uchar as libc::c_int as isize) == 0
+        {
+            end = end.offset(1);
+        }
+        savech = *end;
+        *end = '\0' as i32 as libc::c_char;
+        print_string_json(fp, start);
+        if savech as libc::c_int != '\0' as i32 {
+            putc(',' as i32, fp);
+        }
+        *end = savech;
+        if !(*end as libc::c_int != '\0' as i32) {
+            end = end.offset(1);
+            break;
+        }
+        end = end.offset(1);
+    }
+    putc('\n' as i32, fp);
+    indent -= 4 as libc::c_int;
+    fprintf(
+        fp,
+        b"%*s]\n\0" as *const u8 as *const libc::c_char,
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+    indent -= 4 as libc::c_int;
+    fprintf(
+        fp,
+        b"%*s}\0" as *const u8 as *const libc::c_char,
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+
+    debug_return!();
+}
