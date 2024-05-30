@@ -928,3 +928,55 @@ unsafe extern "C" fn print_alias_json(
     (*closure).indent -= 4 as libc::c_int;
     debug_return_int!(0);
 }
+
+/*
+ * Print the binding for a Defaults entry of the specified type.
+ */
+unsafe extern "C" fn print_binding_json(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut binding: *mut member_list,
+    mut type_0: libc::c_int,
+    mut indent: libc::c_int,
+    mut expand_aliases: bool,
+) {
+    let mut m: *mut member = 0 as *mut member;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    if ((*binding).tqh_first).is_null() {
+        debug_return!();
+    }
+
+    fprintf(
+        fp,
+        b"%*s\"Binding\": [\n\0" as *const u8 as *const libc::c_char,
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+    indent += 4 as libc::c_int;
+
+    /* Print each member object in binding. */
+    m = (*binding).tqh_first;
+    while !m.is_null() {
+        print_member_json(
+            fp,
+            parse_tree,
+            m,
+            defaults_to_word_type(type_0),
+            ((*m).entries.tqe_next).is_null(),
+            indent,
+            expand_aliases,
+        );
+        m = (*m).entries.tqe_next;
+    }
+
+    indent -= 4 as libc::c_int;
+    fprintf(
+        fp,
+        b"%*s],\n\0" as *const u8 as *const libc::c_char,
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+
+    debug_return!();
+}
