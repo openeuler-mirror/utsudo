@@ -839,3 +839,92 @@ unsafe extern "C" fn print_member_json_int(
 
     debug_return!();
 }
+
+unsafe extern "C" fn print_member_json(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut m: *mut member,
+    mut word_type: word_type,
+    mut last_one: bool,
+    mut indent: libc::c_int,
+    mut expand_aliases: bool,
+) {
+    print_member_json_int(
+        fp,
+        parse_tree,
+        (*m).name,
+        (*m).type0 as libc::c_int,
+        (*m).negated != 0,
+        word_type,
+        last_one,
+        indent,
+        expand_aliases,
+    );
+}
+
+/*
+ * Callback for alias_apply() to print an alias entry if it matches
+ * the type specified in the closure.
+ */
+unsafe extern "C" fn print_alias_json(
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut a: *mut alias,
+    mut v: *mut libc::c_void,
+) -> libc::c_int {
+    let mut closure: *mut json_alias_closure = v as *mut json_alias_closure;
+    let mut m: *mut member = 0 as *mut member;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    if (*a).type0 as libc::c_int != (*closure).alias_type {
+        debug_return_int!(0);
+    }
+
+    /* Open the aliases object or close the last entry, then open new one. */
+    if (*closure).count == 0 as libc::c_int as libc::c_uint {
+        (*closure).count = ((*closure).count).wrapping_add(1);
+        fprintf(
+            (*closure).fp,
+            b"%s\n%*s\"%s\": {\n\0" as *const u8 as *const libc::c_char,
+            if (*closure).need_comma as libc::c_int != 0 {
+                b",\0" as *const u8 as *const libc::c_char
+            } else {
+                b"\0" as *const u8 as *const libc::c_char
+            },
+            (*closure).indent,
+            b"\0" as *const u8 as *const libc::c_char,
+            (*closure).title,
+        );
+        (*closure).indent += 4 as libc::c_int;
+    } else {
+        fprintf(
+            (*closure).fp,
+            b"%*s],\n\0" as *const u8 as *const libc::c_char,
+            (*closure).indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+    }
+    printstr_json(
+        (*closure).fp,
+        b"\"\0" as *const u8 as *const libc::c_char,
+        (*a).name,
+        b"\": [\n\0" as *const u8 as *const libc::c_char,
+        (*closure).indent,
+    );
+
+    (*closure).indent += 4 as libc::c_int;
+    m = (*a).members.tqh_first;
+    while !m.is_null() {
+        print_member_json(
+            (*closure).fp,
+            parse_tree,
+            m,
+            alias_to_word_type((*closure).alias_type),
+            ((*m).entries.tqe_next).is_null(),
+            (*closure).indent,
+            false,
+        );
+        m = (*m).entries.tqe_next;
+    }
+    (*closure).indent -= 4 as libc::c_int;
+    debug_return_int!(0);
+}
