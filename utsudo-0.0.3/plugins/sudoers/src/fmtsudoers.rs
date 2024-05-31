@@ -123,3 +123,292 @@ pub const DEFAULTS_HOST: libc::c_short = 266;
 pub const DEFAULTS_RUNAS: libc::c_short = 268;
 pub const DEFAULTS_CMND: libc::c_short = 269;
 pub const DEFAULTS_USER: libc::c_short = 267;
+
+
+#[no_mangle]
+unsafe extern "C" fn sudoers_format_member_int(
+    mut lbuf: *mut sudo_lbuf,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut name: *mut libc::c_char,
+    mut type_0: libc::c_int,
+    mut negated: bool,
+    mut separator: *const libc::c_char,
+    mut alias_type: libc::c_int,
+) -> bool {
+    let mut a: *mut alias = 0 as *mut alias;
+    let mut m: *mut member = 0 as *mut member;
+    let mut c: *mut sudo_command = 0 as *mut sudo_command;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    match type_0 {
+        ALL => {
+            sudo_lbuf_append_v1(
+                lbuf,
+                b"%sALL\0" as *const u8 as *const libc::c_char,
+                if negated as libc::c_int != 0 {
+                    b"!\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+            );
+        }
+        MYSELF => {
+            sudo_lbuf_append_v1(
+                lbuf,
+                b"%s%s\0" as *const u8 as *const libc::c_char,
+                if negated as libc::c_int != 0 {
+                    b"!\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+                if !(sudo_user.name).is_null() {
+                    sudo_user.name
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+            );
+        }
+        COMMAND => {
+            c = name as *mut sudo_command;
+            if !((*c).digest).is_null() {
+                sudo_lbuf_append_v1(
+                    lbuf,
+                    b"%s:%s \0" as *const u8 as *const libc::c_char,
+                    digest_type_to_name((*(*c).digest).digest_type as libc::c_int),
+                    (*(*c).digest).digest_str,
+                );
+            }
+            if negated {
+                sudo_lbuf_append_v1(lbuf, b"!\0" as *const u8 as *const libc::c_char);
+            }
+            sudo_lbuf_append_quoted_v1(
+                lbuf,
+                b":\\,=#\" \t\0" as *const u8 as *const libc::c_char,
+                b"%s\0" as *const u8 as *const libc::c_char,
+                (*c).cmnd,
+            );
+            if !((*c).args).is_null() {
+                sudo_lbuf_append_v1(lbuf, b" \0" as *const u8 as *const libc::c_char);
+                sudo_lbuf_append_quoted_v1(
+                    lbuf,
+                    b":\\,=#\"\0" as *const u8 as *const libc::c_char,
+                    b"%s\0" as *const u8 as *const libc::c_char,
+                    (*c).args,
+                );
+            }
+        }
+        USERGROUP => {
+            if (strpbrk(name, b" \t\0" as *const u8 as *const libc::c_char)).is_null() {
+                name = name.offset(1);
+                if *name as libc::c_int == ':' as i32 {
+                    name = name.offset(1);
+                    sudo_lbuf_append_v1(
+                        lbuf,
+                        b"%s\0" as *const u8 as *const libc::c_char,
+                        b"%:\0" as *const u8 as *const libc::c_char,
+                    );
+                } else {
+                    sudo_lbuf_append_v1(
+                        lbuf,
+                        b"%s\0" as *const u8 as *const libc::c_char,
+                        b"%\0" as *const u8 as *const libc::c_char,
+                    );
+                }
+            }
+            //goto
+            if *name.offset(0 as libc::c_int as isize) as libc::c_int == '#' as i32
+                && *name.offset(
+                    (strspn(
+                        name.offset(1 as libc::c_int as isize),
+                        b"0123456789\0" as *const u8 as *const libc::c_char,
+                    ))
+                    .wrapping_add(1 as libc::c_int as libc::c_ulong) as isize,
+                ) as libc::c_int
+                    == '\u{0}' as i32
+            {
+                sudo_lbuf_append_v1(
+                    lbuf,
+                    b"%s%s\0" as *const u8 as *const libc::c_char,
+                    if negated as libc::c_int != 0 {
+                        b"!\0" as *const u8 as *const libc::c_char
+                    } else {
+                        b"\0" as *const u8 as *const libc::c_char
+                    },
+                    name,
+                );
+            } else {
+                if !(strpbrk(name, b" \t\0" as *const u8 as *const libc::c_char)).is_null() {
+                    sudo_lbuf_append_v1(
+                        lbuf,
+                        b"%s\"\0" as *const u8 as *const libc::c_char,
+                        if negated as libc::c_int != 0 {
+                            b"!\0" as *const u8 as *const libc::c_char
+                        } else {
+                            b"\0" as *const u8 as *const libc::c_char
+                        },
+                    );
+                    sudo_lbuf_append_quoted_v1(
+                        lbuf,
+                        b"\"\0" as *const u8 as *const libc::c_char,
+                        b"%s\0" as *const u8 as *const libc::c_char,
+                        name,
+                    );
+                    sudo_lbuf_append_v1(lbuf, b"\"\0" as *const u8 as *const libc::c_char);
+                } else {
+                    sudo_lbuf_append_quoted_v1(
+                        lbuf,
+                        b":\\,=#\"\0" as *const u8 as *const libc::c_char,
+                        b"%s%s\0" as *const u8 as *const libc::c_char,
+                        if negated as libc::c_int != 0 {
+                            b"!\0" as *const u8 as *const libc::c_char
+                        } else {
+                            b"\0" as *const u8 as *const libc::c_char
+                        },
+                        name,
+                    );
+                }
+            }
+            //end of goto
+        }
+        ALIAS => {
+            a = alias_get(parse_tree, name, alias_type);
+            if alias_type != UNSPEC as libc::c_int && !a.is_null() {
+                m = (*a).members.tqh_first;
+                while !m.is_null() {
+                    if m != (*a).members.tqh_first {
+                        sudo_lbuf_append_v1(
+                            lbuf,
+                            b"%s\0" as *const u8 as *const libc::c_char,
+                            separator,
+                        );
+                    }
+                    sudoers_format_member_int(
+                        lbuf,
+                        parse_tree,
+                        (*m).name,
+                        (*m).type0 as libc::c_int,
+                        if negated as libc::c_int != 0 {
+                            ((*m).negated == 0) as libc::c_int
+                        } else {
+                            (*m).negated as libc::c_int
+                        } != 0,
+                        separator,
+                        alias_type,
+                    );
+                    m = (*m).entries.tqe_next;
+                }
+                alias_put(a);
+            } else {
+                //goto
+                if *name.offset(0 as libc::c_int as isize) as libc::c_int == '#' as i32
+                    && *name.offset(
+                        (strspn(
+                            name.offset(1 as libc::c_int as isize),
+                            b"0123456789\0" as *const u8 as *const libc::c_char,
+                        ))
+                        .wrapping_add(1 as libc::c_int as libc::c_ulong)
+                            as isize,
+                    ) as libc::c_int
+                        == '\u{0}' as i32
+                {
+                    sudo_lbuf_append_v1(
+                        lbuf,
+                        b"%s%s\0" as *const u8 as *const libc::c_char,
+                        if negated as libc::c_int != 0 {
+                            b"!\0" as *const u8 as *const libc::c_char
+                        } else {
+                            b"\0" as *const u8 as *const libc::c_char
+                        },
+                        name,
+                    );
+                } else {
+                    if !(strpbrk(name, b" \t\0" as *const u8 as *const libc::c_char)).is_null() {
+                        sudo_lbuf_append_v1(
+                            lbuf,
+                            b"%s\"\0" as *const u8 as *const libc::c_char,
+                            if negated as libc::c_int != 0 {
+                                b"!\0" as *const u8 as *const libc::c_char
+                            } else {
+                                b"\0" as *const u8 as *const libc::c_char
+                            },
+                        );
+                        sudo_lbuf_append_quoted_v1(
+                            lbuf,
+                            b"\"\0" as *const u8 as *const libc::c_char,
+                            b"%s\0" as *const u8 as *const libc::c_char,
+                            name,
+                        );
+                        sudo_lbuf_append_v1(lbuf, b"\"\0" as *const u8 as *const libc::c_char);
+                    } else {
+                        sudo_lbuf_append_quoted_v1(
+                            lbuf,
+                            b":\\,=#\"\0" as *const u8 as *const libc::c_char,
+                            b"%s%s\0" as *const u8 as *const libc::c_char,
+                            if negated as libc::c_int != 0 {
+                                b"!\0" as *const u8 as *const libc::c_char
+                            } else {
+                                b"\0" as *const u8 as *const libc::c_char
+                            },
+                            name,
+                        );
+                    }
+                }
+                //end of goto
+            }
+        }
+        _ => {
+            if *name.offset(0 as libc::c_int as isize) as libc::c_int == '#' as i32
+                && *name.offset(
+                    (strspn(
+                        name.offset(1 as libc::c_int as isize),
+                        b"0123456789\0" as *const u8 as *const libc::c_char,
+                    ))
+                    .wrapping_add(1 as libc::c_int as libc::c_ulong) as isize,
+                ) as libc::c_int
+                    == '\u{0}' as i32
+            {
+                sudo_lbuf_append_v1(
+                    lbuf,
+                    b"%s%s\0" as *const u8 as *const libc::c_char,
+                    if negated as libc::c_int != 0 {
+                        b"!\0" as *const u8 as *const libc::c_char
+                    } else {
+                        b"\0" as *const u8 as *const libc::c_char
+                    },
+                    name,
+                );
+            } else {
+                if !(strpbrk(name, b" \t\0" as *const u8 as *const libc::c_char)).is_null() {
+                    sudo_lbuf_append_v1(
+                        lbuf,
+                        b"%s\"\0" as *const u8 as *const libc::c_char,
+                        if negated as libc::c_int != 0 {
+                            b"!\0" as *const u8 as *const libc::c_char
+                        } else {
+                            b"\0" as *const u8 as *const libc::c_char
+                        },
+                    );
+                    sudo_lbuf_append_quoted_v1(
+                        lbuf,
+                        b"\"\0" as *const u8 as *const libc::c_char,
+                        b"%s\0" as *const u8 as *const libc::c_char,
+                        name,
+                    );
+                    sudo_lbuf_append_v1(lbuf, b"\"\0" as *const u8 as *const libc::c_char);
+                } else {
+                    sudo_lbuf_append_quoted_v1(
+                        lbuf,
+                        b":\\,=#\"\0" as *const u8 as *const libc::c_char,
+                        b"%s%s\0" as *const u8 as *const libc::c_char,
+                        if negated as libc::c_int != 0 {
+                            b"!\0" as *const u8 as *const libc::c_char
+                        } else {
+                            b"\0" as *const u8 as *const libc::c_char
+                        },
+                        name,
+                    );
+                }
+            }
+        } //end of default
+    }
+    debug_return_bool!(!sudo_lbuf_error_v1(lbuf));
+}
