@@ -584,6 +584,236 @@ unsafe extern "C" fn new_digest(
     debug_return_ptr!(digest);
 }
 
+/*
+ * Add a list of defaults structures to the defaults list.
+ * The binding, if non-NULL, specifies a list of hosts, users, or
+ * runas users the entries apply to (specified by the type).
+ */
+unsafe extern "C" fn add_defaults(
+    mut type_0: libc::c_int,
+    mut bmem: *mut member,
+    mut defs: *mut defaults,
+) -> bool {
+    let mut d: *mut defaults = 0 as *mut defaults;
+    let mut next: *mut defaults = 0 as *mut defaults;
+    let mut binding: *mut member_list = 0 as *mut member_list;
+    let mut ret: bool = true;
+    debug_decl!(SUDOERS_DEBUG_PARSER!());
+    if !defs.is_null() {
+        /*
+         * We use a single binding for each entry in defs.
+         */
+        binding =
+            malloc(::core::mem::size_of::<member_list>() as libc::c_ulong) as *mut member_list;
+        if binding.is_null() {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            sudoerserror(b"unable to allocate memory\0" as *const u8 as *const libc::c_char);
+            debug_return_bool!(false);
+        }
+        if !bmem.is_null() {
+            (*binding).tqh_first = bmem;
+            (*binding).tqh_last = (*bmem).entries.tqe_prev;
+            (*bmem).entries.tqe_prev = &mut (*binding).tqh_first;
+        } else {
+            (*binding).tqh_first = 0 as *mut member;
+            (*binding).tqh_last = &mut (*binding).tqh_first;
+        }
+        /*
+         * Set type and binding (who it applies to) for new entries.
+         * Then add to the global defaults list.
+         */
+        d = defs;
+        while !d.is_null() && {
+            next = (*d).entries.tqe_next;
+            1 as libc::c_int != 0
+        } {
+            (*d).type_0 = type_0 as libc::c_short;
+            (*d).binding = binding;
+            (*d).entries.tqe_next = 0 as *mut defaults;
+            (*d).entries.tqe_prev = parsed_policy.defaults.tqh_last;
+            *parsed_policy.defaults.tqh_last = d;
+            parsed_policy.defaults.tqh_last = &mut (*d).entries.tqe_next;
+            d = next;
+        }
+    }
+    debug_return_bool!(ret);
+}
+/*
+ * Allocate a new struct userspec, populate it, and insert it at the
+ * end of the userspecs list.
+ */
+unsafe extern "C" fn add_userspec(mut members: *mut member, mut privs: *mut privilege) -> bool {
+    let mut u: *mut userspec = 0 as *mut userspec;
+    debug_decl!(SUDOERS_DEBUG_PARSER!());
+    u = calloc(
+        1 as libc::c_int as libc::c_ulong,
+        ::core::mem::size_of::<userspec>() as libc::c_ulong,
+    ) as *mut userspec;
+    if u.is_null() {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        debug_return_bool!(false);
+    }
+    (*u).lineno = this_lineno!();
+    (*u).file = rcstr_addref(sudoers);
+    (*u).users.tqh_first = members;
+    (*u).users.tqh_last = (*members).entries.tqe_prev;
+    (*members).entries.tqe_prev = &mut (*u).users.tqh_first;
+    (*u).privileges.tqh_first = privs;
+    (*u).privileges.tqh_last = (*privs).entries.tqe_prev;
+    (*privs).entries.tqe_prev = &mut (*u).privileges.tqh_first;
+    (*u).comments.stqh_first = 0 as *mut sudoers_comment;
+    (*u).comments.stqh_last = &mut (*u).comments.stqh_first;
+    (*u).entries.tqe_next = 0 as *mut userspec;
+    (*u).entries.tqe_prev = parsed_policy.userspecs.tqh_last;
+    *parsed_policy.userspecs.tqh_last = u;
+    parsed_policy.userspecs.tqh_last = &mut (*u).entries.tqe_next;
+    debug_return_bool!(true);
+}
+/*
+ * Free a member struct and its contents.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn free_member(mut m: *mut member) {
+    debug_decl!(SUDOERS_DEBUG_PARSER!());
+    if (*m).type_0 as libc::c_int == COMMAND {
+        let mut c: *mut sudo_command = (*m).name as *mut sudo_command;
+        free((*c).cmnd as *mut libc::c_void);
+        free((*c).args as *mut libc::c_void);
+        if !((*c).digest).is_null() {
+            free((*(*c).digest).digest_str as *mut libc::c_void);
+            free((*c).digest as *mut libc::c_void);
+        }
+    }
+    free((*m).name as *mut libc::c_void);
+    free(m as *mut libc::c_void);
+    debug_return!();
+}
+/*
+ * Free a tailq of members but not the struct member_list container itself.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn free_members(mut members: *mut member_list) {
+    let mut m: *mut member = 0 as *mut member;
+    debug_decl!(SUDOERS_DEBUG_PARSER!());
+    loop {
+        m = (*members).tqh_first;
+        if m.is_null() {
+            break;
+        }
+        if !((*m).entries.tqe_next).is_null() {
+            (*(*m).entries.tqe_next).entries.tqe_prev = (*m).entries.tqe_prev;
+        } else {
+            (*members).tqh_last = (*m).entries.tqe_prev;
+        }
+        *(*m).entries.tqe_prev = (*m).entries.tqe_next;
+        free_member(m);
+    }
+    debug_return!();
+}
+#[no_mangle]
+pub unsafe extern "C" fn free_defaults(mut defs: *mut defaults_list) {
+    let mut prev_binding: *mut member_list = 0 as *mut member_list;
+    let mut def: *mut defaults = 0 as *mut defaults;
+    debug_decl!(SUDOERS_DEBUG_PARSER!());
+    loop {
+        def = (*defs).tqh_first;
+        if def.is_null() {
+            break;
+        }
+        if !((*def).entries.tqe_next).is_null() {
+            (*(*def).entries.tqe_next).entries.tqe_prev = (*def).entries.tqe_prev;
+        } else {
+            (*defs).tqh_last = (*def).entries.tqe_prev;
+        }
+        *(*def).entries.tqe_prev = (*def).entries.tqe_next;
+        free_default(def, &mut prev_binding);
+    }
+    debug_return!();
+}
+#[no_mangle]
+pub unsafe extern "C" fn free_default(mut def: *mut defaults, mut binding: *mut *mut member_list) {
+    debug_decl!(SUDOERS_DEBUG_PARSER!());
+    if (*def).binding != *binding {
+        *binding = (*def).binding;
+        if !((*def).binding).is_null() {
+            free_members((*def).binding);
+            free((*def).binding as *mut libc::c_void);
+        }
+    }
+    rcstr_delref((*def).file);
+    free((*def).var as *mut libc::c_void);
+    free((*def).val as *mut libc::c_void);
+    free(def as *mut libc::c_void);
+    debug_return!();
+}
+#[no_mangle]
+pub unsafe extern "C" fn free_privilege(mut priv_0: *mut privilege) {
+    let mut runasuserlist: *mut member_list = 0 as *mut member_list;
+    let mut runasgrouplist: *mut member_list = 0 as *mut member_list;
+    let mut prev_binding: *mut member_list = 0 as *mut member_list;
+    let mut cs: *mut cmndspec = 0 as *mut cmndspec;
+    let mut def: *mut defaults = 0 as *mut defaults;
+    let mut role: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut type_0: *mut libc::c_char = 0 as *mut libc::c_char;
+    debug_decl!(SUDOERS_DEBUG_PARSER!());
+    free((*priv_0).ldap_role as *mut libc::c_void);
+    free_members(&mut (*priv_0).hostlist);
+    loop {
+        cs = (*priv_0).cmndlist.tqh_first;
+        if cs.is_null() {
+            break;
+        }
+        if !((*cs).entries.tqe_next).is_null() {
+            (*(*cs).entries.tqe_next).entries.tqe_prev = (*cs).entries.tqe_prev;
+        } else {
+            (*priv_0).cmndlist.tqh_last = (*cs).entries.tqe_prev;
+        }
+        *(*cs).entries.tqe_prev = (*cs).entries.tqe_next;
+        /* Only free the first instance of a role/type. */
+        if (*cs).role != role {
+            role = (*cs).role;
+            free((*cs).role as *mut libc::c_void);
+        }
+        if (*cs).type_0 != type_0 {
+            type_0 = (*cs).type_0;
+            free((*cs).type_0 as *mut libc::c_void);
+        }
+        /* Only free the first instance of runas user/group lists. */
+        if !((*cs).runasuserlist).is_null() && (*cs).runasuserlist != runasuserlist {
+            runasuserlist = (*cs).runasuserlist;
+            free_members(runasuserlist);
+            free(runasuserlist as *mut libc::c_void);
+        }
+        if !((*cs).runasgrouplist).is_null() && (*cs).runasgrouplist != runasgrouplist {
+            runasgrouplist = (*cs).runasgrouplist;
+            free_members(runasgrouplist);
+            free(runasgrouplist as *mut libc::c_void);
+        }
+        free_member((*cs).cmnd);
+        free(cs as *mut libc::c_void);
+    }
+    loop {
+        def = (*priv_0).defaults.tqh_first;
+        if def.is_null() {
+            break;
+        }
+        if !((*def).entries.tqe_next).is_null() {
+            (*(*def).entries.tqe_next).entries.tqe_prev = (*def).entries.tqe_prev;
+        } else {
+            (*priv_0).defaults.tqh_last = (*def).entries.tqe_prev;
+        }
+        *(*def).entries.tqe_prev = (*def).entries.tqe_next;
+        free_default(def, &mut prev_binding);
+    }
+    free(priv_0 as *mut libc::c_void);
+    debug_return!();
+}
 
 
 
