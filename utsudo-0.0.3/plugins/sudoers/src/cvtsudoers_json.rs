@@ -1095,3 +1095,167 @@ unsafe extern "C" fn print_defaults_list_json(
 
     debug_return!();
 }
+
+unsafe extern "C" fn get_defaults_type(mut def: *mut defaults) -> libc::c_int {
+    let mut cur: *mut sudo_defs_types = 0 as *mut sudo_defs_types;
+
+    /* Look up def in table to find its type. */
+    cur = sudo_defs_table.as_mut_ptr();
+    while !((*cur).name).is_null() {
+        if strcmp((*def).var, (*cur).name) == 0 as libc::c_int {
+            return (*cur).type_0;
+        }
+        cur = cur.offset(1);
+    }
+    return -(1 as libc::c_int);
+}
+
+/*
+ * Export all Defaults in JSON format.
+ */
+unsafe extern "C" fn print_defaults_json(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut indent: libc::c_int,
+    mut expand_aliases: bool,
+    mut need_comma: bool,
+) -> bool {
+    let mut value: json_value = json_value {
+        type_0: json_value_type::JSON_STRING,
+        u: json_value_u {
+            string: 0 as *mut libc::c_char,
+        },
+    };
+    let mut def: *mut defaults = 0 as *mut defaults;
+    let mut next: *mut defaults = 0 as *mut defaults;
+    let mut type_0: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    if ((*parse_tree).defaults.tqh_first).is_null() {
+        debug_return_bool!(need_comma);
+    }
+
+    fprintf(
+        fp,
+        b"%s\n%*s\"Defaults\": [\n\0" as *const u8 as *const libc::c_char,
+        if need_comma as libc::c_int != 0 {
+            b",\0" as *const u8 as *const libc::c_char
+        } else {
+            b"\0" as *const u8 as *const libc::c_char
+        },
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+    indent += 4 as libc::c_int;
+
+    def = (*parse_tree).defaults.tqh_first;
+    while !def.is_null() && {
+        next = (*def).entries.tqe_next;
+        1 as libc::c_int != 0
+    } {
+        type_0 = get_defaults_type(def);
+        if type_0 == -(1 as libc::c_int) {
+            sudo_warnx!(
+                b"unknown defaults entry \"%s\"\0" as *const u8 as *const libc::c_char,
+                (*def).var as libc::c_int
+            );
+            /* XXX - just pass it through as a string anyway? */
+        } else {
+            /* Found it, print object container and binding (if any). */
+            fprintf(
+                fp,
+                b"%*s{\n\0" as *const u8 as *const libc::c_char,
+                indent,
+                b"\0" as *const u8 as *const libc::c_char,
+            );
+            indent += 4 as libc::c_int;
+            print_binding_json(
+                fp,
+                parse_tree,
+                (*def).binding,
+                (*def).type_0 as libc::c_int,
+                indent,
+                expand_aliases,
+            );
+
+            /* Validation checks. */
+            /* XXX - validate values in addition to names? */
+
+            /* Print options, merging ones with the same binding. */
+            fprintf(
+                fp,
+                b"%*s\"Options\": [\n\0" as *const u8 as *const libc::c_char,
+                indent,
+                b"\0" as *const u8 as *const libc::c_char,
+            );
+            indent += 4 as libc::c_int;
+            loop {
+                next = (*def).entries.tqe_next;
+                /* XXX - need to update cur too */
+                if type_0 & T_MASK == T_FLAG || ((*def).val).is_null() {
+                    value.type_0 = json_value_type::JSON_BOOL;
+                    value.u.boolean = (*def).op != 0;
+                    print_pair_json(
+                        fp,
+                        b"{ \0" as *const u8 as *const libc::c_char,
+                        (*def).var,
+                        &mut value,
+                        b" }\0" as *const u8 as *const libc::c_char,
+                        indent,
+                    );
+                } else if type_0 & T_MASK == T_LIST {
+                    print_defaults_list_json(fp, def, indent);
+                } else {
+                    value.type_0 = json_value_type::JSON_STRING;
+                    value.u.string = (*def).val;
+                    print_pair_json(
+                        fp,
+                        b"{ \0" as *const u8 as *const libc::c_char,
+                        (*def).var,
+                        &mut value,
+                        b" }\0" as *const u8 as *const libc::c_char,
+                        indent,
+                    );
+                }
+                if next.is_null() || (*def).binding != (*next).binding {
+                    break;
+                }
+                def = next;
+                type_0 = get_defaults_type(def);
+                if type_0 == -(1 as libc::c_int) {
+                    sudo_warnx!(
+                        b"unknown defaults entry \"%s\"\0" as *const u8 as *const libc::c_char,
+                        (*def).var as libc::c_int
+                    );
+                    /* XXX - just pass it through as a string anyway? */
+                    break;
+                } else {
+                    fputs(b",\n\0" as *const u8 as *const libc::c_char, fp);
+                }
+            }
+            putc('\n' as i32, fp);
+            indent -= 4 as libc::c_int;
+            print_indent(fp, indent);
+            fputs(b"]\n\0" as *const u8 as *const libc::c_char, fp);
+            indent -= 4 as libc::c_int;
+            print_indent(fp, indent);
+            fprintf(
+                fp,
+                b"}%s\n\0" as *const u8 as *const libc::c_char,
+                if !next.is_null() {
+                    b",\0" as *const u8 as *const libc::c_char
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+            );
+        }
+        def = next;
+    }
+
+    /* Close Defaults array; comma (if any) & newline will be printer later. */
+    indent -= 4 as libc::c_int;
+    print_indent(fp, indent);
+    fputs(b"]\0" as *const u8 as *const libc::c_char, fp);
+
+    debug_return_bool!(true);
+}
