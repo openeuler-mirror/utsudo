@@ -1032,5 +1032,1638 @@ unsafe extern "C" fn yygrowstack() -> libc::c_int {
     return -(1 as libc::c_int);
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudoersparse() -> libc::c_int {
+    let mut current_block: u64;
+    let mut yym: libc::c_int = 0;
+    let mut yyn: libc::c_int = 0;
+    let mut yystate: libc::c_int = 0;
+    sudoersnerrs = 0 as libc::c_int;
+    sudoerserrflag = 0 as libc::c_int;
+    sudoerschar = -(1 as libc::c_int);
+    if sudoersss.is_null() && yygrowstack() != 0 {
+        current_block = 14612121114820974581;
+    } else {
+        sudoersssp = sudoersss;
+        sudoersvsp = sudoersvs;
+        yystate = 0 as libc::c_int;
+        *sudoersssp = yystate as libc::c_short;
+        '_yyloop: loop {
+            yyn = sudoersdefred[yystate as usize] as libc::c_int;
+            if yyn != 0 as libc::c_int {
+                current_block = 17780840256013524180;
+            } else {
+                if sudoerschar < 0 as libc::c_int {
+                    sudoerschar = sudoerslex();
+                    if sudoerschar < 0 as libc::c_int {
+                        sudoerschar = 0 as libc::c_int;
+                    }
+                }
+                yyn = sudoerssindex[yystate as usize] as libc::c_int;
+                if yyn != 0
+                    && {
+                        yyn += sudoerschar;
+                        yyn >= 0 as libc::c_int
+                    }
+                    && yyn <= 801 as libc::c_int
+                    && sudoerscheck[yyn as usize] as libc::c_int == sudoerschar
+                {
+                    if sudoersssp >= sudoerssslim && yygrowstack() != 0 {
+                        current_block = 14612121114820974581;
+                        break;
+                    }
+                    yystate = sudoerstable[yyn as usize] as libc::c_int;
+                    sudoersssp = sudoersssp.offset(1);
+                    *sudoersssp = yystate as libc::c_short;
+                    sudoersvsp = sudoersvsp.offset(1);
+                    *sudoersvsp = sudoerslval;
+                    sudoerschar = -(1 as libc::c_int);
+                    if sudoerserrflag > 0 as libc::c_int {
+                        sudoerserrflag -= 1;
+                    }
+                    continue;
+                } else {
+                    yyn = sudoersrindex[yystate as usize] as libc::c_int;
+                    if yyn != 0
+                        && {
+                            yyn += sudoerschar;
+                            yyn >= 0 as libc::c_int
+                        }
+                        && yyn <= 801 as libc::c_int
+                        && sudoerscheck[yyn as usize] as libc::c_int == sudoerschar
+                    {
+                        yyn = sudoerstable[yyn as usize] as libc::c_int;
+                        current_block = 17780840256013524180;
+                    } else if sudoerserrflag != 0 {
+                        current_block = 4984992474855142489;
+                    } else {
+                        sudoerserror(b"syntax error\0" as *const u8 as *const libc::c_char);
+                        current_block = 6132048441473628171;
+                    }
+                }
+            }
+            match current_block {
+                17780840256013524180 => {
+                    yym = sudoerslen[yyn as usize] as libc::c_int;
+                    if yym != 0 {
+                        sudoersval = *sudoersvsp.offset((1 as libc::c_int - yym) as isize);
+                    } else {
+                        memset(
+                            &mut sudoersval as *mut YYSTYPE as *mut libc::c_void,
+                            0 as libc::c_int,
+                            ::core::mem::size_of::<YYSTYPE>() as libc::c_ulong,
+                        );
+                    }
+                    match yyn {
+                        6 => {
+                            sudoerserrflag = 0 as libc::c_int;
+                            current_block = 3060842081253517936;
+                        }
+                        7 => {
+                            if !add_userspec(
+                                (*sudoersvsp.offset(-(1 as libc::c_int) as isize)).member,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).privilege,
+                            ) {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        12 => {
+                            if !add_defaults(
+                                265 as libc::c_int,
+                                0 as *mut member,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).defaults,
+                            ) {
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        13 => {
+                            if !add_defaults(
+                                267 as libc::c_int,
+                                (*sudoersvsp.offset(-(1 as libc::c_int) as isize)).member,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).defaults,
+                            ) {
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        14 => {
+                            if !add_defaults(
+                                268 as libc::c_int,
+                                (*sudoersvsp.offset(-(1 as libc::c_int) as isize)).member,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).defaults,
+                            ) {
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        15 => {
+                            if !add_defaults(
+                                266 as libc::c_int,
+                                (*sudoersvsp.offset(-(1 as libc::c_int) as isize)).member,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).defaults,
+                            ) {
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        16 => {
+                            if !add_defaults(
+                                269 as libc::c_int,
+                                (*sudoersvsp.offset(-(1 as libc::c_int) as isize)).member,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).defaults,
+                            ) {
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        18 => {
+                            let ref mut fresh0 = (*(*sudoersvsp.offset(0 as libc::c_int as isize))
+                                .defaults)
+                                .entries
+                                .tqe_prev;
+                            *fresh0 = (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize))
+                                .defaults)
+                                .entries
+                                .tqe_prev;
+                            let ref mut fresh1 =
+                                *(*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).defaults)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh1 = (*sudoersvsp.offset(0 as libc::c_int as isize)).defaults;
+                            let ref mut fresh2 =
+                                (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).defaults)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh2 = &mut (*(*sudoersvsp.offset(0 as libc::c_int as isize))
+                                .defaults)
+                                .entries
+                                .tqe_next;
+                            sudoersval.defaults =
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).defaults;
+                            current_block = 3060842081253517936;
+                        }
+                        19 => {
+                            sudoersval.defaults = new_default(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                0 as *mut libc::c_char,
+                                1 as libc::c_int as libc::c_short,
+                            );
+                            if (sudoersval.defaults).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        20 => {
+                            sudoersval.defaults = new_default(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                0 as *mut libc::c_char,
+                                0 as libc::c_int as libc::c_short,
+                            );
+                            if (sudoersval.defaults).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        21 => {
+                            sudoersval.defaults = new_default(
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).string,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                1 as libc::c_int as libc::c_short,
+                            );
+                            if (sudoersval.defaults).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        22 => {
+                            sudoersval.defaults = new_default(
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).string,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                '+' as i32 as libc::c_short,
+                            );
+                            if (sudoersval.defaults).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        23 => {
+                            sudoersval.defaults = new_default(
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).string,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                '-' as i32 as libc::c_short,
+                            );
+                            if (sudoersval.defaults).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        25 => {
+                            let ref mut fresh3 = (*(*sudoersvsp.offset(0 as libc::c_int as isize))
+                                .privilege)
+                                .entries
+                                .tqe_prev;
+                            *fresh3 = (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize))
+                                .privilege)
+                                .entries
+                                .tqe_prev;
+                            let ref mut fresh4 =
+                                *(*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).privilege)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh4 = (*sudoersvsp.offset(0 as libc::c_int as isize)).privilege;
+                            let ref mut fresh5 =
+                                (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).privilege)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh5 = &mut (*(*sudoersvsp.offset(0 as libc::c_int as isize))
+                                .privilege)
+                                .entries
+                                .tqe_next;
+                            sudoersval.privilege =
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).privilege;
+                            current_block = 3060842081253517936;
+                        }
+                        26 => {
+                            let mut p: *mut privilege = calloc(
+                                1 as libc::c_int as libc::c_ulong,
+                                ::core::mem::size_of::<privilege>() as libc::c_ulong,
+                            )
+                                as *mut privilege;
+                            if p.is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                (*p).defaults.tqh_first = 0 as *mut defaults;
+                                (*p).defaults.tqh_last = &mut (*p).defaults.tqh_first;
+                                (*p).hostlist.tqh_first =
+                                    (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member;
+                                (*p).hostlist.tqh_last =
+                                    (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                        .entries
+                                        .tqe_prev;
+                                let ref mut fresh6 =
+                                    (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                        .entries
+                                        .tqe_prev;
+                                *fresh6 = &mut (*p).hostlist.tqh_first;
+                                (*p).cmndlist.tqh_first =
+                                    (*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec;
+                                (*p).cmndlist.tqh_last =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .entries
+                                        .tqe_prev;
+                                let ref mut fresh7 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .entries
+                                        .tqe_prev;
+                                *fresh7 = &mut (*p).cmndlist.tqh_first;
+                                (*p).entries.tqe_next = 0 as *mut privilege;
+                                (*p).entries.tqe_prev = &mut (*p).entries.tqe_next;
+                                sudoersval.privilege = p;
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        27 => {
+                            sudoersval.member =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            (*sudoersval.member).negated = 0 as libc::c_int as libc::c_short;
+                            current_block = 3060842081253517936;
+                        }
+                        28 => {
+                            sudoersval.member =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            (*sudoersval.member).negated = 1 as libc::c_int as libc::c_short;
+                            current_block = 3060842081253517936;
+                        }
+                        29 => {
+                            sudoersval.member = new_member(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                258 as libc::c_int,
+                            );
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        30 => {
+                            sudoersval.member =
+                                new_member(0 as *mut libc::c_char, 284 as libc::c_int);
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        31 => {
+                            sudoersval.member = new_member(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                261 as libc::c_int,
+                            );
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        32 => {
+                            sudoersval.member = new_member(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                260 as libc::c_int,
+                            );
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        33 => {
+                            sudoersval.member = new_member(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                263 as libc::c_int,
+                            );
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        35 => {
+                            let mut prev: *mut cmndspec = 0 as *mut cmndspec;
+                            prev = if ((*(*sudoersvsp.offset(-(2 as libc::c_int) as isize))
+                                .cmndspec)
+                                .entries
+                                .tqe_next)
+                                .is_null()
+                            {
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).cmndspec
+                            } else {
+                                ((*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).cmndspec)
+                                    .entries
+                                    .tqe_prev as *mut libc::c_char)
+                                    .offset(-(0 as libc::c_ulong as isize))
+                                    as *mut cmndspec
+                            };
+                            let ref mut fresh8 = (*(*sudoersvsp.offset(0 as libc::c_int as isize))
+                                .cmndspec)
+                                .entries
+                                .tqe_prev;
+                            *fresh8 = (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize))
+                                .cmndspec)
+                                .entries
+                                .tqe_prev;
+                            let ref mut fresh9 =
+                                *(*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).cmndspec)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh9 = (*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec;
+                            let ref mut fresh10 =
+                                (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).cmndspec)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh10 = &mut (*(*sudoersvsp.offset(0 as libc::c_int as isize))
+                                .cmndspec)
+                                .entries
+                                .tqe_next;
+                            if ((*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec).role)
+                                .is_null()
+                                && ((*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                    .type_0)
+                                    .is_null()
+                            {
+                                let ref mut fresh11 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .role;
+                                *fresh11 = (*prev).role;
+                                let ref mut fresh12 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .type_0;
+                                *fresh12 = (*prev).type_0;
+                            }
+                            if (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec).notbefore
+                                == -(1 as libc::c_int) as libc::c_long
+                            {
+                                (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                    .notbefore = (*prev).notbefore;
+                            }
+                            if (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec).notafter
+                                == -(1 as libc::c_int) as libc::c_long
+                            {
+                                (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                    .notafter = (*prev).notafter;
+                            }
+                            if (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec).timeout
+                                == -(1 as libc::c_int)
+                            {
+                                (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                    .timeout = (*prev).timeout;
+                            }
+                            if ((*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec).tags)
+                                .nopasswd()
+                                == -(1 as libc::c_int)
+                            {
+                                let ref mut fresh13 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .tags;
+                                (*fresh13).set_nopasswd(((*prev).tags).nopasswd());
+                            }
+                            if ((*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec).tags)
+                                .noexec()
+                                == -(1 as libc::c_int)
+                            {
+                                let ref mut fresh14 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .tags;
+                                (*fresh14).set_noexec(((*prev).tags).noexec());
+                            }
+                            if ((*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec).tags)
+                                .setenv()
+                                == -(1 as libc::c_int)
+                                && ((*prev).tags).setenv() != 2 as libc::c_int
+                            {
+                                let ref mut fresh15 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .tags;
+                                (*fresh15).set_setenv(((*prev).tags).setenv());
+                            }
+                            if ((*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec).tags)
+                                .log_input()
+                                == -(1 as libc::c_int)
+                            {
+                                let ref mut fresh16 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .tags;
+                                (*fresh16).set_log_input(((*prev).tags).log_input());
+                            }
+                            if ((*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec).tags)
+                                .log_output()
+                                == -(1 as libc::c_int)
+                            {
+                                let ref mut fresh17 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .tags;
+                                (*fresh17).set_log_output(((*prev).tags).log_output());
+                            }
+                            if ((*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec).tags)
+                                .send_mail()
+                                == -(1 as libc::c_int)
+                            {
+                                let ref mut fresh18 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .tags;
+                                (*fresh18).set_send_mail(((*prev).tags).send_mail());
+                            }
+                            if ((*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec).tags)
+                                .follow()
+                                == -(1 as libc::c_int)
+                            {
+                                let ref mut fresh19 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .tags;
+                                (*fresh19).set_follow(((*prev).tags).follow());
+                            }
+                            if ((*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                .runasuserlist)
+                                .is_null()
+                                && ((*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                    .runasgrouplist)
+                                    .is_null()
+                                && (!((*prev).runasuserlist).is_null()
+                                    || !((*prev).runasgrouplist).is_null())
+                            {
+                                let ref mut fresh20 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .runasuserlist;
+                                *fresh20 = (*prev).runasuserlist;
+                                let ref mut fresh21 =
+                                    (*(*sudoersvsp.offset(0 as libc::c_int as isize)).cmndspec)
+                                        .runasgrouplist;
+                                *fresh21 = (*prev).runasgrouplist;
+                            }
+                            sudoersval.cmndspec =
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).cmndspec;
+                            current_block = 3060842081253517936;
+                        }
+                        36 => {
+                            let mut cs: *mut cmndspec = calloc(
+                                1 as libc::c_int as libc::c_ulong,
+                                ::core::mem::size_of::<cmndspec>() as libc::c_ulong,
+                            )
+                                as *mut cmndspec;
+                            if cs.is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                if !((*sudoersvsp.offset(-(3 as libc::c_int) as isize)).runas)
+                                    .is_null()
+                                {
+                                    if !((*(*sudoersvsp.offset(-(3 as libc::c_int) as isize))
+                                        .runas)
+                                        .runasusers)
+                                        .is_null()
+                                    {
+                                        (*cs).runasuserlist =
+                                            malloc(::core::mem::size_of::<member_list>()
+                                                as libc::c_ulong)
+                                                as *mut member_list;
+                                        if ((*cs).runasuserlist).is_null() {
+                                            free(cs as *mut libc::c_void);
+                                            sudoerserror(
+                                                b"unable to allocate memory\0" as *const u8
+                                                    as *const libc::c_char,
+                                            );
+                                            current_block = 6132048441473628171;
+                                        } else {
+                                            (*(*cs).runasuserlist).tqh_first = (*(*sudoersvsp
+                                                .offset(-(3 as libc::c_int) as isize))
+                                            .runas)
+                                                .runasusers;
+                                            (*(*cs).runasuserlist).tqh_last = (*(*(*sudoersvsp
+                                                .offset(-(3 as libc::c_int) as isize))
+                                            .runas)
+                                                .runasusers)
+                                                .entries
+                                                .tqe_prev;
+                                            let ref mut fresh22 = (*(*(*sudoersvsp
+                                                .offset(-(3 as libc::c_int) as isize))
+                                            .runas)
+                                                .runasusers)
+                                                .entries
+                                                .tqe_prev;
+                                            *fresh22 = &mut (*(*cs).runasuserlist).tqh_first;
+                                            current_block = 13193481930143188038;
+                                        }
+                                    } else {
+                                        current_block = 13193481930143188038;
+                                    }
+                                    match current_block {
+                                        6132048441473628171 => {}
+                                        _ => {
+                                            if !((*(*sudoersvsp
+                                                .offset(-(3 as libc::c_int) as isize))
+                                            .runas)
+                                                .runasgroups)
+                                                .is_null()
+                                            {
+                                                (*cs).runasgrouplist =
+                                                    malloc(::core::mem::size_of::<member_list>()
+                                                        as libc::c_ulong)
+                                                        as *mut member_list;
+                                                if ((*cs).runasgrouplist).is_null() {
+                                                    free(cs as *mut libc::c_void);
+                                                    sudoerserror(
+                                                        b"unable to allocate memory\0" as *const u8
+                                                            as *const libc::c_char,
+                                                    );
+                                                    current_block = 6132048441473628171;
+                                                } else {
+                                                    (*(*cs).runasgrouplist).tqh_first =
+                                                        (*(*sudoersvsp
+                                                            .offset(-(3 as libc::c_int) as isize))
+                                                        .runas)
+                                                            .runasgroups;
+                                                    (*(*cs).runasgrouplist).tqh_last =
+                                                        (*(*(*sudoersvsp.offset(
+                                                            -(3 as libc::c_int) as isize,
+                                                        ))
+                                                        .runas)
+                                                            .runasgroups)
+                                                            .entries
+                                                            .tqe_prev;
+                                                    let ref mut fresh23 = (*(*(*sudoersvsp
+                                                        .offset(-(3 as libc::c_int) as isize))
+                                                    .runas)
+                                                        .runasgroups)
+                                                        .entries
+                                                        .tqe_prev;
+                                                    *fresh23 =
+                                                        &mut (*(*cs).runasgrouplist).tqh_first;
+                                                    current_block = 12350242817162068077;
+                                                }
+                                            } else {
+                                                current_block = 12350242817162068077;
+                                            }
+                                            match current_block {
+                                                6132048441473628171 => {}
+                                                _ => {
+                                                    free(
+                                                        (*sudoersvsp
+                                                            .offset(-(3 as libc::c_int) as isize))
+                                                        .runas
+                                                            as *mut libc::c_void,
+                                                    );
+                                                    current_block = 763224442071743734;
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    current_block = 763224442071743734;
+                                }
+                                match current_block {
+                                    6132048441473628171 => {}
+                                    _ => {
+                                        (*cs).role = (*sudoersvsp
+                                            .offset(-(2 as libc::c_int) as isize))
+                                        .options
+                                        .role;
+                                        (*cs).type_0 = (*sudoersvsp
+                                            .offset(-(2 as libc::c_int) as isize))
+                                        .options
+                                        .type_0;
+                                        (*cs).notbefore = (*sudoersvsp
+                                            .offset(-(2 as libc::c_int) as isize))
+                                        .options
+                                        .notbefore;
+                                        (*cs).notafter = (*sudoersvsp
+                                            .offset(-(2 as libc::c_int) as isize))
+                                        .options
+                                        .notafter;
+                                        (*cs).timeout = (*sudoersvsp
+                                            .offset(-(2 as libc::c_int) as isize))
+                                        .options
+                                        .timeout;
+                                        (*cs).tags =
+                                            (*sudoersvsp.offset(-(1 as libc::c_int) as isize)).tag;
+                                        (*cs).cmnd =
+                                            (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                                        (*cs).entries.tqe_next = 0 as *mut cmndspec;
+                                        (*cs).entries.tqe_prev = &mut (*cs).entries.tqe_next;
+                                        if (*(*cs).cmnd).type_0 as libc::c_int == 284 as libc::c_int
+                                            && (*(*cs).cmnd).negated == 0
+                                            && ((*cs).tags).setenv() == -(1 as libc::c_int)
+                                        {
+                                            ((*cs).tags).set_setenv(2 as libc::c_int);
+                                        }
+                                        sudoersval.cmndspec = cs;
+                                        current_block = 3060842081253517936;
+                                    }
+                                }
+                            }
+                        }
+                        37 => {
+                            sudoersval.digest = new_digest(
+                                0 as libc::c_int,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                            );
+                            if (sudoersval.digest).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        38 => {
+                            sudoersval.digest = new_digest(
+                                1 as libc::c_int,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                            );
+                            if (sudoersval.digest).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        39 => {
+                            sudoersval.digest = new_digest(
+                                2 as libc::c_int,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                            );
+                            if (sudoersval.digest).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        40 => {
+                            sudoersval.digest = new_digest(
+                                3 as libc::c_int,
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                            );
+                            if (sudoersval.digest).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        41 => {
+                            sudoersval.member =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            current_block = 3060842081253517936;
+                        }
+                        42 => {
+                            if (*(*sudoersvsp.offset(0 as libc::c_int as isize)).member).type_0
+                                as libc::c_int
+                                != 257 as libc::c_int
+                            {
+                                sudoerserror(
+                                    b"a digest requires a path name\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                let ref mut fresh24 =
+                                    (*((*(*sudoersvsp.offset(0 as libc::c_int as isize)).member)
+                                        .name
+                                        as *mut sudo_command))
+                                        .digest;
+                                *fresh24 =
+                                    (*sudoersvsp.offset(-(1 as libc::c_int) as isize)).digest;
+                                sudoersval.member =
+                                    (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        43 => {
+                            sudoersval.member =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            (*sudoersval.member).negated = 0 as libc::c_int as libc::c_short;
+                            current_block = 3060842081253517936;
+                        }
+                        44 => {
+                            sudoersval.member =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            (*sudoersval.member).negated = 1 as libc::c_int as libc::c_short;
+                            current_block = 3060842081253517936;
+                        }
+                        45 => {
+                            sudoersval.string =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string;
+                            current_block = 3060842081253517936;
+                        }
+                        46 => {
+                            sudoersval.string =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string;
+                            current_block = 3060842081253517936;
+                        }
+                        47 => {
+                            sudoersval.string =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string;
+                            current_block = 3060842081253517936;
+                        }
+                        48 => {
+                            sudoersval.string =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string;
+                            current_block = 3060842081253517936;
+                        }
+                        49 => {
+                            sudoersval.string =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string;
+                            current_block = 3060842081253517936;
+                        }
+                        50 => {
+                            sudoersval.string =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string;
+                            current_block = 3060842081253517936;
+                        }
+                        51 => {
+                            sudoersval.string =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string;
+                            current_block = 3060842081253517936;
+                        }
+                        52 => {
+                            sudoersval.runas = 0 as *mut runascontainer;
+                            current_block = 3060842081253517936;
+                        }
+                        53 => {
+                            sudoersval.runas =
+                                (*sudoersvsp.offset(-(1 as libc::c_int) as isize)).runas;
+                            current_block = 3060842081253517936;
+                        }
+                        54 => {
+                            sudoersval.runas = calloc(
+                                1 as libc::c_int as libc::c_ulong,
+                                ::core::mem::size_of::<runascontainer>() as libc::c_ulong,
+                            ) as *mut runascontainer;
+                            if !(sudoersval.runas).is_null() {
+                                (*sudoersval.runas).runasusers =
+                                    new_member(0 as *mut libc::c_char, 298 as libc::c_int);
+                                if ((*sudoersval.runas).runasusers).is_null() {
+                                    free(sudoersval.runas as *mut libc::c_void);
+                                    sudoersval.runas = 0 as *mut runascontainer;
+                                }
+                            }
+                            if (sudoersval.runas).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        55 => {
+                            sudoersval.runas = calloc(
+                                1 as libc::c_int as libc::c_ulong,
+                                ::core::mem::size_of::<runascontainer>() as libc::c_ulong,
+                            ) as *mut runascontainer;
+                            if (sudoersval.runas).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                (*sudoersval.runas).runasusers =
+                                    (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        56 => {
+                            sudoersval.runas = calloc(
+                                1 as libc::c_int as libc::c_ulong,
+                                ::core::mem::size_of::<runascontainer>() as libc::c_ulong,
+                            ) as *mut runascontainer;
+                            if (sudoersval.runas).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                (*sudoersval.runas).runasusers =
+                                    (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member;
+                                (*sudoersval.runas).runasgroups =
+                                    (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        57 => {
+                            sudoersval.runas = calloc(
+                                1 as libc::c_int as libc::c_ulong,
+                                ::core::mem::size_of::<runascontainer>() as libc::c_ulong,
+                            ) as *mut runascontainer;
+                            if (sudoersval.runas).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                (*sudoersval.runas).runasgroups =
+                                    (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        58 => {
+                            sudoersval.runas = calloc(
+                                1 as libc::c_int as libc::c_ulong,
+                                ::core::mem::size_of::<runascontainer>() as libc::c_ulong,
+                            ) as *mut runascontainer;
+                            if !(sudoersval.runas).is_null() {
+                                (*sudoersval.runas).runasusers =
+                                    new_member(0 as *mut libc::c_char, 298 as libc::c_int);
+                                if ((*sudoersval.runas).runasusers).is_null() {
+                                    free(sudoersval.runas as *mut libc::c_void);
+                                    sudoersval.runas = 0 as *mut runascontainer;
+                                }
+                            }
+                            if (sudoersval.runas).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        59 => {
+                            init_options(&mut sudoersval.options);
+                            current_block = 3060842081253517936;
+                        }
+                        60 => {
+                            sudoersval.options.notbefore = parse_gentime(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                            );
+                            free(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string
+                                    as *mut libc::c_void,
+                            );
+                            if sudoersval.options.notbefore == -(1 as libc::c_int) as libc::c_long {
+                                sudoerserror(
+                                    b"invalid notbefore value\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        61 => {
+                            sudoersval.options.notafter = parse_gentime(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                            );
+                            free(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string
+                                    as *mut libc::c_void,
+                            );
+                            if sudoersval.options.notafter == -(1 as libc::c_int) as libc::c_long {
+                                sudoerserror(
+                                    b"invalid notafter value\0" as *const u8 as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        62 => {
+                            sudoersval.options.timeout = parse_timeout(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                            );
+                            free(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string
+                                    as *mut libc::c_void,
+                            );
+                            if sudoersval.options.timeout == -(1 as libc::c_int) {
+                                if *__errno_location() == 34 as libc::c_int {
+                                    sudoerserror(
+                                        b"timeout value too large\0" as *const u8
+                                            as *const libc::c_char,
+                                    );
+                                } else {
+                                    sudoerserror(
+                                        b"invalid timeout value\0" as *const u8
+                                            as *const libc::c_char,
+                                    );
+                                }
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        63 => {
+                            free(sudoersval.options.role as *mut libc::c_void);
+                            sudoersval.options.role =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string;
+                            current_block = 3060842081253517936;
+                        }
+                        64 => {
+                            free(sudoersval.options.type_0 as *mut libc::c_void);
+                            sudoersval.options.type_0 =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string;
+                            current_block = 3060842081253517936;
+                        }
+                        67 => {
+                            (sudoersval.tag).set_follow(-(1 as libc::c_int));
+                            (sudoersval.tag).set_log_input(-(1 as libc::c_int));
+                            (sudoersval.tag).set_log_output(-(1 as libc::c_int));
+                            (sudoersval.tag).set_noexec(-(1 as libc::c_int));
+                            (sudoersval.tag).set_nopasswd(-(1 as libc::c_int));
+                            (sudoersval.tag).set_send_mail(-(1 as libc::c_int));
+                            (sudoersval.tag).set_setenv(-(1 as libc::c_int));
+                            current_block = 3060842081253517936;
+                        }
+                        68 => {
+                            (sudoersval.tag).set_nopasswd(1 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        69 => {
+                            (sudoersval.tag).set_nopasswd(0 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        70 => {
+                            (sudoersval.tag).set_noexec(1 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        71 => {
+                            (sudoersval.tag).set_noexec(0 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        72 => {
+                            (sudoersval.tag).set_setenv(1 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        73 => {
+                            (sudoersval.tag).set_setenv(0 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        74 => {
+                            (sudoersval.tag).set_log_input(1 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        75 => {
+                            (sudoersval.tag).set_log_input(0 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        76 => {
+                            (sudoersval.tag).set_log_output(1 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        77 => {
+                            (sudoersval.tag).set_log_output(0 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        78 => {
+                            (sudoersval.tag).set_follow(1 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        79 => {
+                            (sudoersval.tag).set_follow(0 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        80 => {
+                            (sudoersval.tag).set_send_mail(1 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        81 => {
+                            (sudoersval.tag).set_send_mail(0 as libc::c_int);
+                            current_block = 3060842081253517936;
+                        }
+                        82 => {
+                            sudoersval.member =
+                                new_member(0 as *mut libc::c_char, 284 as libc::c_int);
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        83 => {
+                            sudoersval.member = new_member(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                258 as libc::c_int,
+                            );
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        84 => {
+                            let mut c: *mut sudo_command = calloc(
+                                1 as libc::c_int as libc::c_ulong,
+                                ::core::mem::size_of::<sudo_command>() as libc::c_ulong,
+                            )
+                                as *mut sudo_command;
+                            if c.is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                (*c).cmnd =
+                                    (*sudoersvsp.offset(0 as libc::c_int as isize)).command.cmnd;
+                                (*c).args =
+                                    (*sudoersvsp.offset(0 as libc::c_int as isize)).command.args;
+                                sudoersval.member =
+                                    new_member(c as *mut libc::c_char, 257 as libc::c_int);
+                                if (sudoersval.member).is_null() {
+                                    free(c as *mut libc::c_void);
+                                    sudoerserror(
+                                        b"unable to allocate memory\0" as *const u8
+                                            as *const libc::c_char,
+                                    );
+                                    current_block = 6132048441473628171;
+                                } else {
+                                    current_block = 3060842081253517936;
+                                }
+                            }
+                        }
+                        87 => {
+                            let mut s: *const libc::c_char = 0 as *const libc::c_char;
+                            s = alias_add(
+                                &mut parsed_policy,
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).string,
+                                286 as libc::c_int,
+                                sudoers,
+                                if last_token == 285 as libc::c_int {
+                                    sudolineno - 1 as libc::c_int
+                                } else {
+                                    sudolineno
+                                },
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member,
+                            );
+                            if !s.is_null() {
+                                sudoerserror(s);
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        89 => {
+                            let ref mut fresh25 =
+                                (*(*sudoersvsp.offset(0 as libc::c_int as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh25 = (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                .entries
+                                .tqe_prev;
+                            let ref mut fresh26 =
+                                *(*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh26 = (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            let ref mut fresh27 =
+                                (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh27 = &mut (*(*sudoersvsp.offset(0 as libc::c_int as isize))
+                                .member)
+                                .entries
+                                .tqe_next;
+                            sudoersval.member =
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member;
+                            current_block = 3060842081253517936;
+                        }
+                        92 => {
+                            let mut s_0: *const libc::c_char = 0 as *const libc::c_char;
+                            s_0 = alias_add(
+                                &mut parsed_policy,
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).string,
+                                287 as libc::c_int,
+                                sudoers,
+                                if last_token == 285 as libc::c_int {
+                                    sudolineno - 1 as libc::c_int
+                                } else {
+                                    sudolineno
+                                },
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member,
+                            );
+                            if !s_0.is_null() {
+                                sudoerserror(s_0);
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        94 => {
+                            let ref mut fresh28 =
+                                (*(*sudoersvsp.offset(0 as libc::c_int as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh28 = (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                .entries
+                                .tqe_prev;
+                            let ref mut fresh29 =
+                                *(*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh29 = (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            let ref mut fresh30 =
+                                (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh30 = &mut (*(*sudoersvsp.offset(0 as libc::c_int as isize))
+                                .member)
+                                .entries
+                                .tqe_next;
+                            sudoersval.member =
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member;
+                            current_block = 3060842081253517936;
+                        }
+                        97 => {
+                            let mut s_1: *const libc::c_char = 0 as *const libc::c_char;
+                            s_1 = alias_add(
+                                &mut parsed_policy,
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).string,
+                                289 as libc::c_int,
+                                sudoers,
+                                if last_token == 285 as libc::c_int {
+                                    sudolineno - 1 as libc::c_int
+                                } else {
+                                    sudolineno
+                                },
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member,
+                            );
+                            if !s_1.is_null() {
+                                sudoerserror(s_1);
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        100 => {
+                            let mut s_2: *const libc::c_char = 0 as *const libc::c_char;
+                            s_2 = alias_add(
+                                &mut parsed_policy,
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).string,
+                                288 as libc::c_int,
+                                sudoers,
+                                if last_token == 285 as libc::c_int {
+                                    sudolineno - 1 as libc::c_int
+                                } else {
+                                    sudolineno
+                                },
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member,
+                            );
+                            if !s_2.is_null() {
+                                sudoerserror(s_2);
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        102 => {
+                            let ref mut fresh31 =
+                                (*(*sudoersvsp.offset(0 as libc::c_int as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh31 = (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                .entries
+                                .tqe_prev;
+                            let ref mut fresh32 =
+                                *(*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh32 = (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            let ref mut fresh33 =
+                                (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh33 = &mut (*(*sudoersvsp.offset(0 as libc::c_int as isize))
+                                .member)
+                                .entries
+                                .tqe_next;
+                            sudoersval.member =
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member;
+                            current_block = 3060842081253517936;
+                        }
+                        103 => {
+                            sudoersval.member =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            (*sudoersval.member).negated = 0 as libc::c_int as libc::c_short;
+                            current_block = 3060842081253517936;
+                        }
+                        104 => {
+                            sudoersval.member =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            (*sudoersval.member).negated = 1 as libc::c_int as libc::c_short;
+                            current_block = 3060842081253517936;
+                        }
+                        105 => {
+                            sudoersval.member = new_member(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                258 as libc::c_int,
+                            );
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        106 => {
+                            sudoersval.member =
+                                new_member(0 as *mut libc::c_char, 284 as libc::c_int);
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        107 => {
+                            sudoersval.member = new_member(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                261 as libc::c_int,
+                            );
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        108 => {
+                            sudoersval.member = new_member(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                262 as libc::c_int,
+                            );
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        109 => {
+                            sudoersval.member = new_member(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                263 as libc::c_int,
+                            );
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        111 => {
+                            let ref mut fresh34 =
+                                (*(*sudoersvsp.offset(0 as libc::c_int as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh34 = (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                .entries
+                                .tqe_prev;
+                            let ref mut fresh35 =
+                                *(*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh35 = (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            let ref mut fresh36 =
+                                (*(*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member)
+                                    .entries
+                                    .tqe_prev;
+                            *fresh36 = &mut (*(*sudoersvsp.offset(0 as libc::c_int as isize))
+                                .member)
+                                .entries
+                                .tqe_next;
+                            sudoersval.member =
+                                (*sudoersvsp.offset(-(2 as libc::c_int) as isize)).member;
+                            current_block = 3060842081253517936;
+                        }
+                        112 => {
+                            sudoersval.member =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            (*sudoersval.member).negated = 0 as libc::c_int as libc::c_short;
+                            current_block = 3060842081253517936;
+                        }
+                        113 => {
+                            sudoersval.member =
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).member;
+                            (*sudoersval.member).negated = 1 as libc::c_int as libc::c_short;
+                            current_block = 3060842081253517936;
+                        }
+                        114 => {
+                            sudoersval.member = new_member(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                258 as libc::c_int,
+                            );
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        115 => {
+                            sudoersval.member =
+                                new_member(0 as *mut libc::c_char, 284 as libc::c_int);
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        116 => {
+                            sudoersval.member = new_member(
+                                (*sudoersvsp.offset(0 as libc::c_int as isize)).string,
+                                263 as libc::c_int,
+                            );
+                            if (sudoersval.member).is_null() {
+                                sudoerserror(
+                                    b"unable to allocate memory\0" as *const u8
+                                        as *const libc::c_char,
+                                );
+                                current_block = 6132048441473628171;
+                            } else {
+                                current_block = 3060842081253517936;
+                            }
+                        }
+                        1 | 5 | 8 | 9 | 10 | 11 | 65 | 66 | _ => {
+                            current_block = 3060842081253517936;
+                        }
+                    }
+                    match current_block {
+                        6132048441473628171 => {}
+                        _ => {
+                            sudoersssp = sudoersssp.offset(-(yym as isize));
+                            yystate = *sudoersssp as libc::c_int;
+                            sudoersvsp = sudoersvsp.offset(-(yym as isize));
+                            yym = sudoerslhs[yyn as usize] as libc::c_int;
+                            if yystate == 0 as libc::c_int && yym == 0 as libc::c_int {
+                                yystate = 18 as libc::c_int;
+                                sudoersssp = sudoersssp.offset(1);
+                                *sudoersssp = 18 as libc::c_int as libc::c_short;
+                                sudoersvsp = sudoersvsp.offset(1);
+                                *sudoersvsp = sudoersval;
+                                if sudoerschar < 0 as libc::c_int {
+                                    sudoerschar = sudoerslex();
+                                    if sudoerschar < 0 as libc::c_int {
+                                        sudoerschar = 0 as libc::c_int;
+                                    }
+                                }
+                                if !(sudoerschar == 0 as libc::c_int) {
+                                    continue;
+                                }
+                                if !sudoersss.is_null() {
+                                    free(sudoersss as *mut libc::c_void);
+                                }
+                                if !sudoersvs.is_null() {
+                                    free(sudoersvs as *mut libc::c_void);
+                                }
+                                sudoersssp = 0 as *mut libc::c_short;
+                                sudoersss = sudoersssp;
+                                sudoersvsp = 0 as *mut YYSTYPE;
+                                sudoersvs = sudoersvsp;
+                                sudoersstacksize = 0 as libc::c_int as libc::c_uint;
+                                return 0 as libc::c_int;
+                            } else {
+                                yyn = sudoersgindex[yym as usize] as libc::c_int;
+                                if yyn != 0
+                                    && {
+                                        yyn += yystate;
+                                        yyn >= 0 as libc::c_int
+                                    }
+                                    && yyn <= 801 as libc::c_int
+                                    && sudoerscheck[yyn as usize] as libc::c_int == yystate
+                                {
+                                    yystate = sudoerstable[yyn as usize] as libc::c_int;
+                                } else {
+                                    yystate = sudoersdgoto[yym as usize] as libc::c_int;
+                                }
+                                if sudoersssp >= sudoerssslim && yygrowstack() != 0 {
+                                    current_block = 14612121114820974581;
+                                    break;
+                                }
+                                sudoersssp = sudoersssp.offset(1);
+                                *sudoersssp = yystate as libc::c_short;
+                                sudoersvsp = sudoersvsp.offset(1);
+                                *sudoersvsp = sudoersval;
+                                continue;
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+            match current_block {
+                6132048441473628171 => {
+                    sudoersnerrs += 1;
+                }
+                _ => {}
+            }
+            if sudoerserrflag < 3 as libc::c_int {
+                sudoerserrflag = 3 as libc::c_int;
+                loop {
+                    yyn = sudoerssindex[*sudoersssp as usize] as libc::c_int;
+                    if yyn != 0
+                        && {
+                            yyn += 256 as libc::c_int;
+                            yyn >= 0 as libc::c_int
+                        }
+                        && yyn <= 801 as libc::c_int
+                        && sudoerscheck[yyn as usize] as libc::c_int == 256 as libc::c_int
+                    {
+                        if sudoersssp >= sudoerssslim && yygrowstack() != 0 {
+                            current_block = 14612121114820974581;
+                            break '_yyloop;
+                        }
+                        yystate = sudoerstable[yyn as usize] as libc::c_int;
+                        sudoersssp = sudoersssp.offset(1);
+                        *sudoersssp = yystate as libc::c_short;
+                        sudoersvsp = sudoersvsp.offset(1);
+                        *sudoersvsp = sudoerslval;
+                        break;
+                    } else {
+                        if sudoersssp <= sudoersss {
+                            current_block = 6293264190276811454;
+                            break '_yyloop;
+                        }
+                        sudoersssp = sudoersssp.offset(-1);
+                        sudoersvsp = sudoersvsp.offset(-1);
+                    }
+                }
+            } else {
+                if sudoerschar == 0 as libc::c_int {
+                    current_block = 6293264190276811454;
+                    break;
+                }
+                sudoerschar = -(1 as libc::c_int);
+            }
+        }
+    }
+    match current_block {
+        14612121114820974581 => {
+            sudoerserror(b"yacc stack overflow\0" as *const u8 as *const libc::c_char);
+        }
+        _ => {}
+    }
+    if !sudoersss.is_null() {
+        free(sudoersss as *mut libc::c_void);
+    }
+    if !sudoersvs.is_null() {
+        free(sudoersvs as *mut libc::c_void);
+    }
+    sudoersssp = 0 as *mut libc::c_short;
+    sudoersss = sudoersssp;
+    sudoersvsp = 0 as *mut YYSTYPE;
+    sudoersvs = sudoersvsp;
+    sudoersstacksize = 0 as libc::c_int as libc::c_uint;
+    return 1 as libc::c_int;
+}
+
 
 
