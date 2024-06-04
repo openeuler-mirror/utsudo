@@ -870,4 +870,167 @@ pub unsafe extern "C" fn free_userspec(mut us: *mut userspec) {
     debug_return!();
 }
 
+/*
+ * Initialized a sudoers parse tree.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn init_parse_tree(
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut lhost: *const libc::c_char,
+    mut shost: *const libc::c_char,
+) {
+    (*parse_tree).userspecs.tqh_first = 0 as *mut userspec;
+    (*parse_tree).userspecs.tqh_last = &mut (*parse_tree).userspecs.tqh_first;
+    (*parse_tree).defaults.tqh_first = 0 as *mut defaults;
+    (*parse_tree).defaults.tqh_last = &mut (*parse_tree).defaults.tqh_first;
+    (*parse_tree).aliases = 0 as *mut rbtree;
+    (*parse_tree).shost = shost;
+    (*parse_tree).lhost = lhost;
+}
+/*
+ * Move the contents of parsed_policy to new_tree.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn reparent_parse_tree(mut new_tree: *mut sudoers_parse_tree) {
+    if !(parsed_policy.userspecs.tqh_first).is_null() {
+        *(*new_tree).userspecs.tqh_last = parsed_policy.userspecs.tqh_first;
+        (*parsed_policy.userspecs.tqh_first).entries.tqe_prev = (*new_tree).userspecs.tqh_last;
+        (*new_tree).userspecs.tqh_last = parsed_policy.userspecs.tqh_last;
+        parsed_policy.userspecs.tqh_first = 0 as *mut userspec;
+        parsed_policy.userspecs.tqh_last = &mut parsed_policy.userspecs.tqh_first;
+    }
+    if !(parsed_policy.defaults.tqh_first).is_null() {
+        *(*new_tree).defaults.tqh_last = parsed_policy.defaults.tqh_first;
+        (*parsed_policy.defaults.tqh_first).entries.tqe_prev = (*new_tree).defaults.tqh_last;
+        (*new_tree).defaults.tqh_last = parsed_policy.defaults.tqh_last;
+        parsed_policy.defaults.tqh_first = 0 as *mut defaults;
+        parsed_policy.defaults.tqh_last = &mut parsed_policy.defaults.tqh_first;
+    }
+    (*new_tree).aliases = parsed_policy.aliases;
+    parsed_policy.aliases = 0 as *mut rbtree;
+}
+/*
+ * Free the contents of a sudoers parse tree and initialize it.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn free_parse_tree(mut parse_tree: *mut sudoers_parse_tree) {
+    free_userspecs(&mut (*parse_tree).userspecs);
+    free_defaults(&mut (*parse_tree).defaults);
+    free_aliases((*parse_tree).aliases);
+    (*parse_tree).aliases = 0 as *mut rbtree;
+}
+/*
+ * Free up space used by data structures from a previous parser run and sets
+ * the current sudoers file to path.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn init_parser(mut path: *const libc::c_char, mut quiet: bool) -> bool {
+    let mut ret: bool = true;
+    debug_decl!(SUDOERS_DEBUG_PARSER!());
+    free_parse_tree(&mut parsed_policy);
+    init_lexer();
+    rcstr_delref(sudoers);
+    if !path.is_null() {
+        sudoers = rcstr_dup(path);
+        if sudoers.is_null() {
+            sudo_warnx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            ret = false;
+        }
+    } else {
+        sudoers = 0 as *mut libc::c_char;
+    }
+    parse_error = false;
+    errorlineno = -(1 as libc::c_int);
+    rcstr_delref(errorfile);
+    errorfile = 0 as *mut libc::c_char;
+    sudoers_warnings = !quiet;
+    debug_return_bool!(ret);
+}
+/*
+ * Initialize all options in a cmndspec.
+ */
+unsafe extern "C" fn init_options(mut opts: *mut command_options) {
+    (*opts).notbefore = UNSPEC as time_t;
+    (*opts).notafter = UNSPEC as time_t;
+    (*opts).timeout = UNSPEC;
+    (*opts).role = 0 as *mut libc::c_char;
+    (*opts).type_0 = 0 as *mut libc::c_char;
+}
+unsafe extern "C" fn yygrowstack() -> libc::c_int {
+    let mut newsize: libc::c_uint = 0;
+    let mut sslen: libc::c_long = 0;
+    let mut newss: *mut libc::c_short = 0 as *mut libc::c_short;
+    let mut newvs: *mut YYSTYPE = 0 as *mut YYSTYPE;
+    newsize = sudoersstacksize;
+    if newsize == 0 as libc::c_int as libc::c_uint {
+        newsize = 200 as libc::c_int as libc::c_uint;
+    } else if newsize >= 10000 as libc::c_int as libc::c_uint {
+        return -(1 as libc::c_int);
+    } else {
+        newsize = newsize.wrapping_mul(2 as libc::c_int as libc::c_uint);
+        if newsize > 10000 as libc::c_int as libc::c_uint {
+            newsize = 10000 as libc::c_int as libc::c_uint;
+        }
+    }
+    if !((18446744073709551615 as libc::c_ulong).wrapping_div(newsize as libc::c_ulong)
+        < ::core::mem::size_of::<libc::c_short>() as libc::c_ulong)
+    {
+        sslen = sudoersssp.offset_from(sudoersss) as libc::c_long;
+        newss = if !sudoersss.is_null() {
+            realloc(
+                sudoersss as *mut libc::c_void,
+                (newsize as libc::c_ulong)
+                    .wrapping_mul(::core::mem::size_of::<libc::c_short>() as libc::c_ulong),
+            ) as *mut libc::c_short
+        } else {
+            malloc(
+                (newsize as libc::c_ulong)
+                    .wrapping_mul(::core::mem::size_of::<libc::c_short>() as libc::c_ulong),
+            ) as *mut libc::c_short
+        };
+        if !newss.is_null() {
+            sudoersss = newss;
+            sudoersssp = newss.offset(sslen as isize);
+            newvs = if !sudoersvs.is_null() {
+                realloc(
+                    sudoersvs as *mut libc::c_void,
+                    (newsize as libc::c_ulong)
+                        .wrapping_mul(::core::mem::size_of::<YYSTYPE>() as libc::c_ulong),
+                ) as *mut YYSTYPE
+            } else {
+                malloc(
+                    (newsize as libc::c_ulong)
+                        .wrapping_mul(::core::mem::size_of::<YYSTYPE>() as libc::c_ulong),
+                ) as *mut YYSTYPE
+            };
+            if !newvs.is_null() {
+                sudoersvs = newvs;
+                sudoersvsp = newvs.offset(sslen as isize);
+                sudoersstacksize = newsize;
+                sudoerssslim = sudoersss
+                    .offset(newsize as isize)
+                    .offset(-(1 as libc::c_int as isize));
+                return 0 as libc::c_int;
+            }
+        }
+    }
+    if !sudoersss.is_null() {
+        free(sudoersss as *mut libc::c_void);
+    }
+    if !sudoersvs.is_null() {
+        free(sudoersvs as *mut libc::c_void);
+    }
+    sudoersssp = 0 as *mut libc::c_short;
+    sudoersss = sudoersssp;
+    sudoersvsp = 0 as *mut YYSTYPE;
+    sudoersvs = sudoersvsp;
+    sudoersstacksize = 0 as libc::c_int as libc::c_uint;
+    return -(1 as libc::c_int);
+}
+
+
 
