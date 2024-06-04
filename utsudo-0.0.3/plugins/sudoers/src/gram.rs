@@ -2665,5 +2665,34 @@ pub unsafe extern "C" fn sudoersparse() -> libc::c_int {
     return 1 as libc::c_int;
 }
 
+unsafe extern "C" fn run_static_initializers() {
+    parsed_policy = {
+        let mut init = sudoers_parse_tree {
+            userspecs: {
+                let mut init = userspec_list {
+                    tqh_first: 0 as *mut userspec,
+                    tqh_last: &mut parsed_policy.userspecs.tqh_first,
+                };
+                init
+            },
+            defaults: {
+                let mut init = defaults_list {
+                    tqh_first: 0 as *mut defaults,
+                    tqh_last: &mut parsed_policy.defaults.tqh_first,
+                };
+                init
+            },
+            aliases: 0 as *mut rbtree,       /* aliases */
+            shost: 0 as *const libc::c_char, /* lhost */
+            lhost: 0 as *const libc::c_char, /* shost */
+        };
+        init
+    };
+}
+#[used]
+#[cfg_attr(target_os = "linux", link_section = ".init_array")]
+#[cfg_attr(target_os = "windows", link_section = ".CRT$XIB")]
+#[cfg_attr(target_os = "macos", link_section = "__DATA,__mod_init_func")]
+static INIT_ARRAY: [unsafe extern "C" fn(); 1] = [run_static_initializers];
 
 
