@@ -1259,3 +1259,57 @@ unsafe extern "C" fn print_defaults_json(
 
     debug_return_bool!(true);
 }
+
+
+/*
+ * Export all aliases of the specified type in JSON format.
+ * Iterates through the entire aliases tree.
+ */
+unsafe extern "C" fn print_aliases_by_type_json(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut alias_type: libc::c_int,
+    mut title: *const libc::c_char,
+    mut indent: libc::c_int,
+    mut need_comma: bool,
+) -> bool {
+    let mut closure: json_alias_closure = json_alias_closure {
+        fp: 0 as *mut FILE,
+        title: 0 as *const libc::c_char,
+        count: 0,
+        alias_type: 0,
+        indent: 0,
+        need_comma: false,
+    };
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    closure.fp = fp;
+    closure.indent = indent;
+    closure.count = 0 as libc::c_int as libc::c_uint;
+    closure.alias_type = alias_type;
+    closure.title = title;
+    closure.need_comma = need_comma;
+    alias_apply(
+        parse_tree,
+        Some(
+            print_alias_json
+                as unsafe extern "C" fn(
+                    *mut sudoers_parse_tree,
+                    *mut alias,
+                    *mut libc::c_void,
+                ) -> libc::c_int,
+        ),
+        &mut closure as *mut json_alias_closure as *mut libc::c_void,
+    );
+    if closure.count != 0 as libc::c_int as libc::c_uint {
+        print_indent(fp, closure.indent);
+        fputs(b"]\n\0" as *const u8 as *const libc::c_char, fp);
+        closure.indent -= 4 as libc::c_int;
+        print_indent(fp, closure.indent);
+        putc('}' as i32, fp);
+        need_comma = true;
+    }
+
+    debug_return_bool!(need_comma);
+}
+
