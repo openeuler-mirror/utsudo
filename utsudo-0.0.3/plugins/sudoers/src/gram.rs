@@ -815,5 +815,59 @@ pub unsafe extern "C" fn free_privilege(mut priv_0: *mut privilege) {
     debug_return!();
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn free_userspecs(mut usl: *mut userspec_list) {
+    let mut us: *mut userspec = 0 as *mut userspec;
+    debug_decl!(SUDOERS_DEBUG_PARSER!());
+    loop {
+        us = (*usl).tqh_first;
+        if us.is_null() {
+            break;
+        }
+        if !((*us).entries.tqe_next).is_null() {
+            (*(*us).entries.tqe_next).entries.tqe_prev = (*us).entries.tqe_prev;
+        } else {
+            (*usl).tqh_last = (*us).entries.tqe_prev;
+        }
+        *(*us).entries.tqe_prev = (*us).entries.tqe_next;
+        free_userspec(us);
+    }
+    debug_return!();
+}
+#[no_mangle]
+pub unsafe extern "C" fn free_userspec(mut us: *mut userspec) {
+    let mut priv_0: *mut privilege = 0 as *mut privilege;
+    let mut comment: *mut sudoers_comment = 0 as *mut sudoers_comment;
+    debug_decl!(SUDOERS_DEBUG_PARSER!());
+    free_members(&mut (*us).users);
+    loop {
+        priv_0 = (*us).privileges.tqh_first;
+        if priv_0.is_null() {
+            break;
+        }
+        if !((*priv_0).entries.tqe_next).is_null() {
+            (*(*priv_0).entries.tqe_next).entries.tqe_prev = (*priv_0).entries.tqe_prev;
+        } else {
+            (*us).privileges.tqh_last = (*priv_0).entries.tqe_prev;
+        }
+        *(*priv_0).entries.tqe_prev = (*priv_0).entries.tqe_next;
+        free_privilege(priv_0);
+    }
+    loop {
+        comment = (*us).comments.stqh_first;
+        if comment.is_null() {
+            break;
+        }
+        (*us).comments.stqh_first = (*(*us).comments.stqh_first).entries.stqe_next;
+        if ((*us).comments.stqh_first).is_null() {
+            (*us).comments.stqh_last = &mut (*us).comments.stqh_first;
+        }
+        free((*comment).str_0 as *mut libc::c_void);
+        free(comment as *mut libc::c_void);
+    }
+    rcstr_delref((*us).file);
+    free(us as *mut libc::c_void);
+    debug_return!();
+}
 
 
