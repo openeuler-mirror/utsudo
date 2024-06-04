@@ -1313,3 +1313,49 @@ unsafe extern "C" fn print_aliases_by_type_json(
     debug_return_bool!(need_comma);
 }
 
+/*
+ * Export all aliases in JSON format.
+ */
+unsafe extern "C" fn print_aliases_json(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut indent: libc::c_int,
+    mut need_comma: bool,
+) -> bool {
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    need_comma = print_aliases_by_type_json(
+        fp,
+        parse_tree,
+        USERALIAS,
+        b"User_Aliases\0" as *const u8 as *const libc::c_char,
+        indent,
+        need_comma,
+    );
+    need_comma = print_aliases_by_type_json(
+        fp,
+        parse_tree,
+        RUNASALIAS,
+        b"Runas_Aliases\0" as *const u8 as *const libc::c_char,
+        indent,
+        need_comma,
+    );
+    need_comma = print_aliases_by_type_json(
+        fp,
+        parse_tree,
+        HOSTALIAS,
+        b"Host_Aliases\0" as *const u8 as *const libc::c_char,
+        indent,
+        need_comma,
+    );
+    need_comma = print_aliases_by_type_json(
+        fp,
+        parse_tree,
+        CMNDALIAS,
+        b"Command_Aliases\0" as *const u8 as *const libc::c_char,
+        indent,
+        need_comma,
+    );
+
+    debug_return_bool!(need_comma);
+}
