@@ -130,3 +130,212 @@ static mut group_plugin: *mut sudoers_group_plugin = 0 as *mut sudoers_group_plu
 
 #[no_mangle]
 pub static mut path_plugin_dir: *const libc::c_char = _PATH_SUDO_PLUGIN_DIR!();
+
+/*
+ * Load the specified plugin and run its init function.
+ * Returns -1 if unable to open the plugin, else it returns
+ * the value from the plugin's init function.
+ */
+
+#[no_mangle]
+pub unsafe extern "C" fn group_plugin_load(mut plugin_info: *mut libc::c_char) -> libc::c_int {
+    let mut sb: stat = sb_all_arch;
+    let mut args: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut path: [libc::c_char; 4096] = [0; 4096];
+    let mut argv: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+    let mut len: libc::c_int = 0;
+    let mut rc: libc::c_int = -(1 as libc::c_int);
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    /*
+     * Fill in .so path and split out args (if any).
+     */
+    args = strpbrk(plugin_info, b" \t\0" as *const u8 as *const libc::c_char);
+    if !args.is_null() {
+        len = snprintf(
+            path.as_mut_ptr(),
+            ::core::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+            b"%s%.*s\0" as *const u8 as *const libc::c_char,
+            if *plugin_info as libc::c_int != '/' as i32 {
+                path_plugin_dir
+            } else {
+                b"\0" as *const u8 as *const libc::c_char
+            },
+            args.offset_from(plugin_info) as libc::c_long as libc::c_int,
+            plugin_info,
+        );
+        args = args.offset(1);
+    } else {
+        len = snprintf(
+            path.as_mut_ptr(),
+            ::core::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+            b"%s%s\0" as *const u8 as *const libc::c_char,
+            if *plugin_info as libc::c_int != '/' as i32 {
+                path_plugin_dir
+            } else {
+                b"\0" as *const u8 as *const libc::c_char
+            },
+            plugin_info,
+        );
+    }
+
+    'done: loop {
+        if len < 0 as libc::c_int
+            || len as libc::c_long
+                >= ::core::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong as ssize_t
+        {
+            *__errno_location() = ENAMETOOLONG;
+            sudo_warn!(
+                b"%s%s\0" as *const u8 as *const libc::c_char,
+                if *plugin_info as libc::c_int != '/' as i32 {
+                    path_plugin_dir
+                } else {
+                    b"\0" as *const u8 as *const libc::c_char
+                },
+                plugin_info,
+            );
+            break 'done;
+        }
+
+        /* Sanity check plugin path. */
+        if stat(path.as_mut_ptr(), &mut sb) != 0 {
+            sudo_warn!(b"%s" as *const u8 as *const libc::c_char, path.as_mut_ptr());
+            break 'done;
+        }
+
+        if sb.st_uid != ROOT_UID as libc::c_uint {
+            sudo_warnx!(
+                b"%s must be owned by uid %d" as *const u8 as *const libc::c_char,
+                path.as_mut_ptr(),
+                ROOT_UID
+            );
+            break 'done;
+        }
+
+        if sb.st_mode & (S_IWGRP!() | S_IWOTH!()) != 0 {
+            sudo_warnx!(
+                b"%s must only be writable by owner" as *const u8 as *const libc::c_char,
+                path.as_mut_ptr()
+            );
+            break 'done;
+        }
+
+        /* Open plugin and map in symbol. */
+        group_handle = sudo_dso_load_v1(path.as_mut_ptr(), SUDO_DSO_LAZY!() | SUDO_DSO_GLOBAL!());
+        if group_handle.is_null() {
+            let mut errstr: *const libc::c_char = sudo_dso_strerror_v1();
+            sudo_warnx!(
+                b"unable to load %s: %s" as *const u8 as *const libc::c_char,
+                path.as_mut_ptr(),
+                if !errstr.is_null() {
+                    errstr
+                } else {
+                    b"unknown error\0" as *const u8 as *const libc::c_char
+                }
+            );
+
+            break 'done;
+        }
+
+        group_plugin = sudo_dso_findsym_v1(
+            group_handle,
+            b"group_plugin" as *const u8 as *const libc::c_char,
+        ) as *mut sudoers_group_plugin;
+        if group_plugin.is_null() {
+            sudo_warnx!(
+                b"unable to find symbol \"group_plugin\" in %s\0" as *const u8
+                    as *const libc::c_char,
+                path.as_mut_ptr()
+            );
+            break 'done;
+        }
+
+        if SUDO_API_VERSION_GET_MAJOR!((*group_plugin).version)
+            != GROUP_API_VERSION_MAJOR as libc::c_uint
+        {
+            sudo_warnx!(
+                b"%s: incompatible group plugin major version %d, expected %d\0" as *const u8
+                    as *const libc::c_char,
+                path.as_mut_ptr(),
+                SUDO_API_VERSION_GET_MAJOR!((*group_plugin).version),
+                GROUP_API_VERSION_MAJOR
+            );
+
+            break 'done;
+        }
+
+        /*
+         * Split args into a vector if specified.
+         */
+        if !args.is_null() {
+            let mut ac: libc::c_int = 0 as libc::c_int;
+            let mut wasblank: bool = 1 as libc::c_int != 0;
+            let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+            let mut last: *mut libc::c_char = 0 as *mut libc::c_char;
+            cp = args;
+
+            while *cp as libc::c_int != '\0' as i32 {
+                if isblank!(*cp as libc::c_uchar as libc::c_int as isize) != 0 {
+                    wasblank = true;
+                } else if wasblank {
+                    wasblank = false;
+                    ac += 1;
+                }
+                cp = cp.offset(1);
+            }
+            if ac != 0 {
+                argv = reallocarray(
+                    0 as *mut libc::c_void,
+                    ac as size_t,
+                    ::core::mem::size_of::<*mut libc::c_char>() as libc::c_ulong,
+                ) as *mut *mut libc::c_char;
+                if argv.is_null() {
+                    sudo_warnx!(
+                        b"%s: %s\0" as *const u8 as *const libc::c_char,
+                        get_function_name!(),
+                        b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                    );
+                    break 'done;
+                }
+
+                ac = 0;
+                cp = strtok_r(
+                    args,
+                    b" \t\0" as *const u8 as *const libc::c_char,
+                    &mut last,
+                );
+                while !cp.is_null() {
+                    let fresh0 = ac;
+                    ac = ac + 1;
+                    let ref mut fresh1 = *argv.offset(fresh0 as isize);
+                    *fresh1 = cp;
+                    cp = strtok_r(
+                        0 as *mut libc::c_char,
+                        b" \t\0" as *const u8 as *const libc::c_char,
+                        &mut last,
+                    );
+                }
+            }
+        }
+
+        rc = ((*group_plugin).init).expect("non-null function pointer")(
+            GROUP_API_VERSION!(),
+            sudo_printf,
+            argv as *const *mut libc::c_char,
+        );
+
+        break 'done;
+    }
+
+    free(argv as *mut libc::c_void);
+    if rc != true as libc::c_int {
+        if !group_handle.is_null() {
+            sudo_dso_unload_v1(group_handle);
+            group_handle = 0 as *mut libc::c_void;
+            group_plugin = 0 as *mut sudoers_group_plugin;
+        }
+    }
+
+    debug_return_int!(rc);
+}
+
