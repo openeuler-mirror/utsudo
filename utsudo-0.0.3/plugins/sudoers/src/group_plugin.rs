@@ -106,6 +106,23 @@ pub const _ISalpha: C2RustUnnamed = 1024;
 pub const _ISlower: C2RustUnnamed = 512;
 pub const _ISupper: C2RustUnnamed = 256;
 
+pub type def_tuple = libc::c_uint;
+pub const kernel: def_tuple = 9;
+pub const tty: def_tuple = 8;
+pub const ppid: def_tuple = 7;
+pub const global: def_tuple = 6;
+pub const digest_only: def_tuple = 5;
+pub const all: def_tuple = 4;
+pub const any: def_tuple = 3;
+pub const always: def_tuple = 2;
+pub const once: def_tuple = 1;
+pub const never: def_tuple = 0;
+
+// #define	EDEADLK		35	/* Resource deadlock would occur */
+// #define	ENAMETOOLONG	36	/* File name too long */
+// #define	ENOLCK		37	/* No record locks available */
+pub const ENAMETOOLONG: libc::c_int = 36;
+
 #[macro_export]
 macro_rules! _PATH_SUDO_PLUGIN_DIR {
     () => {
@@ -366,4 +383,21 @@ pub unsafe extern "C" fn group_plugin_unload() {
     }
 
     debug_return!();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn group_plugin_query(
+    mut user: *const libc::c_char,
+    mut group: *const libc::c_char,
+    mut pwd: *const passwd,
+) -> libc::c_int {
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    if group_plugin.is_null() {
+        debug_return_int!(false as libc::c_int);
+    }
+
+    debug_return_int!(((*group_plugin).query).expect("non-null function pointer")(
+        user, group, pwd
+    ));
 }
