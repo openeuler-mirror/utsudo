@@ -90,3 +90,43 @@ extern "C" {
     ) -> *mut libc::c_void;
     fn sudo_dso_load_v1(path: *const libc::c_char, mode: libc::c_int) -> *mut libc::c_void;
 }
+
+
+
+#[macro_export]
+macro_rules! _PATH_SUDO_PLUGIN_DIR {
+    () => {
+        b"/usr/libexec/utsudo/\0" as *const u8 as *const libc::c_char
+    };
+}
+
+pub type sudo_printf_t =
+    Option<unsafe extern "C" fn(libc::c_int, *const libc::c_char, ...) -> libc::c_int>;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudoers_group_plugin {
+    pub version: libc::c_uint,
+    pub init: Option<
+        unsafe extern "C" fn(libc::c_int, sudo_printf_t, *const *mut libc::c_char) -> libc::c_int,
+    >,
+    pub cleanup: Option<unsafe extern "C" fn() -> ()>,
+    pub query: Option<
+        unsafe extern "C" fn(
+            *const libc::c_char,
+            *const libc::c_char,
+            *const passwd,
+        ) -> libc::c_int,
+    >,
+}
+#[inline]
+unsafe extern "C" fn stat(
+    mut __path: *const libc::c_char,
+    mut __statbuf: *mut stat,
+) -> libc::c_int {
+    return __xstat(xstat_flag as libc::c_int, __path, __statbuf);
+}
+static mut group_handle: *mut libc::c_void = 0 as *mut libc::c_void;
+static mut group_plugin: *mut sudoers_group_plugin = 0 as *mut sudoers_group_plugin;
+
+#[no_mangle]
+pub static mut path_plugin_dir: *const libc::c_char = _PATH_SUDO_PLUGIN_DIR!();
