@@ -1939,3 +1939,113 @@ unsafe extern "C" fn print_userspec_json(
     debug_return!();
 }
 
+unsafe extern "C" fn print_userspecs_json(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut indent: libc::c_int,
+    mut expand_aliases: bool,
+    mut need_comma: bool,
+) -> bool {
+    let mut us: *mut userspec = 0 as *mut userspec;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    if ((*parse_tree).userspecs.tqh_first).is_null() {
+        debug_return_bool!(need_comma);
+    }
+    fprintf(
+        fp,
+        b"%s\n%*s\"User_Specs\": [\n\0" as *const u8 as *const libc::c_char,
+        if need_comma as libc::c_int != 0 {
+            b",\0" as *const u8 as *const libc::c_char
+        } else {
+            b"\0" as *const u8 as *const libc::c_char
+        },
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+    indent += 4 as libc::c_int;
+    us = (*parse_tree).userspecs.tqh_first;
+    while !us.is_null() {
+        print_userspec_json(fp, parse_tree, us, indent, expand_aliases);
+        us = (*us).entries.tqe_next;
+    }
+    indent -= 4 as libc::c_int;
+    fprintf(
+        fp,
+        b"%*s]\0" as *const u8 as *const libc::c_char,
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+
+    debug_return_bool!(true);
+}
+
+/*
+ * Export the parsed sudoers file in JSON format.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn convert_sudoers_json(
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut output_file: *const libc::c_char,
+    mut conf: *mut cvtsudoers_config,
+) -> bool {
+    let mut ret: bool = true;
+    let mut need_comma: bool = false;
+    let indent: libc::c_int = 4 as libc::c_int;
+    let mut output_fp: *mut FILE = stdout;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    if strcmp(output_file, b"-\0" as *const u8 as *const libc::c_char) != 0 as libc::c_int {
+        output_fp = fopen(output_file, b"w\0" as *const u8 as *const libc::c_char);
+        if output_fp.is_null() {
+            sudo_fatal!(
+                b"unable to open %s\0" as *const u8 as *const libc::c_char,
+                output_file,
+            );
+        }
+    }
+
+    /* Open JSON output. */
+    putc('{' as i32, output_fp);
+
+    /* Dump Defaults in JSON format. */
+    if ISSET!((*conf).suppress as libc::c_int, SUPPRESS_DEFAULTS) == 0 {
+        need_comma = print_defaults_json(
+            output_fp,
+            parse_tree,
+            indent,
+            (*conf).expand_aliases,
+            need_comma,
+        );
+    }
+
+    /* Dump Aliases in JSON format. */
+    if !(*conf).expand_aliases
+        && ISSET!((*conf).expand_aliases as libc::c_int, SUPPRESS_ALIASES) == 0
+    {
+        need_comma = print_aliases_json(output_fp, parse_tree, indent, need_comma);
+    }
+
+    /* Dump User_Specs in JSON format. */
+    if ISSET!((*conf).suppress as libc::c_int, SUPPRESS_PRIVS) == 0 {
+        print_userspecs_json(
+            output_fp,
+            parse_tree,
+            indent,
+            (*conf).expand_aliases,
+            need_comma,
+        );
+    }
+
+    /* Close JSON output. */
+    fputs(b"\n}\n\0" as *const u8 as *const libc::c_char, output_fp);
+    fflush(output_fp);
+    if ferror(output_fp) != 0 {
+        ret = false;
+    }
+    if output_fp != stdout {
+        fclose(output_fp);
+    }
+
+    debug_return_bool!(ret);
+}
