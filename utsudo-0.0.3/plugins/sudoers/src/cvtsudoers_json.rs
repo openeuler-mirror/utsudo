@@ -1939,3 +1939,43 @@ unsafe extern "C" fn print_userspec_json(
     debug_return!();
 }
 
+unsafe extern "C" fn print_userspecs_json(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut indent: libc::c_int,
+    mut expand_aliases: bool,
+    mut need_comma: bool,
+) -> bool {
+    let mut us: *mut userspec = 0 as *mut userspec;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    if ((*parse_tree).userspecs.tqh_first).is_null() {
+        debug_return_bool!(need_comma);
+    }
+    fprintf(
+        fp,
+        b"%s\n%*s\"User_Specs\": [\n\0" as *const u8 as *const libc::c_char,
+        if need_comma as libc::c_int != 0 {
+            b",\0" as *const u8 as *const libc::c_char
+        } else {
+            b"\0" as *const u8 as *const libc::c_char
+        },
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+    indent += 4 as libc::c_int;
+    us = (*parse_tree).userspecs.tqh_first;
+    while !us.is_null() {
+        print_userspec_json(fp, parse_tree, us, indent, expand_aliases);
+        us = (*us).entries.tqe_next;
+    }
+    indent -= 4 as libc::c_int;
+    fprintf(
+        fp,
+        b"%*s]\0" as *const u8 as *const libc::c_char,
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+
+    debug_return_bool!(true);
+}
