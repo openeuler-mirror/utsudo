@@ -91,7 +91,20 @@ extern "C" {
     fn sudo_dso_load_v1(path: *const libc::c_char, mode: libc::c_int) -> *mut libc::c_void;
 }
 
-
+// 多处定义，后期统一处理
+pub type C2RustUnnamed = libc::c_uint;
+pub const _ISalnum: C2RustUnnamed = 8;
+pub const _ISpunct: C2RustUnnamed = 4;
+pub const _IScntrl: C2RustUnnamed = 2;
+pub const _ISblank: C2RustUnnamed = 1;
+pub const _ISgraph: C2RustUnnamed = 32768;
+pub const _ISprint: C2RustUnnamed = 16384;
+pub const _ISspace: C2RustUnnamed = 8192;
+pub const _ISxdigit: C2RustUnnamed = 4096;
+pub const _ISdigit: C2RustUnnamed = 2048;
+pub const _ISalpha: C2RustUnnamed = 1024;
+pub const _ISlower: C2RustUnnamed = 512;
+pub const _ISupper: C2RustUnnamed = 256;
 
 #[macro_export]
 macro_rules! _PATH_SUDO_PLUGIN_DIR {
@@ -339,3 +352,18 @@ pub unsafe extern "C" fn group_plugin_load(mut plugin_info: *mut libc::c_char) -
     debug_return_int!(rc);
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn group_plugin_unload() {
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    if !group_plugin.is_null() {
+        ((*group_plugin).cleanup).expect("non-null function pointer")();
+        group_plugin = 0 as *mut sudoers_group_plugin;
+    }
+    if !group_handle.is_null() {
+        sudo_dso_unload_v1(group_handle);
+        group_handle = 0 as *mut libc::c_void;
+    }
+
+    debug_return!();
+}
