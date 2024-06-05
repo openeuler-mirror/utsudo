@@ -1797,3 +1797,145 @@ unsafe extern "C" fn print_cmndspec_json(
 
     debug_return!();
 }
+
+/*
+ * Print a User_Spec in JSON format at the specified indent level.
+ */
+unsafe extern "C" fn print_userspec_json(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut us: *mut userspec,
+    mut indent: libc::c_int,
+    mut expand_aliases: bool,
+) {
+    let mut priv_0: *mut privilege = 0 as *mut privilege;
+    let mut m: *mut member = 0 as *mut member;
+    let mut cs: *mut cmndspec = 0 as *mut cmndspec;
+    let mut next: *mut cmndspec = 0 as *mut cmndspec;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    /*
+     * Each userspec struct may contain multiple privileges for
+     * a user.  We export each privilege as a separate User_Spec
+     * object for simplicity's sake.
+     */
+    priv_0 = (*us).privileges.tqh_first;
+    while !priv_0.is_null() {
+        /* Open User_Spec object. */
+        fprintf(
+            fp,
+            b"%*s{\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+        indent += 4 as libc::c_int;
+
+        /* Print users list. */
+        fprintf(
+            fp,
+            b"%*s\"User_List\": [\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+        indent += 4 as libc::c_int;
+        m = (*us).users.tqh_first;
+        while !m.is_null() {
+            print_member_json(
+                fp,
+                parse_tree,
+                m,
+                word_type::TYPE_USERNAME,
+                ((*m).entries.tqe_next).is_null(),
+                indent,
+                expand_aliases,
+            );
+            m = (*m).entries.tqe_next;
+        }
+        indent -= 4 as libc::c_int;
+        fprintf(
+            fp,
+            b"%*s],\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+
+        /* Print hosts list. */
+        fprintf(
+            fp,
+            b"%*s\"Host_List\": [\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+        indent += 4 as libc::c_int;
+        m = (*priv_0).hostlist.tqh_first;
+        while !m.is_null() {
+            print_member_json(
+                fp,
+                parse_tree,
+                m,
+                word_type::TYPE_HOSTNAME,
+                ((*m).entries.tqe_next).is_null(),
+                indent,
+                expand_aliases,
+            );
+            m = (*m).entries.tqe_next;
+        }
+        indent -= 4 as libc::c_int;
+        fprintf(
+            fp,
+            b"%*s],\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+
+        /* Print commands. */
+        fprintf(
+            fp,
+            b"%*s\"Cmnd_Specs\": [\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+        indent += 4 as libc::c_int;
+        cs = (*priv_0).cmndlist.tqh_first;
+        while !cs.is_null() && {
+            next = (*cs).entries.tqe_next;
+            1 as libc::c_int != 0
+        } {
+            print_cmndspec_json(
+                fp,
+                parse_tree,
+                cs,
+                &mut next,
+                &mut (*priv_0).defaults,
+                expand_aliases,
+                indent,
+            );
+            cs = next;
+        }
+        indent -= 4 as libc::c_int;
+        fprintf(
+            fp,
+            b"%*s]\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+
+        /* Close User_Spec object. */
+        indent -= 4 as libc::c_int;
+        fprintf(
+            fp,
+            b"%*s}%s\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+            if !((*priv_0).entries.tqe_next).is_null() || !((*us).entries.tqe_next).is_null() {
+                b",\0" as *const u8 as *const libc::c_char
+            } else {
+                b"\0" as *const u8 as *const libc::c_char
+            },
+        );
+        priv_0 = (*priv_0).entries.tqe_next;
+    }
+
+    debug_return!();
+}
+
