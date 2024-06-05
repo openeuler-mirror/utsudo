@@ -1359,3 +1359,441 @@ unsafe extern "C" fn print_aliases_json(
 
     debug_return_bool!(need_comma);
 }
+
+/*
+ * Print a Cmnd_Spec in JSON format at the specified indent level.
+ * A pointer to the next Cmnd_Spec is passed in to make it possible to
+ * merge adjacent entries that are identical in all but the command.
+ */
+unsafe extern "C" fn print_cmndspec_json(
+    mut fp: *mut FILE,
+    mut parse_tree: *mut sudoers_parse_tree,
+    mut cs: *mut cmndspec,
+    mut nextp: *mut *mut cmndspec,
+    mut options: *mut defaults_list,
+    mut expand_aliases: bool,
+    mut indent: libc::c_int,
+) {
+    let mut next: *mut cmndspec = *nextp;
+    let mut value: json_value = json_value {
+        type_0: json_value_type::JSON_STRING,
+        u: json_value_u {
+            string: 0 as *mut libc::c_char,
+        },
+    };
+    let mut def: *mut defaults = 0 as *mut defaults;
+    let mut m: *mut member = 0 as *mut member;
+    let mut tp: *mut tm = 0 as *mut tm;
+    let mut last_one: bool = false;
+    let mut timebuf: [libc::c_char; 16] = [0; 16];
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    /* Open Cmnd_Spec object. */
+    fprintf(
+        fp,
+        b"%*s{\n\0" as *const u8 as *const libc::c_char,
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+    indent += 4 as libc::c_int;
+
+    /* Print runasuserlist */
+    if !((*cs).runasuserlist).is_null() {
+        fprintf(
+            fp,
+            b"%*s\"runasusers\": [\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+        indent += 4 as libc::c_int;
+        m = (*(*cs).runasuserlist).tqh_first;
+        while !m.is_null() {
+            print_member_json(
+                fp,
+                parse_tree,
+                m,
+                word_type::TYPE_RUNASUSER,
+                ((*m).entries.tqe_next).is_null(),
+                indent,
+                expand_aliases,
+            );
+            m = (*m).entries.tqe_next;
+        }
+        indent -= 4 as libc::c_int;
+        fprintf(
+            fp,
+            b"%*s],\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+    }
+
+    /* Print runasgrouplist */
+    if !((*cs).runasgrouplist).is_null() {
+        fprintf(
+            fp,
+            b"%*s\"runasgroups\": [\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+        indent += 4 as libc::c_int;
+        m = (*(*cs).runasgrouplist).tqh_first;
+        while !m.is_null() {
+            print_member_json(
+                fp,
+                parse_tree,
+                m,
+                word_type::TYPE_RUNASGROUP,
+                ((*m).entries.tqe_next).is_null(),
+                indent,
+                expand_aliases,
+            );
+            m = (*m).entries.tqe_next;
+        }
+        indent -= 4 as libc::c_int;
+        fprintf(
+            fp,
+            b"%*s],\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+    }
+
+    /* Print options and tags */
+    if (*cs).timeout > 0 as libc::c_int
+        || (*cs).notbefore != UNSPEC as libc::c_long
+        || (*cs).notafter != UNSPEC as libc::c_long
+        || TAGS_SET!((*cs).tags)
+        || !((*options).tqh_first).is_null()
+    {
+        let mut tag: cmndtag = (*cs).tags;
+        let mut prefix: *const libc::c_char = b"\n\0" as *const u8 as *const libc::c_char;
+
+        fprintf(
+            fp,
+            b"%*s\"Options\": [\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+        indent += 4 as libc::c_int;
+        if (*cs).timeout > 0 as libc::c_int {
+            value.type_0 = json_value_type::JSON_NUMBER;
+            value.u.number = (*cs).timeout;
+            fputs(prefix, fp);
+            print_pair_json(
+                fp,
+                b"{ \0" as *const u8 as *const libc::c_char,
+                b"command_timeout\0" as *const u8 as *const libc::c_char,
+                &mut value,
+                b" }\0" as *const u8 as *const libc::c_char,
+                indent,
+            );
+            prefix = b",\n\0" as *const u8 as *const libc::c_char;
+        }
+        if (*cs).notbefore != UNSPEC as libc::c_long {
+            tp = gmtime(&mut (*cs).notbefore);
+            if tp.is_null() {
+                sudo_warn!(b"unable to get GMT time\0" as *const u8 as *const libc::c_char,);
+            } else {
+                if strftime(
+                    timebuf.as_mut_ptr(),
+                    ::core::mem::size_of::<[libc::c_char; 16]>() as libc::c_ulong,
+                    b"%Y%m%d%H%M%SZ\0" as *const u8 as *const libc::c_char,
+                    tp,
+                ) == 0 as libc::c_int as libc::c_ulong
+                {
+                    sudo_warnx!(
+                        b"unable to format timestamp\0" as *const u8 as *const libc::c_char,
+                    );
+                } else {
+                    value.type_0 = json_value_type::JSON_STRING;
+                    value.u.string = timebuf.as_mut_ptr();
+                    fputs(prefix, fp);
+                    print_pair_json(
+                        fp,
+                        b"{ \0" as *const u8 as *const libc::c_char,
+                        b"notbefore\0" as *const u8 as *const libc::c_char,
+                        &mut value,
+                        b" }\0" as *const u8 as *const libc::c_char,
+                        indent,
+                    );
+                    prefix = b",\n\0" as *const u8 as *const libc::c_char;
+                }
+            }
+        }
+        if (*cs).notafter != UNSPEC as libc::c_long {
+            tp = gmtime(&mut (*cs).notafter);
+            if tp.is_null() {
+                sudo_warn!(b"unable to get GMT time\0" as *const u8 as *const libc::c_char,);
+            } else {
+                if strftime(
+                    timebuf.as_mut_ptr(),
+                    ::core::mem::size_of::<[libc::c_char; 16]>() as libc::c_ulong,
+                    b"%Y%m%d%H%M%SZ\0" as *const u8 as *const libc::c_char,
+                    tp,
+                ) == 0 as libc::c_int as libc::c_ulong
+                {
+                    sudo_warnx!(
+                        b"unable to format timestamp\0" as *const u8 as *const libc::c_char,
+                    );
+                } else {
+                    value.type_0 = json_value_type::JSON_STRING;
+                    value.u.string = timebuf.as_mut_ptr();
+                    fputs(prefix, fp);
+                    print_pair_json(
+                        fp,
+                        b"{ \0" as *const u8 as *const libc::c_char,
+                        b"notafter\0" as *const u8 as *const libc::c_char,
+                        &mut value,
+                        b" }\0" as *const u8 as *const libc::c_char,
+                        indent,
+                    );
+                    prefix = b",\n\0" as *const u8 as *const libc::c_char;
+                }
+            }
+        }
+        if tag.nopasswd() != UNSPEC {
+            value.type_0 = json_value_type::JSON_BOOL;
+            value.u.boolean = tag.nopasswd() == 0;
+            fputs(prefix, fp);
+            print_pair_json(
+                fp,
+                b"{ \0" as *const u8 as *const libc::c_char,
+                b"authenticate\0" as *const u8 as *const libc::c_char,
+                &mut value,
+                b" }\0" as *const u8 as *const libc::c_char,
+                indent,
+            );
+            prefix = b",\n\0" as *const u8 as *const libc::c_char;
+        }
+        if tag.noexec() != UNSPEC {
+            value.type_0 = json_value_type::JSON_BOOL;
+            value.u.boolean = tag.noexec() != 0;
+            fputs(prefix, fp);
+            print_pair_json(
+                fp,
+                b"{ \0" as *const u8 as *const libc::c_char,
+                b"noexec\0" as *const u8 as *const libc::c_char,
+                &mut value,
+                b" }\0" as *const u8 as *const libc::c_char,
+                indent,
+            );
+            prefix = b",\n\0" as *const u8 as *const libc::c_char;
+        }
+        if tag.send_mail() != UNSPEC {
+            value.type_0 = json_value_type::JSON_BOOL;
+            value.u.boolean = tag.send_mail() != 0;
+            fputs(prefix, fp);
+            print_pair_json(
+                fp,
+                b"{ \0" as *const u8 as *const libc::c_char,
+                b"send_mail\0" as *const u8 as *const libc::c_char,
+                &mut value,
+                b" }\0" as *const u8 as *const libc::c_char,
+                indent,
+            );
+            prefix = b",\n\0" as *const u8 as *const libc::c_char;
+        }
+        if tag.setenv() != UNSPEC {
+            value.type_0 = json_value_type::JSON_BOOL;
+            value.u.boolean = tag.setenv() != 0;
+            fputs(prefix, fp);
+            print_pair_json(
+                fp,
+                b"{ \0" as *const u8 as *const libc::c_char,
+                b"setenv\0" as *const u8 as *const libc::c_char,
+                &mut value,
+                b" }\0" as *const u8 as *const libc::c_char,
+                indent,
+            );
+            prefix = b",\n\0" as *const u8 as *const libc::c_char;
+        }
+        if tag.follow() != UNSPEC {
+            value.type_0 = json_value_type::JSON_BOOL;
+            value.u.boolean = tag.follow() != 0;
+            fputs(prefix, fp);
+            print_pair_json(
+                fp,
+                b"{ \0" as *const u8 as *const libc::c_char,
+                b"sudoedit_follow\0" as *const u8 as *const libc::c_char,
+                &mut value,
+                b" }\0" as *const u8 as *const libc::c_char,
+                indent,
+            );
+            prefix = b",\n\0" as *const u8 as *const libc::c_char;
+        }
+        if tag.log_input() != UNSPEC {
+            value.type_0 = json_value_type::JSON_BOOL;
+            value.u.boolean = tag.log_input() != 0;
+            fputs(prefix, fp);
+            print_pair_json(
+                fp,
+                b"{ \0" as *const u8 as *const libc::c_char,
+                b"log_input\0" as *const u8 as *const libc::c_char,
+                &mut value,
+                b" }\0" as *const u8 as *const libc::c_char,
+                indent,
+            );
+            prefix = b",\n\0" as *const u8 as *const libc::c_char;
+        }
+        if tag.log_output() != UNSPEC {
+            value.type_0 = json_value_type::JSON_BOOL;
+            value.u.boolean = tag.log_output() != 0;
+            fputs(prefix, fp);
+            print_pair_json(
+                fp,
+                b"{ \0" as *const u8 as *const libc::c_char,
+                b"log_output\0" as *const u8 as *const libc::c_char,
+                &mut value,
+                b" }\0" as *const u8 as *const libc::c_char,
+                indent,
+            );
+            prefix = b",\n\0" as *const u8 as *const libc::c_char;
+        }
+        def = (*options).tqh_first;
+        while !def.is_null() {
+            let mut type_0: libc::c_int = get_defaults_type(def);
+            if type_0 == -(1 as libc::c_int) {
+                sudo_warnx!(
+                    b"unknown defaults entry \"%s\"\0" as *const u8 as *const libc::c_char,
+                    (*def).var
+                );
+                /* XXX - just pass it through as a string anyway? */
+            } else {
+                fputs(prefix, fp);
+                if type_0 & T_MASK == T_FLAG || ((*def).val).is_null() {
+                    value.type_0 = json_value_type::JSON_BOOL;
+                    value.u.boolean = (*def).op != 0;
+                    print_pair_json(
+                        fp,
+                        b"{ \0" as *const u8 as *const libc::c_char,
+                        (*def).var,
+                        &mut value,
+                        b" }\0" as *const u8 as *const libc::c_char,
+                        indent,
+                    );
+                } else if type_0 & T_MASK == T_LIST {
+                    print_defaults_list_json(fp, def, indent);
+                } else {
+                    value.type_0 = json_value_type::JSON_STRING;
+                    value.u.string = (*def).val;
+                    print_pair_json(
+                        fp,
+                        b"{ \0" as *const u8 as *const libc::c_char,
+                        (*def).var,
+                        &mut value,
+                        b" }\0" as *const u8 as *const libc::c_char,
+                        indent,
+                    );
+                }
+                prefix = b",\n\0" as *const u8 as *const libc::c_char;
+            }
+            def = (*def).entries.tqe_next;
+        }
+        putc('\n' as i32, fp);
+        indent -= 4 as libc::c_int;
+        fprintf(
+            fp,
+            b"%*s],\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+    }
+
+    /* Print SELinux role/type */
+    if !((*cs).role).is_null() && !((*cs).type_0).is_null() {
+        fprintf(
+            fp,
+            b"%*s\"SELinux_Spec\": [\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+        indent += 4 as libc::c_int;
+        value.type_0 = json_value_type::JSON_STRING;
+        value.u.string = (*cs).role;
+        print_pair_json(
+            fp,
+            0 as *const libc::c_char,
+            b"role\0" as *const u8 as *const libc::c_char,
+            &mut value,
+            b",\n\0" as *const u8 as *const libc::c_char,
+            indent,
+        );
+        value.u.string = (*cs).type_0;
+        print_pair_json(
+            fp,
+            0 as *const libc::c_char,
+            b"type\0" as *const u8 as *const libc::c_char,
+            &mut value,
+            b"\n\0" as *const u8 as *const libc::c_char,
+            indent,
+        );
+        indent -= 4 as libc::c_int;
+        fprintf(
+            fp,
+            b"%*s],\n\0" as *const u8 as *const libc::c_char,
+            indent,
+            b"\0" as *const u8 as *const libc::c_char,
+        );
+    }
+
+    /*
+     * Merge adjacent commands with matching tags, runas, SELinux
+     * role/type and Solaris priv settings.
+     */
+    fprintf(
+        fp,
+        b"%*s\"Commands\": [\n\0" as *const u8 as *const libc::c_char,
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+    indent += 4 as libc::c_int;
+    loop {
+        /* Does the next entry differ only in the command itself? */
+        /* XXX - move into a function that returns bool */
+        last_one = next.is_null()
+            || RUNAS_CHANGED!(cs, next)
+            || TAGS_CHANGED!((*cs).tags, (*next).tags)
+            || (*cs).role != (*next).role
+            || (*cs).type_0 != (*next).type_0;
+
+        print_member_json(
+            fp,
+            parse_tree,
+            (*cs).cmnd,
+            word_type::TYPE_COMMAND,
+            last_one,
+            indent,
+            expand_aliases,
+        );
+        if last_one {
+            break;
+        }
+        cs = next;
+        next = (*cs).entries.tqe_next;
+    }
+    indent -= 4 as libc::c_int;
+    fprintf(
+        fp,
+        b"%*s]\n\0" as *const u8 as *const libc::c_char,
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+    );
+
+    /* Close Cmnd_Spec object. */
+    indent -= 4 as libc::c_int;
+    fprintf(
+        fp,
+        b"%*s}%s\n\0" as *const u8 as *const libc::c_char,
+        indent,
+        b"\0" as *const u8 as *const libc::c_char,
+        if !((*cs).entries.tqe_next).is_null() {
+            b",\0" as *const u8 as *const libc::c_char
+        } else {
+            b"\0" as *const u8 as *const libc::c_char
+        },
+    );
+    *nextp = next;
+
+    debug_return!();
+}
