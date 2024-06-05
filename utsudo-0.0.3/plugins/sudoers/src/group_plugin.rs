@@ -123,6 +123,40 @@ pub const never: def_tuple = 0;
 // #define	ENOLCK		37	/* No record locks available */
 pub const ENAMETOOLONG: libc::c_int = 36;
 
+// 多处定义，后期统一处理
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct list_member {
+    pub entries: C2RustUnnamed_0,
+    pub value: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_0 {
+    pub sle_next: *mut list_member,
+}
+// 多处定义，后期统一处理
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct list_members {
+    pub slh_first: *mut list_member,
+}
+
+// 多处定义，后期统一处理
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union sudo_defs_val {
+    pub flag: libc::c_int,
+    pub ival: libc::c_int,
+    pub uival: libc::c_uint,
+    pub tuple: def_tuple,
+    pub str_0: *mut libc::c_char,
+    pub mode: mode_t,
+    pub tspec: timespec,
+    pub list: list_members,
+}
+
+
 #[macro_export]
 macro_rules! _PATH_SUDO_PLUGIN_DIR {
     () => {
@@ -400,4 +434,21 @@ pub unsafe extern "C" fn group_plugin_query(
     debug_return_int!(((*group_plugin).query).expect("non-null function pointer")(
         user, group, pwd
     ));
+}
+
+/*
+ * Group plugin sudoers callback.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn cb_group_plugin(mut sd_un: *const sudo_defs_val) -> bool {
+    let mut rc: bool = true;
+    debug_decl!(SUDOERS_DEBUG_PLUGIN!());
+
+    /* Unload any existing group plugin before loading a new one. */
+    group_plugin_unload();
+    if !((*sd_un).str_0).is_null() {
+        rc = group_plugin_load((*sd_un).str_0) != 0;
+    }
+
+    debug_return_bool!(rc);
 }
