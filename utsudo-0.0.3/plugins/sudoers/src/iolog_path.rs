@@ -113,3 +113,228 @@ pub struct path_escape {
     pub copy_fn:
         Option<unsafe extern "C" fn(*mut libc::c_char, size_t, *mut libc::c_char) -> size_t>,
 }
+
+
+unsafe extern "C" fn fill_seq(
+    mut str: *mut libc::c_char,
+    mut strsize: size_t,
+    mut logdir: *mut libc::c_char,
+) -> size_t {
+    static mut sessid: [libc::c_char; 7] = [0; 7];
+    let mut len: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    if sessid[0 as usize] as libc::c_int == '\0' as i32 {
+        if !io_nextid(logdir, def_iolog_dir!(), sessid.as_mut_ptr()) {
+            debug_return_size_t!(-(1 as libc::c_int) as size_t);
+        }
+    }
+    /* Path is of the form /var/log/utsudo-io/00/00/01. */
+    len = snprintf(
+        str,
+        strsize,
+        b"%c%c/%c%c/%c%c\0" as *const u8 as *const libc::c_char,
+        sessid[0 as usize] as libc::c_int,
+        sessid[1 as usize] as libc::c_int,
+        sessid[2 as usize] as libc::c_int,
+        sessid[3 as usize] as libc::c_int,
+        sessid[4 as usize] as libc::c_int,
+        sessid[5 as usize] as libc::c_int,
+    );
+    if len < 0 {
+        debug_return_size_t!(strsize); /* handle non-standard snprintf() */
+    }
+    debug_return_size_t!(len as size_t);
+}
+unsafe extern "C" fn fill_user(
+    mut str_0: *mut libc::c_char,
+    mut strsize: size_t,
+    mut unused: *mut libc::c_char,
+) -> size_t {
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    debug_return_size_t!(sudo_strlcpy(str_0, user_name!(), strsize));
+}
+unsafe extern "C" fn fill_group(
+    mut str_0: *mut libc::c_char,
+    mut strsize: size_t,
+    mut unused: *mut libc::c_char,
+) -> size_t {
+    let mut grp: *mut group = 0 as *mut group;
+    let mut len: size_t = 0;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    grp = sudo_getgrgid(user_gid!());
+    if !grp.is_null() {
+        len = sudo_strlcpy(str_0, (*grp).gr_name, strsize);
+        sudo_gr_delref(grp);
+    } else {
+        len = strlen(str_0);
+        len = snprintf(
+            str_0.offset(len as isize),
+            strsize.wrapping_sub(len),
+            b"#%u\0" as *const u8 as *const libc::c_char,
+            user_gid!(),
+        ) as size_t;
+    }
+    debug_return_size_t!(len);
+}
+unsafe extern "C" fn fill_runas_user(
+    mut str_0: *mut libc::c_char,
+    mut strsize: size_t,
+    mut unused: *mut libc::c_char,
+) -> size_t {
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    debug_return_size_t!(sudo_strlcpy(str_0, (*runas_pw!()).pw_name, strsize));
+}
+unsafe extern "C" fn fill_runas_group(
+    mut str_0: *mut libc::c_char,
+    mut strsize: size_t,
+    mut unused: *mut libc::c_char,
+) -> size_t {
+    let mut grp: *mut group = 0 as *mut group;
+    let mut len: size_t = 0;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    if !runas_gr!().is_null() {
+        len = sudo_strlcpy(str_0, (*runas_gr!()).gr_name, strsize);
+    } else {
+        grp = sudo_getgrgid((*runas_pw!()).pw_gid);
+        if !grp.is_null() {
+            len = sudo_strlcpy(str_0, (*grp).gr_name, strsize);
+            sudo_gr_delref(grp);
+        } else {
+            len = strlen(str_0);
+            len = snprintf(
+                str_0.offset(len as isize),
+                strsize.wrapping_sub(len),
+                b"#%u\0" as *const u8 as *const libc::c_char,
+                (*runas_pw!()).pw_gid,
+            ) as size_t;
+        }
+    }
+    debug_return_size_t!(len);
+}
+unsafe extern "C" fn fill_hostname(
+    mut str_0: *mut libc::c_char,
+    mut strsize: size_t,
+    mut unused: *mut libc::c_char,
+) -> size_t {
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    debug_return_size_t!(sudo_strlcpy(str_0, user_shost!(), strsize));
+}
+unsafe extern "C" fn fill_command(
+    mut str_0: *mut libc::c_char,
+    mut strsize: size_t,
+    mut unused: *mut libc::c_char,
+) -> size_t {
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    debug_return_size_t!(sudo_strlcpy(str_0, user_base!(), strsize));
+}
+/* Note: "seq" must be first in the list. */
+static mut io_path_escapes: [path_escape; 8] = unsafe {
+    [
+        {
+            let mut seq = path_escape {
+                name: b"seq\0" as *const u8 as *const libc::c_char,
+                copy_fn: Some(
+                    fill_seq
+                        as unsafe extern "C" fn(
+                            *mut libc::c_char,
+                            size_t,
+                            *mut libc::c_char,
+                        ) -> size_t,
+                ),
+            };
+            seq
+        },
+        {
+            let mut user = path_escape {
+                name: b"user\0" as *const u8 as *const libc::c_char,
+                copy_fn: Some(
+                    fill_user
+                        as unsafe extern "C" fn(
+                            *mut libc::c_char,
+                            size_t,
+                            *mut libc::c_char,
+                        ) -> size_t,
+                ),
+            };
+            user
+        },
+        {
+            let mut group = path_escape {
+                name: b"group\0" as *const u8 as *const libc::c_char,
+                copy_fn: Some(
+                    fill_group
+                        as unsafe extern "C" fn(
+                            *mut libc::c_char,
+                            size_t,
+                            *mut libc::c_char,
+                        ) -> size_t,
+                ),
+            };
+            group
+        },
+        {
+            let mut runas_user = path_escape {
+                name: b"runas_user\0" as *const u8 as *const libc::c_char,
+                copy_fn: Some(
+                    fill_runas_user
+                        as unsafe extern "C" fn(
+                            *mut libc::c_char,
+                            size_t,
+                            *mut libc::c_char,
+                        ) -> size_t,
+                ),
+            };
+            runas_user
+        },
+        {
+            let mut runas_group = path_escape {
+                name: b"runas_group\0" as *const u8 as *const libc::c_char,
+                copy_fn: Some(
+                    fill_runas_group
+                        as unsafe extern "C" fn(
+                            *mut libc::c_char,
+                            size_t,
+                            *mut libc::c_char,
+                        ) -> size_t,
+                ),
+            };
+            runas_group
+        },
+        {
+            let mut hostname = path_escape {
+                name: b"hostname\0" as *const u8 as *const libc::c_char,
+                copy_fn: Some(
+                    fill_hostname
+                        as unsafe extern "C" fn(
+                            *mut libc::c_char,
+                            size_t,
+                            *mut libc::c_char,
+                        ) -> size_t,
+                ),
+            };
+            hostname
+        },
+        {
+            let mut command = path_escape {
+                name: b"command\0" as *const u8 as *const libc::c_char,
+                copy_fn: Some(
+                    fill_command
+                        as unsafe extern "C" fn(
+                            *mut libc::c_char,
+                            size_t,
+                            *mut libc::c_char,
+                        ) -> size_t,
+                ),
+            };
+            command
+        },
+        {
+            let mut init = path_escape {
+                name: 0 as *const libc::c_char,
+                copy_fn: None,
+            };
+            init
+        },
+    ]
+};
+
