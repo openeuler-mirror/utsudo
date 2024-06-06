@@ -208,4 +208,39 @@ pub unsafe extern "C" fn set_interfaces(mut ai: *const libc::c_char) -> bool {
 }
 
 
-
+#[no_mangle]
+pub unsafe extern "C" fn get_interfaces() -> *mut interface_list {
+    return &mut interfaces;
+}
+#[no_mangle]
+pub unsafe extern "C" fn dump_interfaces(mut ai: *const libc::c_char) {
+    let mut cp: *const libc::c_char = 0 as *const libc::c_char;
+    let mut ep: *const libc::c_char = 0 as *const libc::c_char;
+    let mut ai_end: *const libc::c_char = ai.offset(strlen(ai) as isize);
+    debug_decl!(SUDOERS_DEBUG_NETIF!());
+    sudo_printf.expect("non-null function pointer")(
+        SUDO_CONV_INFO_MSG,
+        b"Local IP address and netmask pairs:\n\0" as *const u8 as *const libc::c_char,
+    );
+    cp = sudo_strsplit_v1(
+        ai,
+        ai_end,
+        b" \t\0" as *const u8 as *const libc::c_char,
+        &mut ep,
+    );
+    while !cp.is_null() {
+        sudo_printf.expect("non-null function pointer")(
+            SUDO_CONV_INFO_MSG,
+            b"\t%.*s\n\0" as *const u8 as *const libc::c_char,
+            ep.offset_from(cp) as libc::c_long as libc::c_int,
+            cp,
+        );
+        cp = sudo_strsplit_v1(
+            0 as *const libc::c_char,
+            ai_end,
+            b" \t\0" as *const u8 as *const libc::c_char,
+            &mut ep,
+        );
+    }
+    debug_return!();
+}
