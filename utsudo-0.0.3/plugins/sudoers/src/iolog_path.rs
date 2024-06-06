@@ -63,3 +63,53 @@ extern "C" {
 }
 pub const PATH_MAX: usize = 4096;
 pub const SUDOERS_LOCALE_SUDOERS: libc::c_int = 1;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_user {
+    pub pw: *mut passwd,
+    pub _runas_pw: *mut passwd,
+    pub _runas_gr: *mut group,
+    pub cmnd_stat: *mut stat,
+    pub name: *mut libc::c_char,
+    pub path: *mut libc::c_char,
+    pub tty: *mut libc::c_char,
+    pub ttypath: *mut libc::c_char,
+    pub host: *mut libc::c_char,
+    pub shost: *mut libc::c_char,
+    pub runhost: *mut libc::c_char,
+    pub srunhost: *mut libc::c_char,
+    pub prompt: *mut libc::c_char,
+    pub cmnd: *mut libc::c_char,
+    pub cmnd_args: *mut libc::c_char,
+    pub cmnd_base: *mut libc::c_char,
+    pub cmnd_safe: *mut libc::c_char,
+    pub class_name: *mut libc::c_char,
+    pub krb5_ccname: *mut libc::c_char,
+    pub gid_list: *mut gid_list,
+    pub env_vars: *const *mut libc::c_char,
+    pub role: *mut libc::c_char,
+    pub type_0: *mut libc::c_char,
+    pub cwd: *const libc::c_char,
+    pub iolog_file: *mut libc::c_char,
+    pub gids: *mut gid_t,
+    pub execfd: libc::c_int,
+    pub ngids: libc::c_int,
+    pub closefrom: libc::c_int,
+    pub lines: libc::c_int,
+    pub cols: libc::c_int,
+    pub flags: libc::c_int,
+    pub max_groups: libc::c_int,
+    pub timeout: libc::c_int,
+    pub umask: mode_t,
+    pub uid: uid_t,
+    pub gid: uid_t,
+    pub sid: pid_t,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct path_escape {
+    pub name: *const libc::c_char,
+    pub copy_fn:
+        Option<unsafe extern "C" fn(*mut libc::c_char, size_t, *mut libc::c_char) -> size_t>,
+}
