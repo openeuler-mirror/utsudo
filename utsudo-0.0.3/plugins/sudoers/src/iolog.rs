@@ -176,3 +176,27 @@ extern "C" {
     fn gzclose(file: gzFile) -> libc::c_int;
     fn gzerror(file: gzFile, errnum: *mut libc::c_int) -> *const libc::c_char;
 }
+
+
+pub const SESSID_MAX: libc::c_uint = 2176782336;
+
+pub const S_IWUSR: libc::c_int = 0o200;
+pub const S_ISUID: libc::c_int = 0o4000;
+pub const S_ISGID: libc::c_int = 0o2000;
+pub const S_ISTXT: libc::c_int = 0o001000;
+
+pub const S_IRGRP: libc::c_int = S_IRUSR >> 3;
+pub const S_IWGRP: libc::c_int = S_IWUSR >> 3;
+pub const S_IROTH: libc::c_int = S_IRGRP >> 3;
+pub const S_IWOTH: libc::c_int = S_IWGRP >> 3;
+
+pub const S_IRWXG: libc::c_int = S_IRWXU >> 3;
+pub const S_IRWXO: libc::c_int = S_IRWXG >> 3;
+
+#[inline]
+unsafe extern "C" fn stat(
+    mut __path: *const libc::c_char,
+    mut __statbuf: *mut stat,
+) -> libc::c_int {
+    return __xstat(xstat_flag as libc::c_int, __path, __statbuf);
+}
