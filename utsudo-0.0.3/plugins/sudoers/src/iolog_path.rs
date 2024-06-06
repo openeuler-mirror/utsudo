@@ -63,7 +63,6 @@ extern "C" {
 }
 pub const PATH_MAX: usize = 4096;
 pub const SUDOERS_LOCALE_SUDOERS: libc::c_int = 1;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sudo_user {
@@ -113,8 +112,6 @@ pub struct path_escape {
     pub copy_fn:
         Option<unsafe extern "C" fn(*mut libc::c_char, size_t, *mut libc::c_char) -> size_t>,
 }
-
-
 unsafe extern "C" fn fill_seq(
     mut str: *mut libc::c_char,
     mut strsize: size_t,
@@ -337,7 +334,6 @@ static mut io_path_escapes: [path_escape; 8] = unsafe {
         },
     ]
 };
-
 /*
  * Concatenate dir + file, expanding any escape sequences.
  * Returns the concatenated path and sets slashp point to
@@ -537,8 +533,3 @@ pub unsafe extern "C" fn expand_iolog_path(
     }
     debug_return_str!(path as *mut libc::c_char);
 }
-
-
-
-
-
