@@ -338,3 +338,207 @@ static mut io_path_escapes: [path_escape; 8] = unsafe {
     ]
 };
 
+/*
+ * Concatenate dir + file, expanding any escape sequences.
+ * Returns the concatenated path and sets slashp point to
+ * the path separator between the expanded dir and file.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn expand_iolog_path(
+    mut prefix: *const libc::c_char,
+    mut dir: *const libc::c_char,
+    mut file: *const libc::c_char,
+    mut slashp: *mut *mut libc::c_char,
+) -> *mut libc::c_char {
+    let mut len: size_t = 0;
+    let mut prelen: size_t = 0 as libc::c_int as size_t;
+    let mut dst: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut dst0: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut path: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut pathend: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut tmpbuf: [libc::c_char; PATH_MAX] = [0; PATH_MAX];
+    let mut slash: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut endbrace: *const libc::c_char = 0 as *const libc::c_char;
+    let mut src: *const libc::c_char = dir;
+    let mut escapes: *mut path_escape = 0 as *mut path_escape;
+    let mut pass: libc::c_int = 0;
+    let mut oldlocale: libc::c_int = 0;
+    let mut strfit: bool = false;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+    /* Expanded path must be <= PATH_MAX */
+    if !prefix.is_null() {
+        prelen = strlen(prefix);
+    }
+    path = malloc(prelen.wrapping_add(PATH_MAX as libc::c_ulong)) as *mut libc::c_char;
+    if path.is_null() {
+        sudo_warnx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            get_function_name!(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        free(path as *mut libc::c_void);
+        debug_return_str!(0 as *mut libc::c_char);
+    }
+    *path = '\0' as i32 as libc::c_char;
+    pathend = path.offset(prelen as isize).offset(PATH_MAX as isize);
+    dst = path;
+    /* Copy prefix, if present. */
+    if !prefix.is_null() {
+        memcpy(
+            path as *mut libc::c_void,
+            prefix as *const libc::c_void,
+            prelen,
+        );
+        dst = dst.offset(prelen as isize);
+        *dst = '\0' as i32 as libc::c_char;
+    }
+    /* Trim leading slashes from file component. */
+    while *file as libc::c_int == '/' as i32 {
+        file = file.offset(1);
+    }
+    loop {
+        if !(pass < 3) {
+            break;
+        }
+        strfit = false;
+        match pass {
+            0 => {
+                src = dir;
+                escapes = io_path_escapes.as_mut_ptr().offset(1 as isize); /* skip "%{seq}" */
+            }
+            1 => {
+                /* Trim trailing slashes from dir component. */
+                while dst > path.offset(prelen as isize).offset(1 as isize)
+                    && *dst.offset(-(1 as libc::c_int) as isize) as libc::c_int == '/' as i32
+                {
+                    dst = dst.offset(-1);
+                }
+                /* The NUL will be replaced with a '/' at the end. */
+                if dst.offset(1 as isize) >= pathend {
+                    free(path as *mut libc::c_void);
+                    debug_return_str!(0 as *mut libc::c_char);
+                }
+                let fresh0 = dst;
+                dst = dst.offset(1);
+                slash = fresh0;
+                pass += 1;
+                continue;
+            }
+            2 => {
+                src = file;
+                escapes = io_path_escapes.as_mut_ptr();
+            }
+            _ => {}
+        }
+        dst0 = dst;
+        while *src as libc::c_int != '\0' as i32 {
+            if *src.offset(0 as isize) as libc::c_int == '%' as i32 {
+                if *src.offset(1 as isize) as libc::c_int == '{' as i32 {
+                    endbrace = strchr(src.offset(2 as isize), '}' as i32);
+                    if !endbrace.is_null() {
+                        let mut esc: *mut path_escape = 0 as *mut path_escape;
+                        len = (endbrace.offset_from(src) as libc::c_long - 2 as libc::c_long)
+                            as size_t;
+                        esc = escapes;
+                        while !((*esc).name).is_null() {
+                            if strncmp(src.offset(2 as isize), (*esc).name, len) == 0 as libc::c_int
+                                && *((*esc).name).offset(len as isize) as libc::c_int == '\0' as i32
+                            {
+                                break;
+                            }
+                            esc = esc.offset(1);
+                        }
+                        if !((*esc).name).is_null() {
+                            len = ((*esc).copy_fn).expect("non-null function pointer")(
+                                dst,
+                                pathend.offset_from(dst) as libc::c_long as size_t,
+                                path.offset(prelen as isize),
+                            );
+                            if len >= pathend.offset_from(dst) as libc::c_long as size_t {
+                                free(path as *mut libc::c_void);
+                                debug_return_str!(0 as *mut libc::c_char);
+                            }
+                            dst = dst.offset(len as isize);
+                            src = endbrace;
+                            src = src.offset(1);
+                            continue;
+                        }
+                    }
+                } else if *src.offset(1 as isize) as libc::c_int == '%' as i32 {
+                    /* Collapse %% -> % */
+                    src = src.offset(1);
+                } else {
+                    /* May need strftime() */
+                    strfit = true;
+                }
+            }
+            /* Need at least 2 chars, including the NUL terminator. */
+            if dst.offset(1 as isize) >= pathend {
+                free(path as *mut libc::c_void);
+                debug_return_str!(0 as *mut libc::c_char);
+            }
+            *dst = *src;
+            dst = dst.offset(1);
+            src = src.offset(1);
+        }
+        *dst = '\0' as i32 as libc::c_char;
+        /* Expand strftime escapes as needed. */
+        if strfit {
+            let mut now: time_t = 0;
+            let mut timeptr: *mut tm = 0 as *mut tm;
+            time(&mut now);
+            timeptr = localtime(&mut now);
+            if timeptr.is_null() {
+                free(path as *mut libc::c_void);
+                debug_return_str!(0 as *mut libc::c_char);
+            }
+            /* Use sudoers locale for strftime() */
+            sudoers_setlocale(SUDOERS_LOCALE_SUDOERS, &mut oldlocale);
+            /* We only call strftime() on the current part of the buffer. */
+            tmpbuf[(::core::mem::size_of::<[libc::c_char; PATH_MAX]>() as libc::c_ulong)
+                .wrapping_sub(1 as libc::c_ulong) as usize] = '\0' as i32 as libc::c_char;
+            len = strftime(
+                tmpbuf.as_mut_ptr(),
+                ::core::mem::size_of::<[libc::c_char; PATH_MAX]>() as libc::c_ulong,
+                dst0,
+                timeptr,
+            );
+            /* Restore old locale. */
+            sudoers_setlocale(oldlocale, 0 as *mut libc::c_int);
+            if len == 0 as libc::c_ulong
+                || tmpbuf[(::core::mem::size_of::<[libc::c_char; PATH_MAX]>() as libc::c_ulong)
+                    .wrapping_sub(1 as libc::c_ulong) as usize] as libc::c_int
+                    != '\0' as i32
+            {
+                /* strftime() failed, buf too small? */
+                free(path as *mut libc::c_void);
+                debug_return_str!(0 as *mut libc::c_char);
+            }
+            if len >= pathend.offset_from(dst0) as libc::c_long as size_t {
+                /* expanded buffer too big to fit. */
+                free(path as *mut libc::c_void);
+                debug_return_str!(0 as *mut libc::c_char);
+            }
+            memcpy(
+                dst0 as *mut libc::c_void,
+                tmpbuf.as_mut_ptr() as *const libc::c_void,
+                len,
+            );
+            dst = dst0.offset(len as isize);
+            *dst = '\0' as i32 as libc::c_char;
+        }
+        pass += 1;
+    }
+    if !slash.is_null() {
+        *slash = '/' as i32 as libc::c_char;
+    }
+    if !slashp.is_null() {
+        *slashp = slash;
+    }
+    debug_return_str!(path as *mut libc::c_char);
+}
+
+
+
+
+
