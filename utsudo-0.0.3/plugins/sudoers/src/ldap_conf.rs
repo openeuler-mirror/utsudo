@@ -226,3 +226,395 @@ pub static mut ldap_conf: ldap_config = ldap_config {
     sasl_secprops: 0 as *const libc::c_char as *mut libc::c_char,
     krb5_ccname: 0 as *const libc::c_char as *mut libc::c_char,
 };
+
+
+static mut ldap_conf_global: [ldap_config_table; 31] = [ldap_config_table {
+    conf_str: 0 as *const libc::c_char,
+    type_0: 0,
+    opt_val: 0,
+    valp: 0 as *mut libc::c_void,
+}; 31];
+static mut ldap_conf_conn: [ldap_config_table; 8] = [ldap_config_table {
+    conf_str: 0 as *const libc::c_char,
+    type_0: 0,
+    opt_val: 0,
+    valp: 0 as *mut libc::c_void,
+}; 8];
+//pub static mut ldap_conf_global : [ldap_config_table;31] = unsafe {
+//pub static mut ldap_conf_global : [ldap_config_table;31] =
+unsafe extern "C" fn run_static_initializers() {
+    ldap_conf_global = [
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"sudoers_debug\0" as *const u8 as *const libc::c_char,
+                type_0: 1 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.debug as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"host\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.host as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"port\0" as *const u8 as *const libc::c_char,
+                type_0: 1 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.port as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"ssl\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.ssl as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"sslpath\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.tls_certfile as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"uri\0" as *const u8 as *const libc::c_char,
+                type_0: 4 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.uri as *mut ldap_config_str_list as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"debug\0" as *const u8 as *const libc::c_char,
+                type_0: 1 as libc::c_int,
+                opt_val: 0x5001 as libc::c_int,
+                valp: &mut ldap_conf.ldap_debug as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"tls_checkpeer\0" as *const u8 as *const libc::c_char,
+                type_0: 0 as libc::c_int,
+                opt_val: 0x6006 as libc::c_int,
+                valp: &mut ldap_conf.tls_checkpeer as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"tls_reqcert\0" as *const u8 as *const libc::c_char,
+                type_0: 6 as libc::c_int,
+                opt_val: 0x6006 as libc::c_int,
+                valp: &mut ldap_conf.tls_reqcert as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"tls_cacertfile\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: 0x6002 as libc::c_int,
+                valp: &mut ldap_conf.tls_cacertfile as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"tls_cacert\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: 0x6002 as libc::c_int,
+                valp: &mut ldap_conf.tls_cacertfile as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"tls_cacertdir\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: 0x6003 as libc::c_int,
+                valp: &mut ldap_conf.tls_cacertdir as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"tls_randfile\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: 0x6009 as libc::c_int,
+                valp: &mut ldap_conf.tls_random_file as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"tls_ciphers\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: 0x6008 as libc::c_int,
+                valp: &mut ldap_conf.tls_cipher_suite as *mut *mut libc::c_char
+                    as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"tls_cert\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: 0x6004 as libc::c_int,
+                valp: &mut ldap_conf.tls_certfile as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"tls_key\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: 0x6005 as libc::c_int,
+                valp: &mut ldap_conf.tls_keyfile as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"binddn\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.binddn as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"bindpw\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.bindpw as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"rootbinddn\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.rootbinddn as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"sudoers_base\0" as *const u8 as *const libc::c_char,
+                type_0: 4 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.base as *mut ldap_config_str_list as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"sudoers_timed\0" as *const u8 as *const libc::c_char,
+                type_0: 0 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.timed as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"sudoers_search_filter\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.search_filter as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"netgroup_base\0" as *const u8 as *const libc::c_char,
+                type_0: 4 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.netgroup_base as *mut ldap_config_str_list
+                    as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"netgroup_search_filter\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.netgroup_search_filter as *mut *mut libc::c_char
+                    as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"use_sasl\0" as *const u8 as *const libc::c_char,
+                type_0: 0 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.use_sasl as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"sasl_mech\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.sasl_mech as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"sasl_auth_id\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.sasl_auth_id as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"rootuse_sasl\0" as *const u8 as *const libc::c_char,
+                type_0: 0 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.rootuse_sasl as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"rootsasl_auth_id\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.rootsasl_auth_id as *mut *mut libc::c_char
+                    as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"krb5_ccname\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.krb5_ccname as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: 0 as *const libc::c_char,
+                type_0: 0,
+                opt_val: 0,
+                valp: 0 as *mut libc::c_void,
+            };
+            init
+        },
+    ];
+    //}
+    
+ //#[no_mangle]
+    //pub static mut ldap_conf_conn : [ldap_config_table;8] = unsafe {
+    //unsafe extern "C" fn run_static_initializers() {
+    ldap_conf_conn = [
+        //pub static mut ldap_conf_conn : [ldap_config_table;8] = unsafe {
+        //    [
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"ldap_version\0" as *const u8 as *const libc::c_char,
+                type_0: 1 as libc::c_int,
+                opt_val: 0x11 as libc::c_int,
+                valp: &mut ldap_conf.version as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"bind_timelimit\0" as *const u8 as *const libc::c_char,
+                type_0: 1 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.bind_timelimit as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"network_timeout\0" as *const u8 as *const libc::c_char,
+                type_0: 1 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.bind_timelimit as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"timelimit\0" as *const u8 as *const libc::c_char,
+                type_0: 1 as libc::c_int,
+                opt_val: 0x4 as libc::c_int,
+                valp: &mut ldap_conf.timelimit as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"timeout\0" as *const u8 as *const libc::c_char,
+                type_0: 1 as libc::c_int,
+                opt_val: -(1 as libc::c_int),
+                valp: &mut ldap_conf.timeout as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"deref\0" as *const u8 as *const libc::c_char,
+                type_0: 5 as libc::c_int,
+                opt_val: 0x2 as libc::c_int,
+                valp: &mut ldap_conf.deref as *mut libc::c_int as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: b"sasl_secprops\0" as *const u8 as *const libc::c_char,
+                type_0: 2 as libc::c_int,
+                opt_val: 0x6106 as libc::c_int,
+                valp: &mut ldap_conf.sasl_secprops as *mut *mut libc::c_char as *mut libc::c_void,
+            };
+            init
+        },
+        {
+            let mut init = ldap_config_table {
+                conf_str: 0 as *const libc::c_char,
+                type_0: 0,
+                opt_val: 0,
+                valp: 0 as *mut libc::c_void,
+            };
+            init
+        },
+    ];
+}
+
+
+
+
+
+
+
+
