@@ -611,7 +611,108 @@ unsafe extern "C" fn run_static_initializers() {
     ];
 }
 
-
+//functions
+unsafe extern "C" fn sudo_ldap_conf_add_ports() -> bool {
+    let mut host: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut last: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut port: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut defport: [libc::c_char; 13] = [0; 13];
+    let mut hostbuf: [libc::c_char; 4096] = [0; 4096];
+    let mut len: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_LDAP!());
+    hostbuf[0 as libc::c_int as usize] = '\u{0}' as i32 as libc::c_char;
+    len = snprintf(
+        defport.as_mut_ptr(),
+        ::std::mem::size_of::<[libc::c_char; 13]>() as libc::c_ulong,
+        b":%d\0" as *const u8 as *const libc::c_char,
+        ldap_conf.port,
+    );
+    if len < 0 as libc::c_int
+        || len as libc::c_long
+            >= ::std::mem::size_of::<[libc::c_char; 13]>() as libc::c_ulong as ssize_t
+    {
+        sudo_warnx!(
+            b"sudo_ldap_conf_add_ports: port too large\0" as *const u8 as *const libc::c_char,
+        );
+        debug_return_bool!(false);
+    }
+    host = strtok_r(
+        ldap_conf.host,
+        b" \t\0" as *const u8 as *const libc::c_char,
+        &mut last,
+    );
+    loop {
+        if host.is_null() {
+            break;
+        }
+        if hostbuf[0 as libc::c_int as usize] as libc::c_int != '\u{0}' as i32 {
+            if sudo_strlcat(
+                hostbuf.as_mut_ptr(),
+                b" \0" as *const u8 as *const libc::c_char,
+                ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+            ) >= ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong
+            {
+                sudo_warnx!(
+                    b"internal error, %s overflow\0" as *const u8 as *const libc::c_char,
+                    get_function_name!(),
+                );
+                debug_return_bool!(false);
+            }
+        }
+        if sudo_strlcat(
+            hostbuf.as_mut_ptr(),
+            host,
+            ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+        ) >= ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong
+        {
+            sudo_warnx!(
+                b"internal error, %s overflow\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+            );
+            debug_return_bool!(false);
+        }
+        /* Append port if there is not one already. */
+        //
+        port = strrchr(host, ':' as i32);
+        if port.is_null()
+            || *(*__ctype_b_loc()).offset(
+                *port.offset(1 as libc::c_int as isize) as libc::c_uchar as libc::c_int as isize
+            ) as libc::c_int
+                & _ISdigit as libc::c_int as libc::c_ushort as libc::c_int
+                == 0
+        {
+            if sudo_strlcat(
+                hostbuf.as_mut_ptr(),
+                defport.as_mut_ptr(),
+                ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong,
+            ) >= ::std::mem::size_of::<[libc::c_char; 4096]>() as libc::c_ulong
+            {
+                sudo_warnx!(
+                    b"internal error, %s overflow\0" as *const u8 as *const libc::c_char,
+                    get_function_name!(),
+                );
+                debug_return_bool!(false);
+            }
+        }
+        host = strtok_r(
+            0 as *mut libc::c_char,
+            b" \t\0" as *const u8 as *const libc::c_char,
+            &mut last,
+        );
+    }
+    free(ldap_conf.host as *mut libc::c_void);
+    ldap_conf.host = strdup(hostbuf.as_mut_ptr());
+    if (ldap_conf.host).is_null() {
+        sudo_warnx!(
+            b"internal error, %s overflow\0" as *const u8 as *const libc::c_char,
+            get_function_name!(),
+        );
+    }
+    debug_return_bool!(!(ldap_conf.host).is_null());
+    //overflow:
+    //sudo_warnx!(b"internal error, %s overflow\0" as *const u8 as *const libc::c_char,get_function_name!(),);
+    //debug_return_bool!(false);
+}
 
 
 
