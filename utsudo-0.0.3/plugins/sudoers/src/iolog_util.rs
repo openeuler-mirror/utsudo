@@ -179,3 +179,236 @@ macro_rules! ULONG_MAX {
     }};
 }
 static mut timing_event_adj: libc::c_int = 0;
+
+#[no_mangle]
+pub unsafe extern "C" fn parse_logfile(mut logfile: *const libc::c_char) -> *mut log_info {
+    let mut fp: *mut FILE = 0 as *mut FILE;
+    let mut buf: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut ep: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+    let mut bufsize: size_t = 0 as libc::c_int as size_t;
+    let mut cwdsize: size_t = 0 as libc::c_int as size_t;
+    let mut cmdsize: size_t = 0 as libc::c_int as size_t;
+    let mut li: *mut log_info = 0 as *mut log_info;
+    debug_decl!(SUDO_DEBUG_UTIL);
+
+    fp = fopen(logfile, b"r\0" as *const u8 as *const libc::c_char);
+    'bad: loop {
+        if fp.is_null() {
+            sudo_warn!(
+                b"unable to open %s\0" as *const u8 as *const libc::c_char,
+                logfile
+            );
+            break 'bad;
+        }
+
+        /*
+         * ID file has three lines:
+         *  1) a log info line
+         *  2) cwd
+         *  3) command with args
+         */
+        li = calloc(
+            1 as libc::c_ulong,
+            ::core::mem::size_of::<log_info>() as libc::c_ulong,
+        ) as *mut log_info;
+        if li.is_null() {
+            sudo_fatalx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+        }
+        if getdelim(&mut buf, &mut bufsize, '\n' as i32, fp) == -(1 as libc::c_int) as libc::c_long
+            || getdelim(&mut (*li).cwd, &mut cwdsize, '\n' as i32, fp)
+                == -(1 as libc::c_int) as libc::c_long
+            || getdelim(&mut (*li).cmd, &mut cmdsize, '\n' as i32, fp)
+                == -(1 as libc::c_int) as libc::c_long
+        {
+            sudo_warn!(
+                b"%s: invalid log file\0" as *const u8 as *const libc::c_char,
+                logfile
+            );
+            break 'bad;
+        }
+
+        /* Strip the newline from the cwd and command. */
+        *((*li).cwd)
+            .offset(strcspn((*li).cwd, b"\n\0" as *const u8 as *const libc::c_char) as isize) =
+            '\0' as i32 as libc::c_char;
+        *((*li).cmd)
+            .offset(strcspn((*li).cmd, b"\n\0" as *const u8 as *const libc::c_char) as isize) =
+            '\0' as i32 as libc::c_char;
+
+        /*
+         * Crack the log line (rows and cols not present in old versions).
+         *	timestamp:user:runas_user:runas_group:tty:rows:cols
+         * XXX - probably better to use strtok and switch on the state.
+         */
+        *buf.offset(strcspn(buf, b"\n\0" as *const u8 as *const libc::c_char) as isize) =
+            '\0' as i32 as libc::c_char;
+        cp = buf;
+
+        /* timestamp */
+        ep = strchr(cp, ':' as i32);
+        if ep.is_null() {
+            sudo_warn!(
+                b"%s: time stamp field is missing\0" as *const u8 as *const libc::c_char,
+                logfile
+            );
+            break 'bad;
+        }
+        *ep = '\0' as i32 as libc::c_char;
+        (*li).tstamp = sudo_strtonum(
+            cp,
+            0 as libc::c_longlong,
+            TIME_T_MAX as libc::c_longlong,
+            &mut errstr,
+        ) as time_t;
+        if !errstr.is_null() {
+            sudo_warn!(
+                b"%s: time stamp %s: %s\0" as *const u8 as *const libc::c_char,
+                logfile,
+                cp,
+                errstr
+            );
+            break 'bad;
+        }
+
+        /* user */
+        cp = ep.offset(1 as isize);
+        ep = strchr(cp, ':' as i32);
+        if ep.is_null() {
+            sudo_warn!(
+                b"%s: user field is missing\0" as *const u8 as *const libc::c_char,
+                logfile
+            );
+            break 'bad;
+        }
+        (*li).user = strndup(cp, ep.offset_from(cp) as libc::c_long as size_t);
+        if ((*li).user).is_null() {
+            sudo_fatalx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+        }
+
+        /* runas user */
+        cp = ep.offset(1 as isize);
+        ep = strchr(cp, ':' as i32);
+        if ep.is_null() {
+            sudo_warn!(
+                b"%s: runas user field is missing\0" as *const u8 as *const libc::c_char,
+                logfile
+            );
+            break 'bad;
+        }
+        (*li).runas_user = strndup(cp, ep.offset_from(cp) as libc::c_long as size_t);
+        if ((*li).runas_user).is_null() {
+            sudo_fatalx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+        }
+
+        /* runas group */
+        cp = ep.offset(1 as isize);
+        ep = strchr(cp, ':' as i32);
+        if ep.is_null() {
+            sudo_warn!(
+                b"%s: runas group field is missing\0" as *const u8 as *const libc::c_char,
+                logfile
+            );
+            break 'bad;
+        }
+        if cp != ep {
+            (*li).runas_group = strndup(cp, ep.offset_from(cp) as libc::c_long as size_t);
+            if ((*li).runas_group).is_null() {
+                sudo_fatalx!(
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    get_function_name!(),
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                );
+            }
+        }
+
+        /* tty, followed by optional rows + columns */
+        cp = ep.offset(1 as isize);
+        ep = strchr(cp, ':' as i32);
+        if ep.is_null() {
+            /* just the tty */
+            (*li).tty = strdup(cp);
+            if ((*li).tty).is_null() {
+                sudo_fatalx!(
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    get_function_name!(),
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                );
+            }
+        } else {
+            /* tty followed by rows + columns */
+            (*li).tty = strndup(cp, ep.offset_from(cp) as libc::c_long as size_t);
+            if ((*li).tty).is_null() {
+                sudo_fatalx!(
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    get_function_name!(),
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                );
+            }
+            cp = ep.offset(1 as isize);
+            /* need to NULL out separator to use sudo_strtonum() */
+            /* XXX - use sudo_strtonumx */
+            ep = strchr(cp, ':' as i32);
+            if !ep.is_null() {
+                *ep = '\0' as i32 as libc::c_char;
+            }
+            (*li).rows = sudo_strtonum(
+                cp,
+                1 as libc::c_longlong,
+                INT_MAX as libc::c_longlong,
+                &mut errstr,
+            ) as libc::c_int;
+            if !errstr.is_null() {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                    b"%s: tty rows %s: %s\0" as *const u8 as *const libc::c_char,
+                    logfile,
+                    cp,
+                    errstr
+                );
+            }
+            if !ep.is_null() {
+                cp = ep.offset(1 as isize);
+                (*li).cols = sudo_strtonum(
+                    cp,
+                    1 as libc::c_longlong,
+                    INT_MAX as libc::c_longlong,
+                    &mut errstr,
+                ) as libc::c_int;
+                if !errstr.is_null() {
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                        b"%s: tty cols %s: %s\0" as *const u8 as *const libc::c_char,
+                        logfile,
+                        cp,
+                        errstr
+                    );
+                }
+            }
+        }
+        fclose(fp);
+        free(buf as *mut libc::c_void);
+        debug_return_ptr!(li);
+    }
+
+    //bad:
+    if !fp.is_null() {
+        fclose(fp);
+    }
+    free(buf as *mut libc::c_void);
+    free_log_info(li);
+    debug_return_ptr!(0 as *mut log_info);
+}
