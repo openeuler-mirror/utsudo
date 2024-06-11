@@ -327,3 +327,114 @@ static mut iolog_gid_set: bool = false;
 /* shared with set_perms.c */
 pub type gid_t = libc::c_uint;
 pub const ROOT_GID: uid_t = 0;
+
+/*
+ * Create directory and any parent directories as needed.
+ */
+#[inline]
+unsafe extern "C" fn io_mkdirs(mut path: *mut libc::c_char) -> bool {
+    let mut sb: stat = sb_all_arch;
+    let mut ok: bool = false;
+    let mut uid_changed: bool = false;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    ok = stat(path, &mut sb) == 0;
+    if !ok && *__errno_location() == EACCES {
+        /* Try again as the I/O log owner (for NFS). */
+        if set_perms(PERM_IOLOG) {
+            ok = stat(path, &mut sb) == 0;
+            if !restore_perms() {
+                ok = false;
+            }
+        }
+    }
+    if ok {
+        if S_ISDIR!(sb.st_mode) {
+            if sb.st_uid != iolog_uid || sb.st_gid != iolog_gid {
+                if chown(path, iolog_uid, iolog_gid) != 0 {
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                        b"%s: unable to chown %d:%d %s\0" as *const u8 as *const libc::c_char,
+                        get_function_name!(),
+                        iolog_uid as libc::c_int,
+                        iolog_gid as libc::c_int,
+                        path
+                    );
+                }
+            }
+            if sb.st_mode & ALLPERMS!() as libc::c_uint != iolog_dirmode {
+                if chmod(path, iolog_dirmode) != 0 as libc::c_int {
+                    sudo_debug_printf!(
+                        SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                        b"%s: unable to chmod 0%o %s\0" as *const u8 as *const libc::c_char,
+                        get_function_name!(),
+                        iolog_dirmode,
+                        path
+                    );
+                }
+            }
+        } else {
+            sudo_warnx!(
+                b"%s exists but is not a directory (0%o)\0" as *const u8 as *const libc::c_char,
+                path,
+                sb.st_mode
+            );
+            ok = false;
+        }
+        debug_return_bool!(ok);
+    }
+
+    ok = sudo_mkdir_parents(path, iolog_uid, iolog_gid, iolog_dirmode, true);
+    if !ok && *__errno_location() == EACCES {
+        /* Try again as the I/O log owner (for NFS). */
+        uid_changed = set_perms(PERM_IOLOG);
+        ok = sudo_mkdir_parents(
+            path,
+            -(1 as libc::c_int) as uid_t,
+            -(1 as libc::c_int) as gid_t,
+            iolog_dirmode,
+            false,
+        );
+    }
+    if ok {
+        /* Create final path component. */
+        sudo_debug_printf!(
+            SUDO_DEBUG_DEBUG | SUDO_DEBUG_LINENO,
+            b"mkdir %s, mode 0%o\0" as *const u8 as *const libc::c_char,
+            path,
+            iolog_dirmode
+        );
+        ok = mkdir(path, iolog_dirmode) == 0 as libc::c_int || *__errno_location() == EEXIST;
+        if !ok {
+            if *__errno_location() == EACCES && !uid_changed {
+                /* Try again as the I/O log owner (for NFS). */
+                uid_changed = set_perms(PERM_IOLOG);
+                ok =
+                    mkdir(path, iolog_dirmode) == 0 as libc::c_int || *__errno_location() == EEXIST;
+            }
+            if !ok {
+                sudo_warn!(
+                    b"unable to mkdir %s\0" as *const u8 as *const libc::c_char,
+                    path
+                );
+            }
+        } else {
+            if chown(path, iolog_uid, iolog_gid) != 0 {
+                sudo_debug_printf!(
+                    SUDO_DEBUG_ERROR | SUDO_DEBUG_ERRNO,
+                    b"%s: unable to chown %d:%d %s\0" as *const u8 as *const libc::c_char,
+                    get_function_name!(),
+                    iolog_uid as libc::c_int,
+                    iolog_gid as libc::c_int,
+                    path
+                );
+            }
+        }
+    }
+    if uid_changed {
+        if !restore_perms() {
+            ok = false;
+        }
+    }
+    debug_return_bool!(ok);
+}
