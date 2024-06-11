@@ -193,10 +193,37 @@ pub const S_IWOTH: libc::c_int = S_IWGRP >> 3;
 pub const S_IRWXG: libc::c_int = S_IRWXU >> 3;
 pub const S_IRWXO: libc::c_int = S_IRWXG >> 3;
 
+pub const O_RDWR: libc::c_int = 0o2;
+pub const O_CREAT: libc::c_int = 0o100;
+
+pub const IOFD_STDIN: libc::c_int = 0;
+pub const IOFD_STDOUT: libc::c_int = 1;
+pub const IOFD_STDERR: libc::c_int = 2;
+pub const IOFD_TTYIN: libc::c_int = 3;
+pub const IOFD_TTYOUT: libc::c_int = 4;
+
+pub const PERM_IOLOG: libc::c_int = 0x07;
+
+pub const PATH_MAX: usize = 4096;
+pub const ENAMETOOLONG: libc::c_int = 36;
+
+pub const SUDO_LOCK: libc::c_int = 1;
+pub const EOVERFLOW: libc::c_int = 75;
+
+pub const INT_MAX: libc::c_int = 2147483647;
+
+pub const Z_SYNC_FLUSH: libc::c_int = 2;
+pub const Z_OK: libc::c_int = 0;
+
 #[inline]
 unsafe extern "C" fn stat(
     mut __path: *const libc::c_char,
     mut __statbuf: *mut stat,
 ) -> libc::c_int {
     return __xstat(xstat_flag as libc::c_int, __path, __statbuf);
+}
+
+#[inline]
+unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
+    return __fxstat(xstat_flag as libc::c_int, __fd, __statbuf);
 }
