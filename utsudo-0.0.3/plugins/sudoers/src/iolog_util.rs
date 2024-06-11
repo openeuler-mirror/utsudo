@@ -107,6 +107,58 @@ pub const ERANGE: libc::c_int = 34;
 pub type __off64_t = libc::c_long;
 pub type off64_t = __off64_t;
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct gzFile_s {
+    pub have: libc::c_uint,
+    pub next: *mut libc::c_uchar,
+    pub pos: off64_t,
+}
+pub type gzFile = *mut gzFile_s;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union io_fd {
+    pub f: *mut FILE,
+    pub g: gzFile,
+    pub v: *mut libc::c_void,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct log_info {
+    pub cwd: *mut libc::c_char,
+    pub user: *mut libc::c_char,
+    pub runas_user: *mut libc::c_char,
+    pub runas_group: *mut libc::c_char,
+    pub tty: *mut libc::c_char,
+    pub cmd: *mut libc::c_char,
+    pub tstamp: time_t,
+    pub rows: libc::c_int,
+    pub cols: libc::c_int,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct timing_closure {
+    pub decimal: *const libc::c_char,
+    pub max_delay: *mut timespec,
+    pub fd: io_fd,
+    pub event: libc::c_int,
+    pub u: C2RustUnnamed_0,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union C2RustUnnamed_0 {
+    pub winsize: C2RustUnnamed_1,
+    pub nbytes: size_t,
+    pub signo: libc::c_int,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct C2RustUnnamed_1 {
+    pub rows: libc::c_int,
+    pub cols: libc::c_int,
+}
+
 #[macro_export]
 macro_rules! sudo_timespeccmp {
     ($ts1:expr, $ts2:expr, $op:tt) => {{
