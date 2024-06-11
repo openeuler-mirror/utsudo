@@ -90,3 +90,40 @@ extern "C" {
     ) -> libc::c_longlong;
 }
 
+pub const INT_MAX: libc::c_int = 2147483647;
+
+pub const LLONG_MAX: i64 = 9223372036854775807;
+pub const TIME_T_MAX: i64 = LLONG_MAX;
+
+pub const LONG_MAX: libc::c_long = 9223372036854775807;
+pub const __LONG_MAX__: libc::c_long = LONG_MAX;
+
+pub const IO_EVENT_COUNT: libc::c_int = 8;
+pub const IO_EVENT_SUSPEND: libc::c_int = 7;
+pub const IO_EVENT_TTYOUT_1_8_7: libc::c_int = 6;
+pub const IO_EVENT_WINSIZE: libc::c_int = 5;
+pub const ERANGE: libc::c_int = 34;
+
+pub type __off64_t = libc::c_long;
+pub type off64_t = __off64_t;
+
+#[macro_export]
+macro_rules! sudo_timespeccmp {
+    ($ts1:expr, $ts2:expr, $op:tt) => {{
+    (if (*$ts1).tv_sec == (*$ts2).tv_sec {
+        ((*$ts1).tv_nsec $op (*$ts2).tv_nsec) as libc::c_int
+    } else {
+        ((*$ts1).tv_sec $op (*$ts2).tv_sec) as libc::c_int
+    })
+    }};
+}
+
+#[macro_export]
+macro_rules! ULONG_MAX {
+    () => {{
+        (__LONG_MAX__ as libc::c_ulong)
+            .wrapping_mul(2 as libc::c_ulong)
+            .wrapping_add(1 as libc::c_ulong)
+    }};
+}
+static mut timing_event_adj: libc::c_int = 0;
