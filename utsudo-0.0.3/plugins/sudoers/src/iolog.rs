@@ -227,3 +227,76 @@ unsafe extern "C" fn stat(
 unsafe extern "C" fn fstat(mut __fd: libc::c_int, mut __statbuf: *mut stat) -> libc::c_int {
     return __fxstat(xstat_flag as libc::c_int, __fd, __statbuf);
 }
+
+static mut io_log_files: [io_log_file; 7] = [
+    {
+        let mut init = io_log_file {
+            enabled: 0 as libc::c_int != 0,
+            suffix: b"/stdin\0" as *const u8 as *const libc::c_char,
+            fd: io_fd {
+                f: 0 as *const FILE as *mut FILE,
+            },
+        };
+        init
+    },
+    {
+        let mut init = io_log_file {
+            enabled: 0 as libc::c_int != 0,
+            suffix: b"/stdout\0" as *const u8 as *const libc::c_char,
+            fd: io_fd {
+                f: 0 as *const FILE as *mut FILE,
+            },
+        };
+        init
+    },
+    {
+        let mut init = io_log_file {
+            enabled: 0 as libc::c_int != 0,
+            suffix: b"/stderr\0" as *const u8 as *const libc::c_char,
+            fd: io_fd {
+                f: 0 as *const FILE as *mut FILE,
+            },
+        };
+        init
+    },
+    {
+        let mut init = io_log_file {
+            enabled: 0 as libc::c_int != 0,
+            suffix: b"/ttyin\0" as *const u8 as *const libc::c_char,
+            fd: io_fd {
+                f: 0 as *const FILE as *mut FILE,
+            },
+        };
+        init
+    },
+    {
+        let mut init = io_log_file {
+            enabled: 0 as libc::c_int != 0,
+            suffix: b"/ttyout\0" as *const u8 as *const libc::c_char,
+            fd: io_fd {
+                f: 0 as *const FILE as *mut FILE,
+            },
+        };
+        init
+    },
+    {
+        let mut init = io_log_file {
+            enabled: 1 as libc::c_int != 0,
+            suffix: b"/timing\0" as *const u8 as *const libc::c_char,
+            fd: io_fd {
+                f: 0 as *const FILE as *mut FILE,
+            },
+        };
+        init
+    },
+    {
+        let mut init = io_log_file {
+            enabled: 0 as libc::c_int != 0,
+            suffix: 0 as *const libc::c_char,
+            fd: io_fd {
+                f: 0 as *const FILE as *mut FILE,
+            },
+        };
+        init
+    },
+];
