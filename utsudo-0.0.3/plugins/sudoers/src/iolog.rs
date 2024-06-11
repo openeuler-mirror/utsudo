@@ -300,3 +300,30 @@ static mut io_log_files: [io_log_file; 7] = [
         init
     },
 ];
+
+static mut iolog_details: iolog_details = iolog_details {
+    cwd: 0 as *const libc::c_char,
+    tty: 0 as *const libc::c_char,
+    user: 0 as *const libc::c_char,
+    command: 0 as *const libc::c_char,
+    iolog_path: 0 as *const libc::c_char,
+    runas_pw: 0 as *const passwd as *mut passwd,
+    runas_gr: 0 as *const group as *mut group,
+    lines: 0,
+    cols: 0,
+    ignore_iolog_errors: false,
+};
+static mut iolog_compress: bool = false;
+static mut warned: bool = false;
+static mut last_time: timespec = timespec {
+    tv_sec: 0,
+    tv_nsec: 0,
+};
+static mut sessid_max: libc::c_uint = SESSID_MAX;
+static mut iolog_filemode: mode_t = (S_IRUSR | S_IWUSR) as mode_t;
+static mut iolog_dirmode: mode_t = S_IRWXU as mode_t;
+static mut iolog_gid_set: bool = false;
+
+/* shared with set_perms.c */
+pub type gid_t = libc::c_uint;
+pub const ROOT_GID: uid_t = 0;
