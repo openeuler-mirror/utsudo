@@ -916,5 +916,495 @@ unsafe extern "C" fn sudo_ldap_parse_keyword(
     debug_return_bool!(false);
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn sudo_krb5_ccname_path(
+    mut old_ccname: *const libc::c_char,
+) -> *const libc::c_char {
+    let mut ccname: *const libc::c_char = old_ccname;
+    debug_decl!(SUDOERS_DEBUG_LDAP!());
+    match *ccname.offset(0 as libc::c_int as isize) as u8 as char {
+        'F' | 'f' => {
+            if strncasecmp(
+                ccname,
+                b"FILE:\0" as *const u8 as *const libc::c_char,
+                5 as libc::c_int as libc::c_ulong,
+            ) == 0 as libc::c_int
+            {
+                ccname = ccname.offset(5 as libc::c_int as isize);
+            }
+        }
+        'W' | 'w' => {
+            if strncasecmp(
+                ccname,
+                b"WRFILE:\0" as *const u8 as *const libc::c_char,
+                7 as libc::c_int as libc::c_ulong,
+            ) == 0 as libc::c_int
+            {
+                ccname = ccname.offset(7 as libc::c_int as isize);
+            }
+        }
+        _ => {}
+    }
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO | SUDO_DEBUG_LINENO,
+        b"ccache %s -> %s\0" as *const u8 as *const libc::c_char,
+        old_ccname,
+        ccname
+    );
+    debug_return_const_str!(if *ccname as libc::c_int == '/' as i32 {
+        ccname
+    } else {
+        0 as *const libc::c_char
+    });
+}
+unsafe extern "C" fn sudo_check_krb5_ccname(mut ccname: *const libc::c_char) -> bool {
+    let mut fd: libc::c_int = -(1 as libc::c_int);
+    let mut ccname_path: *const libc::c_char = 0 as *const libc::c_char;
+    debug_decl!(SUDOERS_DEBUG_LDAP!());
+    ccname_path = sudo_krb5_ccname_path(ccname);
+    if ccname_path.is_null() {
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+            b"unsupported krb5 credential cache path: %s\0" as *const u8 as *const libc::c_char,
+            ccname
+        );
+        debug_return_bool!(false);
+    }
+    fd = open(
+        ccname_path,
+        0 as libc::c_int | 0o4000 as libc::c_int,
+        0 as libc::c_int,
+    );
+    if fd == -(1 as libc::c_int) {
+        sudo_debug_printf!(
+            SUDO_DEBUG_WARN | SUDO_DEBUG_LINENO,
+            b"unable to open krb5 credential cache: %s\0" as *const u8 as *const libc::c_char,
+            ccname_path
+        );
+        debug_return_bool!(false);
+    }
+    close(fd);
+    sudo_debug_printf!(
+        SUDO_DEBUG_INFO,
+        b"using krb5 credential cache: %s\0" as *const u8 as *const libc::c_char,
+        ccname_path
+    );
+    debug_return_bool!(true);
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ldap_read_config() -> bool {
+    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut keyword: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut value: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut line: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut conf_str: *mut ldap_config_str = 0 as *mut ldap_config_str;
+    let mut linesize: size_t = 0 as libc::c_int as size_t;
+    let mut fp: *mut FILE = 0 as *mut FILE;
+    debug_decl!(SUDOERS_DEBUG_LDAP!());
+    ldap_conf.version = 3 as libc::c_int;
+    ldap_conf.port = -(1 as libc::c_int);
+    ldap_conf.tls_checkpeer = -(1 as libc::c_int);
+    ldap_conf.tls_reqcert = -(1 as libc::c_int);
+    ldap_conf.timelimit = -(1 as libc::c_int);
+    ldap_conf.timeout = -(1 as libc::c_int);
+    ldap_conf.bind_timelimit = -(1 as libc::c_int);
+    ldap_conf.use_sasl = -(1 as libc::c_int);
+    ldap_conf.rootuse_sasl = -(1 as libc::c_int);
+    ldap_conf.deref = -(1 as libc::c_int);
+    ldap_conf.search_filter =
+        strdup(b"(objectClass=sudoRole)\0" as *const u8 as *const libc::c_char);
+    ldap_conf.netgroup_search_filter =
+        strdup(b"(objectClass=nisNetgroup)\0" as *const u8 as *const libc::c_char);
+    ldap_conf.uri.stqh_first = 0 as *mut ldap_config_str;
+    ldap_conf.uri.stqh_last = &mut ldap_conf.uri.stqh_first;
+    ldap_conf.base.stqh_first = 0 as *mut ldap_config_str;
+    ldap_conf.base.stqh_last = &mut ldap_conf.base.stqh_first;
+    ldap_conf.netgroup_base.stqh_first = 0 as *mut ldap_config_str;
+    ldap_conf.netgroup_base.stqh_last = &mut ldap_conf.netgroup_base.stqh_first;
+    if (ldap_conf.search_filter).is_null() || (ldap_conf.netgroup_search_filter).is_null() {
+        sudo_warnx!(
+            b"%s: %s\0" as *const u8 as *const libc::c_char,
+            get_function_name!(),
+            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+        );
+        debug_return_bool!(false);
+    }
+    fp = fopen(path_ldap_conf, b"r\0" as *const u8 as *const libc::c_char);
+    if fp.is_null() {
+        debug_return_bool!(false);
+    }
+    while sudo_parseln_v2(
+        &mut line,
+        &mut linesize,
+        0 as *mut libc::c_uint,
+        fp,
+        0x1 as libc::c_int | 0x2 as libc::c_int,
+    ) != -(1 as libc::c_int) as libc::c_long
+    {
+        if *line as libc::c_int == '\u{0}' as i32 {
+            continue;
+        }
+        cp = line;
+        keyword = cp;
+        while *cp as libc::c_int != 0
+            && *(*__ctype_b_loc()).offset(*cp as libc::c_uchar as libc::c_int as isize)
+                as libc::c_int
+                & _ISblank as libc::c_int as libc::c_ushort as libc::c_int
+                == 0
+        {
+            cp = cp.offset(1);
+        }
+        if *cp != 0 {
+            let fresh4 = cp;
+            cp = cp.offset(1);
+            *fresh4 = '\u{0}' as i32 as libc::c_char;
+        }
+        while *(*__ctype_b_loc()).offset(*cp as libc::c_uchar as libc::c_int as isize)
+            as libc::c_int
+            & _ISblank as libc::c_int as libc::c_ushort as libc::c_int
+            != 0
+        {
+            cp = cp.offset(1);
+        }
+        value = cp;
+        if !sudo_ldap_parse_keyword(keyword, value, ldap_conf_global.as_mut_ptr()) {
+            sudo_ldap_parse_keyword(keyword, value, ldap_conf_conn.as_mut_ptr());
+        }
+    } //end of while
+    free(line as *mut libc::c_void);
+    fclose(fp);
+    if (ldap_conf.host).is_null() {
+        ldap_conf.host = strdup(b"localhost\0" as *const u8 as *const libc::c_char);
+        if (ldap_conf.host).is_null() {
+            sudo_warnx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            debug_return_bool!(false);
+        }
+    }
+    dprintf1!(b"LDAP Config Summary\0" as *const u8 as *const libc::c_char,);
+    dprintf1!(b"==================\0" as *const u8 as *const libc::c_char,);
+    if !(ldap_conf.uri.stqh_first).is_null() {
+        conf_str = ldap_conf.uri.stqh_first;
+        while !conf_str.is_null() {
+            dprintf1!(
+                b"uri             %s\0" as *const u8 as *const libc::c_char,
+                (*conf_str).val
+            );
+            conf_str = (*conf_str).entries.stqe_next;
+        }
+    } else {
+        dprintf1!(
+            b"host             %s\0" as *const u8 as *const libc::c_char,
+            if !(ldap_conf.host).is_null() {
+                ldap_conf.host
+            } else {
+                b"(NONE)\0" as *const u8 as *const libc::c_char
+            }
+        );
+        dprintf1!(
+            b"port             %d\0" as *const u8 as *const libc::c_char,
+            ldap_conf.port
+        );
+    }
+    dprintf1!(
+        b"ldap_version     %d\0" as *const u8 as *const libc::c_char,
+        ldap_conf.version
+    );
+    if !(ldap_conf.base.stqh_first).is_null() {
+        conf_str = ldap_conf.base.stqh_first;
+        while !conf_str.is_null() {
+            dprintf1!(
+                b"sudoers_base     %s\0" as *const u8 as *const libc::c_char,
+                (*conf_str).val
+            );
+            conf_str = (*conf_str).entries.stqe_next;
+        }
+    } else {
+        dprintf1!(
+            b"sudoers_base     %s\0" as *const u8 as *const libc::c_char,
+            b"(NONE: LDAP disabled)\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if !(ldap_conf.search_filter).is_null() {
+        dprintf1!(
+            b"search_filter    %s\0" as *const u8 as *const libc::c_char,
+            ldap_conf.search_filter
+        );
+    }
+    if !(ldap_conf.netgroup_base.stqh_first).is_null() {
+        conf_str = ldap_conf.netgroup_base.stqh_first;
+        while !conf_str.is_null() {
+            dprintf1!(
+                b"netgroup_base    %s\0" as *const u8 as *const libc::c_char,
+                (*conf_str).val
+            );
+            conf_str = (*conf_str).entries.stqe_next;
+        }
+    } else {
+        dprintf1!(
+            b"netgroup_base %s\0" as *const u8 as *const libc::c_char,
+            b"(NONE: will use nsswitch)\0" as *const u8 as *const libc::c_char
+        );
+    }
+    if !(ldap_conf.netgroup_search_filter).is_null() {
+        dprintf1!(
+            b"netgroup_search_filter %s\0" as *const u8 as *const libc::c_char,
+            ldap_conf.netgroup_search_filter
+        );
+    }
+    dprintf1!(
+        b"binddn           %s\0" as *const u8 as *const libc::c_char,
+        if !(ldap_conf.binddn).is_null() {
+            ldap_conf.binddn
+        } else {
+            b"(anonymous)\0" as *const u8 as *const libc::c_char
+        }
+    );
+    dprintf1!(
+        b"bindpw           %s\0" as *const u8 as *const libc::c_char,
+        if !(ldap_conf.bindpw).is_null() {
+            ldap_conf.bindpw
+        } else {
+            b"(anonymous)\0" as *const u8 as *const libc::c_char
+        }
+    );
+    if ldap_conf.bind_timelimit > 0 as libc::c_int {
+        dprintf1!(
+            b"bind_timelimit   %d\0" as *const u8 as *const libc::c_char,
+            ldap_conf.bind_timelimit
+        );
+    }
+    if ldap_conf.timelimit > 0 as libc::c_int {
+        dprintf1!(
+            b"timelimit        %d\0" as *const u8 as *const libc::c_char,
+            ldap_conf.timelimit
+        );
+    }
+    if ldap_conf.deref != -(1 as libc::c_int) {
+        dprintf1!(
+            b"deref            %d\0" as *const u8 as *const libc::c_char,
+            ldap_conf.deref
+        );
+    }
+    dprintf1!(
+        b"ssl              %s\0" as *const u8 as *const libc::c_char,
+        if !(ldap_conf.ssl).is_null() {
+            ldap_conf.ssl
+        } else {
+            b"(no)\0" as *const u8 as *const libc::c_char
+        }
+    );
+    if ldap_conf.tls_checkpeer != -(1 as libc::c_int) {
+        dprintf1!(
+            b"tls_checkpeer    %s\0" as *const u8 as *const libc::c_char,
+            if ldap_conf.tls_checkpeer != 0 {
+                b"(yes)\0" as *const u8 as *const libc::c_char
+            } else {
+                b"(no)\0" as *const u8 as *const libc::c_char
+            }
+        );
+    }
+    if ldap_conf.tls_reqcert != -(1 as libc::c_int) {
+        dprintf1!(
+            b"tls_reqcert   %s\0" as *const u8 as *const libc::c_char,
+            if ldap_conf.tls_reqcert == LDAP_OPT_X_TLS_NEVER as libc::c_int {
+                b"hard\0" as *const u8 as *const libc::c_char
+            } else if ldap_conf.tls_reqcert == LDAP_OPT_X_TLS_ALLOW as libc::c_int {
+                b"allow\0" as *const u8 as *const libc::c_char
+            } else if ldap_conf.tls_reqcert == LDAP_OPT_X_TLS_TRY as libc::c_int {
+                b"try\0" as *const u8 as *const libc::c_char
+            } else if ldap_conf.tls_reqcert == LDAP_OPT_X_TLS_HARD as libc::c_int {
+                b"hard\0" as *const u8 as *const libc::c_char
+            } else if ldap_conf.tls_reqcert == LDAP_OPT_X_TLS_DEMAND as libc::c_int {
+                b"demand\0" as *const u8 as *const libc::c_char
+            } else {
+                b"unknown\0" as *const u8 as *const libc::c_char
+            },
+        );
+    }
+    if !(ldap_conf.tls_cacertfile).is_null() {
+        dprintf1!(
+            b"tls_cacertfile   %s\0" as *const u8 as *const libc::c_char,
+            ldap_conf.tls_cacertfile
+        );
+    }
+    if !(ldap_conf.tls_cacertdir).is_null() {
+        dprintf1!(
+            b"tls_cacertdir    %s\0" as *const u8 as *const libc::c_char,
+            ldap_conf.tls_cacertdir
+        );
+    }
+    if !(ldap_conf.tls_random_file).is_null() {
+        dprintf1!(
+            b"tls_random_file  %s\0" as *const u8 as *const libc::c_char,
+            ldap_conf.tls_random_file
+        );
+    }
+    if !(ldap_conf.tls_cipher_suite).is_null() {
+        dprintf1!(
+            b"tls_cipher_suite %s\0" as *const u8 as *const libc::c_char,
+            ldap_conf.tls_cipher_suite
+        );
+    }
+    if !(ldap_conf.tls_certfile).is_null() {
+        dprintf1!(
+            b"tls_certfile     %s\0" as *const u8 as *const libc::c_char,
+            ldap_conf.tls_certfile
+        );
+    }
+    if !(ldap_conf.tls_keyfile).is_null() {
+        dprintf1!(
+            b"tls_keyfile      %s\0" as *const u8 as *const libc::c_char,
+            ldap_conf.tls_keyfile
+        );
+    }
+    if ldap_conf.use_sasl != -(1 as libc::c_int) {
+        if (ldap_conf.sasl_mech).is_null() {
+            ldap_conf.sasl_mech = strdup(b"GSSAPI\0" as *const u8 as *const libc::c_char);
+            if (ldap_conf.sasl_mech).is_null() {
+                sudo_warnx!(
+                    b"%s: %s\0" as *const u8 as *const libc::c_char,
+                    get_function_name!(),
+                    b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                );
+                debug_return_bool!(false);
+            }
+        }
+        dprintf1!(
+            b"use_sasl         %s\0" as *const u8 as *const libc::c_char,
+            if ldap_conf.use_sasl != 0 {
+                b"(yes)\0" as *const u8 as *const libc::c_char
+            } else {
+                b"(no)\0" as *const u8 as *const libc::c_char
+            }
+        );
+        dprintf1!(
+            b"sasl_mech        %s\0" as *const u8 as *const libc::c_char,
+            ldap_conf.sasl_mech
+        );
+        dprintf1!(
+            b"sasl_auth_id     %s\0" as *const u8 as *const libc::c_char,
+            if !(ldap_conf.sasl_auth_id).is_null() {
+                ldap_conf.sasl_auth_id
+            } else {
+                b"(NONE)\0" as *const u8 as *const libc::c_char
+            }
+        );
+        dprintf1!(
+            b"rootuse_sasl     %s\0" as *const u8 as *const libc::c_char,
+            ldap_conf.rootuse_sasl
+        );
+        dprintf1!(
+            b"rootsasl_auth_id %s\0" as *const u8 as *const libc::c_char,
+            if !(ldap_conf.rootsasl_auth_id).is_null() {
+                ldap_conf.rootsasl_auth_id
+            } else {
+                b"(NONE)\0" as *const u8 as *const libc::c_char
+            }
+        );
+        dprintf1!(
+            b"sasl_secprops    %s\0" as *const u8 as *const libc::c_char,
+            if !(ldap_conf.sasl_secprops).is_null() {
+                ldap_conf.sasl_secprops
+            } else {
+                b"(NONE)\0" as *const u8 as *const libc::c_char
+            }
+        );
+        dprintf1!(
+            b"krb5_ccname      %s\0" as *const u8 as *const libc::c_char,
+            if !(ldap_conf.krb5_ccname).is_null() {
+                ldap_conf.krb5_ccname
+            } else {
+                b"(NONE)\0" as *const u8 as *const libc::c_char
+            }
+        );
+    }
+    dprintf1!(b"===================\0" as *const u8 as *const libc::c_char,);
+    if (ldap_conf.base.stqh_first).is_null() {
+        debug_return_bool!(false);
+    }
+    if ldap_conf.bind_timelimit > 0 as libc::c_int {
+        ldap_conf.bind_timelimit *= 1000 as libc::c_int;
+    }
+    if !(ldap_conf.ssl).is_null() {
+        if strcasecmp(
+            ldap_conf.ssl,
+            b"start_tls\0" as *const u8 as *const libc::c_char,
+        ) == 0 as libc::c_int
+        {
+            ldap_conf.ssl_mode = SUDO_LDAP_STARTTLS as libc::c_int;
+        } else if sudo_strtobool_v1(ldap_conf.ssl) == 1 as libc::c_int {
+            ldap_conf.ssl_mode = SUDO_LDAP_SSL as libc::c_int;
+        }
+    }
+    if (ldap_conf.uri.stqh_first).is_null() {
+        if ldap_conf.port < 0 as libc::c_int {
+            ldap_conf.port = if ldap_conf.ssl_mode == SUDO_LDAP_SSL as libc::c_int {
+                LDAPS_PORT
+            } else {
+                LDAP_PORT
+            };
+        }
+        if ldap_conf.port != LDAP_PORT as libc::c_int {
+            if !sudo_ldap_conf_add_ports() {
+                debug_return_bool!(false);
+            }
+        }
+    }
+    if !(ldap_conf.search_filter).is_null()
+        && *(ldap_conf.search_filter).offset(0 as libc::c_int as isize) as libc::c_int != '(' as i32
+    {
+        let mut len: size_t = strlen(ldap_conf.search_filter);
+        cp = ldap_conf.search_filter;
+        ldap_conf.search_filter =
+            malloc(len.wrapping_add(3 as libc::c_int as libc::c_ulong)) as *mut libc::c_char;
+        if (ldap_conf.search_filter).is_null() {
+            sudo_warnx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+            debug_return_bool!(false);
+        }
+        *(ldap_conf.search_filter).offset(0 as libc::c_int as isize) = '(' as i32 as libc::c_char;
+        memcpy(
+            (ldap_conf.search_filter).offset(1 as libc::c_int as isize) as *mut libc::c_void,
+            cp as *const libc::c_void,
+            len,
+        );
+        *(ldap_conf.search_filter)
+            .offset(len.wrapping_add(1 as libc::c_int as libc::c_ulong) as isize) =
+            ')' as i32 as libc::c_char;
+        *(ldap_conf.search_filter)
+            .offset(len.wrapping_add(2 as libc::c_int as libc::c_ulong) as isize) =
+            '\u{0}' as i32 as libc::c_char;
+        free(cp as *mut libc::c_void);
+    }
+    if !(ldap_conf.rootbinddn).is_null() {
+        sudo_ldap_read_secret(path_ldap_secret);
+    } else if !(ldap_conf.bindpw).is_null() {
+        cp = sudo_ldap_decode_secret(ldap_conf.bindpw);
+        if !cp.is_null() {
+            free(ldap_conf.bindpw as *mut libc::c_void);
+            ldap_conf.bindpw = cp;
+        }
+    }
+    if !(ldap_conf.tls_keypw).is_null() {
+        cp = sudo_ldap_decode_secret(ldap_conf.tls_keypw);
+        if !cp.is_null() {
+            free(ldap_conf.tls_keypw as *mut libc::c_void);
+            ldap_conf.tls_keypw = cp;
+        }
+    }
+    if !(ldap_conf.krb5_ccname).is_null() {
+        if !sudo_check_krb5_ccname(ldap_conf.krb5_ccname) {
+            ldap_conf.krb5_ccname = 0 as *mut libc::c_char;
+        }
+    }
+    debug_return_bool!(true);
+}
 
 
