@@ -234,6 +234,52 @@ pub type __off64_t = libc::c_long;
 pub type off64_t = __off64_t;
 pub type voidp = *mut libc::c_void;
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct gzFile_s {
+    pub have: libc::c_uint,
+    pub next: *mut libc::c_uchar,
+    pub pos: off64_t,
+}
+pub type gzFile = *mut gzFile_s;
+
+pub type sudo_conv_t = Option<
+    unsafe extern "C" fn(
+        libc::c_int,
+        *const sudo_conv_message,
+        *mut sudo_conv_reply,
+        *mut sudo_conv_callback,
+    ) -> libc::c_int,
+>;
+pub type sudo_printf_t =
+    Option<unsafe extern "C" fn(libc::c_int, *const libc::c_char, ...) -> libc::c_int>;
+pub type sudo_hook_fn_t = Option<unsafe extern "C" fn() -> libc::c_int>;
+
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conv_message {
+    pub msg_type: libc::c_int,
+    pub timeout: libc::c_int,
+    pub msg: *const libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conv_reply {
+    pub reply: *mut libc::c_char,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct sudo_conv_callback {
+    pub version: libc::c_uint,
+    pub closure: *mut libc::c_void,
+    pub on_suspend: sudo_conv_callback_fn_t,
+    pub on_resume: sudo_conv_callback_fn_t,
+}
+pub type sudo_conv_callback_fn_t =
+    Option<unsafe extern "C" fn(libc::c_int, *mut libc::c_void) -> libc::c_int>;
+
+
 #[inline]
 unsafe extern "C" fn stat(
     mut __path: *const libc::c_char,
@@ -541,5 +587,21 @@ unsafe extern "C" fn io_set_max_sessid(mut maxval: *const libc::c_char) -> bool 
         value = SESSID_MAX;
     }
     sessid_max = value;
+    debug_return_bool!(true);
+}
+
+/*
+ * Sudoers callback for maxseq Defaults setting.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn cb_maxseq(mut sd_un: *const sudo_defs_val) -> bool {
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    /* Clamp value to SESSID_MAX as documented. */
+    sessid_max = if (*sd_un).uival < SESSID_MAX {
+        (*sd_un).uival
+    } else {
+        SESSID_MAX
+    };
     debug_return_bool!(true);
 }
