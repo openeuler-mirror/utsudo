@@ -215,6 +215,25 @@ pub const INT_MAX: libc::c_int = 2147483647;
 pub const Z_SYNC_FLUSH: libc::c_int = 2;
 pub const Z_OK: libc::c_int = 0;
 
+pub const IOFD_MAX: libc::c_int = 6;
+
+pub const IOFD_TIMING: libc::c_int = 5;
+
+pub const IO_EVENT_STDIN: libc::c_int = 0;
+pub const IO_EVENT_STDOUT: libc::c_int = 1;
+pub const IO_EVENT_STDERR: libc::c_int = 2;
+pub const IO_EVENT_TTYIN: libc::c_int = 3;
+pub const IO_EVENT_TTYOUT: libc::c_int = 4;
+pub const IO_EVENT_WINSIZE: libc::c_int = 5;
+pub const IO_EVENT_SUSPEND: libc::c_int = 7;
+
+pub const SUDO_IO_PLUGIN: libc::c_int = 2;
+
+pub type voidpc = *const libc::c_void;
+pub type __off64_t = libc::c_long;
+pub type off64_t = __off64_t;
+pub type voidp = *mut libc::c_void;
+
 #[inline]
 unsafe extern "C" fn stat(
     mut __path: *const libc::c_char,
@@ -491,4 +510,36 @@ unsafe extern "C" fn io_mkdtemp(mut path: *mut libc::c_char) -> bool {
         }
     }
     debug_return_bool!(ok);
+}
+
+/*
+ * Set max session ID (aka sequence number)
+ */
+#[inline]
+unsafe extern "C" fn io_set_max_sessid(mut maxval: *const libc::c_char) -> bool {
+    let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+    let mut value: libc::c_uint = 0;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    value = sudo_strtonum(
+        maxval,
+        0 as libc::c_int as libc::c_longlong,
+        SESSID_MAX as libc::c_longlong,
+        &mut errstr,
+    ) as libc::c_uint;
+    if !errstr.is_null() {
+        if *__errno_location() != ERANGE {
+            sudo_debug_printf!(
+                SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+                b"bad maxseq: %s: %s\0" as *const u8 as *const libc::c_char,
+                maxval,
+                errstr
+            );
+            debug_return_bool!(false);
+        }
+        /* Out of range, clamp to SESSID_MAX as documented. */
+        value = SESSID_MAX;
+    }
+    sessid_max = value;
+    debug_return_bool!(true);
 }
