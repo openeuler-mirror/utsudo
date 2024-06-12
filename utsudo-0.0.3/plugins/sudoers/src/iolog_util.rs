@@ -412,3 +412,37 @@ pub unsafe extern "C" fn parse_logfile(mut logfile: *const libc::c_char) -> *mut
     free_log_info(li);
     debug_return_ptr!(0 as *mut log_info);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn adjust_delay(
+    mut delay: *mut timespec,
+    mut max_delay: *mut timespec,
+    mut scale_factor: libc::c_double,
+) {
+    let mut seconds: libc::c_double = 0.;
+    debug_decl!(SUDO_DEBUG_UTIL);
+
+    if scale_factor != 1.0 {
+        /* Order is important: we don't want to double the remainder. */
+        seconds = (*delay).tv_sec as libc::c_double / scale_factor;
+        (*delay).tv_sec = seconds as time_t;
+        (*delay).tv_nsec = ((*delay).tv_nsec as libc::c_double / scale_factor) as __syscall_slong_t;
+        (*delay).tv_nsec = ((*delay).tv_nsec as libc::c_double
+            + (seconds - (*delay).tv_sec as libc::c_double) * 1000000000 as libc::c_double)
+            as __syscall_slong_t;
+        while (*delay).tv_nsec >= 1000000000 as libc::c_long {
+            (*delay).tv_sec += 1;
+            (*delay).tv_nsec -= 1000000000 as libc::c_long;
+        }
+    }
+
+    /* Clamp to max delay. */
+    if !max_delay.is_null() {
+        if sudo_timespeccmp!(delay, max_delay, >) != 0 {
+            (*delay).tv_sec = (*max_delay).tv_sec;
+            (*delay).tv_nsec = (*max_delay).tv_nsec;
+        }
+    }
+
+    debug_return!();
+}
