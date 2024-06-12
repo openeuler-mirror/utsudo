@@ -446,3 +446,134 @@ pub unsafe extern "C" fn adjust_delay(
 
     debug_return!();
 }
+
+/*
+ * Parse the delay as seconds and nanoseconds: %lld.%09ld
+ * Sudo used to write this as a double, but since timing data is logged
+ * in the C locale this may not match the current locale.
+ */
+#[no_mangle]
+pub unsafe extern "C" fn parse_delay(
+    mut cp: *const libc::c_char,
+    mut delay: *mut timespec,
+    mut decimal_point: *const libc::c_char,
+) -> *mut libc::c_char {
+    let mut numbuf: [libc::c_char; 24] = [0; 24];
+    let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+    let mut ep: *const libc::c_char = 0 as *const libc::c_char;
+    let mut llval: libc::c_longlong = 0;
+    let mut len: size_t = 0;
+    debug_decl!(SUDO_DEBUG_UTIL);
+
+    /* Parse seconds (whole number portion). */
+    ep = cp;
+    while isdigit!(*ep) != 0 {
+        ep = ep.offset(1);
+    }
+    len = ep.offset_from(cp) as libc::c_long as size_t;
+    if len >= ::core::mem::size_of::<[libc::c_char; 24]>() as libc::c_ulong {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            b"%s: number of seconds is too large\0" as *const u8 as *const libc::c_char,
+            cp
+        );
+        debug_return_ptr!(0 as *mut libc::c_char);
+    }
+    memcpy(
+        numbuf.as_mut_ptr() as *mut libc::c_void,
+        cp as *const libc::c_void,
+        len,
+    );
+    numbuf[len as usize] = '\0' as i32 as libc::c_char;
+    (*delay).tv_sec = sudo_strtonum(
+        numbuf.as_mut_ptr(),
+        0 as libc::c_longlong,
+        TIME_T_MAX as libc::c_longlong,
+        &mut errstr,
+    ) as __time_t;
+    if !errstr.is_null() {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            b"%s: number of seconds is %s\0" as *const u8 as *const libc::c_char,
+            numbuf,
+            errstr
+        );
+        debug_return_ptr!(0 as *mut libc::c_char);
+    }
+
+    /* Radix may be in user's locale for sudo < 1.7.4 so accept that too. */
+    if *ep as libc::c_int != '.' as i32 && *ep as libc::c_int != *decimal_point as libc::c_int {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            b"invalid characters after seconds: %s\0" as *const u8 as *const libc::c_char,
+            ep
+        );
+        debug_return_ptr!(0 as *mut libc::c_char);
+    }
+    cp = ep.offset(1 as isize);
+    ep = cp;
+
+    /* Parse fractional part, we may read more precision than we can store. */
+    while isdigit!(*ep) != 0 {
+        ep = ep.offset(1);
+    }
+    len = ep.offset_from(cp) as libc::c_long as size_t;
+    if len >= ::core::mem::size_of::<[libc::c_char; 24]>() as libc::c_ulong {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            b"%s: number of nanoseconds is too large\0" as *const u8 as *const libc::c_char,
+            ep
+        );
+        debug_return_ptr!(0 as *mut libc::c_char);
+    }
+    memcpy(
+        numbuf.as_mut_ptr() as *mut libc::c_void,
+        cp as *const libc::c_void,
+        len,
+    );
+    numbuf[len as usize] = '\0' as i32 as libc::c_char;
+    llval = sudo_strtonum(
+        numbuf.as_mut_ptr(),
+        0 as libc::c_longlong,
+        LLONG_MAX as libc::c_longlong,
+        &mut errstr,
+    );
+    if !errstr.is_null() {
+        sudo_debug_printf!(
+            SUDO_DEBUG_ERROR | SUDO_DEBUG_LINENO,
+            b"%s: number of nanoseconds is %s\0" as *const u8 as *const libc::c_char,
+            ep
+        );
+        debug_return_ptr!(0 as *mut libc::c_char);
+    }
+
+    /* Adjust fractional part to nanosecond precision. */
+    if len < 9 as libc::c_ulong {
+        /* Convert to nanosecond precision. */
+        loop {
+            llval *= 10 as libc::c_longlong;
+            len = len.wrapping_add(1);
+            if !(len < 9 as libc::c_ulong) {
+                break;
+            }
+        }
+    } else if len > 9 as libc::c_ulong {
+        /* Clamp to nanoseconds. */
+        loop {
+            llval /= 10 as libc::c_longlong;
+            len = len.wrapping_sub(1);
+            if !(len > 9 as libc::c_ulong) {
+                break;
+            }
+        }
+    }
+    (*delay).tv_nsec = llval as libc::c_long;
+
+    /* Advance to the next field. */
+    while isspace!(*ep) != 0 {
+        ep = ep.offset(1);
+    }
+
+    debug_return_str!(ep as *mut libc::c_char);
+}
+
