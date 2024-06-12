@@ -438,3 +438,57 @@ unsafe extern "C" fn io_mkdirs(mut path: *mut libc::c_char) -> bool {
     }
     debug_return_bool!(ok);
 }
+
+/*
+ * Create temporary directory and any parent directories as needed.
+ */
+#[inline]
+unsafe extern "C" fn io_mkdtemp(mut path: *mut libc::c_char) -> bool {
+    let mut ok: bool = false;
+    let mut uid_changed: bool = false;
+    debug_decl!(SUDOERS_DEBUG_UTIL!());
+
+    ok = sudo_mkdir_parents(path, iolog_uid, iolog_gid, iolog_dirmode, true);
+    if !ok && *__errno_location() == EACCES {
+        /* Try again as the I/O log owner (for NFS). */
+        uid_changed = set_perms(PERM_IOLOG);
+        ok = sudo_mkdir_parents(
+            path,
+            -(1 as libc::c_int) as uid_t,
+            -(1 as libc::c_int) as gid_t,
+            iolog_dirmode,
+            false,
+        );
+    }
+    if ok {
+        /* Create final path component. */
+        sudo_debug_printf!(
+            SUDO_DEBUG_DEBUG | SUDO_DEBUG_LINENO,
+            b"mkdtemp %s\0" as *const u8 as *const libc::c_char,
+            path
+        );
+        /* We cannot retry mkdtemp() so always use PERM_IOLOG */
+        if !uid_changed {
+            uid_changed = set_perms(PERM_IOLOG);
+        }
+        if (mkdtemp(path)).is_null() {
+            sudo_warn!(
+                b"unable to mkdir %s\0" as *const u8 as *const libc::c_char,
+                path
+            );
+            ok = false;
+        } else if chmod(path, iolog_dirmode) != 0 as libc::c_int {
+            sudo_warn!(
+                b"unable to change mode of %s to 0%o\0" as *const u8 as *const libc::c_char,
+                path,
+                iolog_dirmode
+            );
+        }
+    }
+    if uid_changed {
+        if !restore_perms() {
+            ok = false;
+        }
+    }
+    debug_return_bool!(ok);
+}
