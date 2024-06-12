@@ -714,8 +714,207 @@ unsafe extern "C" fn sudo_ldap_conf_add_ports() -> bool {
     //debug_return_bool!(false);
 }
 
-
-
+unsafe extern "C" fn sudo_ldap_decode_secret(mut secret: *const libc::c_char) -> *mut libc::c_char {
+    let mut result: *mut libc::c_uchar = 0 as *mut libc::c_uchar;
+    let mut len: size_t = 0;
+    let mut reslen: size_t = 0;
+    debug_decl!(SUDOERS_DEBUG_LDAP!());
+    if strncasecmp(
+        secret,
+        b"base64:\0" as *const u8 as *const libc::c_char,
+        (::std::mem::size_of::<[libc::c_char; 8]>() as libc::c_ulong)
+            .wrapping_sub(1 as libc::c_int as libc::c_ulong),
+    ) == 0 as libc::c_int
+    {
+        secret = secret.offset(
+            (::std::mem::size_of::<[libc::c_char; 8]>() as libc::c_ulong)
+                .wrapping_sub(1 as libc::c_int as libc::c_ulong) as isize,
+        );
+        reslen = (strlen(secret))
+            .wrapping_add(3 as libc::c_int as libc::c_ulong)
+            .wrapping_div(4 as libc::c_int as libc::c_ulong)
+            .wrapping_mul(3 as libc::c_int as libc::c_ulong);
+        result =
+            malloc(reslen.wrapping_add(1 as libc::c_int as libc::c_ulong)) as *mut libc::c_uchar;
+        if result.is_null() {
+            sudo_warnx!(
+                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                get_function_name!(),
+                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+            );
+        } else {
+            len = base64_decode(secret, result, reslen);
+            if len == -(1 as libc::c_int) as size_t {
+                free(result as *mut libc::c_void);
+                result = 0 as *mut libc::c_uchar;
+            } else {
+                *result.offset(len as isize) = '\u{0}' as i32 as libc::c_uchar;
+            }
+        }
+    }
+    debug_return_str!(result as *mut libc::c_char);
+}
+unsafe extern "C" fn sudo_ldap_read_secret(mut path: *const libc::c_char) {
+    let mut fp: *mut FILE = 0 as *mut FILE;
+    let mut line: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut linesize: size_t = 0 as libc::c_int as size_t;
+    let mut len: ssize_t = 0;
+    debug_decl!(SUDOERS_DEBUG_LDAP!());
+    fp = fopen(path_ldap_secret, b"r\0" as *const u8 as *const libc::c_char);
+    if !fp.is_null() {
+        len = getdelim(&mut line, &mut linesize, '\n' as i32, fp);
+        if len != -(1 as libc::c_int) as libc::c_long {
+            while len > 0 as libc::c_int as libc::c_long
+                && *line.offset((len - 1 as libc::c_int as libc::c_long) as isize) as libc::c_int
+                    == '\n' as i32
+            {
+                len -= 1;
+                *line.offset(len as isize) = '\u{0}' as i32 as libc::c_char;
+            }
+            free(ldap_conf.bindpw as *mut libc::c_void);
+            ldap_conf.bindpw = sudo_ldap_decode_secret(line);
+            if (ldap_conf.bindpw).is_null() {
+                ldap_conf.bindpw = line;
+                line = 0 as *mut libc::c_char;
+            }
+            free(ldap_conf.binddn as *mut libc::c_void);
+            ldap_conf.binddn = ldap_conf.rootbinddn;
+            ldap_conf.rootbinddn = 0 as *mut libc::c_char;
+        }
+        fclose(fp);
+        free(line as *mut libc::c_void);
+    }
+    debug_return!();
+}
+unsafe extern "C" fn sudo_ldap_parse_keyword(
+    mut keyword: *const libc::c_char,
+    mut value: *const libc::c_char,
+    mut table: *mut ldap_config_table,
+) -> bool {
+    let mut cur: *mut ldap_config_table = 0 as *mut ldap_config_table;
+    let mut errstr: *const libc::c_char = 0 as *const libc::c_char;
+    debug_decl!(SUDOERS_DEBUG_LDAP!());
+    cur = table;
+    while !((*cur).conf_str).is_null() {
+        if strcasecmp(keyword, (*cur).conf_str) == 0 as libc::c_int {
+            match (*cur).type_0 {
+                CONF_DEREF_VAL => {
+                    if strcasecmp(value, b"searching\0" as *const u8 as *const libc::c_char)
+                        == 0 as libc::c_int
+                    {
+                        *((*cur).valp as *mut libc::c_int) = 0x1 as libc::c_int;
+                    } else if strcasecmp(value, b"finding\0" as *const u8 as *const libc::c_char)
+                        == 0 as libc::c_int
+                    {
+                        *((*cur).valp as *mut libc::c_int) = 0x2 as libc::c_int;
+                    } else if strcasecmp(value, b"always\0" as *const u8 as *const libc::c_char)
+                        == 0 as libc::c_int
+                    {
+                        *((*cur).valp as *mut libc::c_int) = 0x3 as libc::c_int;
+                    } else {
+                        *((*cur).valp as *mut libc::c_int) = 0 as libc::c_int;
+                    }
+                }
+                CONF_REQCERT_VAL => {
+                    if strcasecmp(value, b"never\0" as *const u8 as *const libc::c_char)
+                        == 0 as libc::c_int
+                    {
+                        *((*cur).valp as *mut libc::c_int) = 0 as libc::c_int;
+                    } else if strcasecmp(value, b"allow\0" as *const u8 as *const libc::c_char)
+                        == 0 as libc::c_int
+                    {
+                        *((*cur).valp as *mut libc::c_int) = 3 as libc::c_int;
+                    } else if strcasecmp(value, b"try\0" as *const u8 as *const libc::c_char)
+                        == 0 as libc::c_int
+                    {
+                        *((*cur).valp as *mut libc::c_int) = 4 as libc::c_int;
+                    } else if strcasecmp(value, b"hard\0" as *const u8 as *const libc::c_char)
+                        == 0 as libc::c_int
+                    {
+                        *((*cur).valp as *mut libc::c_int) = 1 as libc::c_int;
+                    } else if strcasecmp(value, b"demand\0" as *const u8 as *const libc::c_char)
+                        == 0 as libc::c_int
+                    {
+                        *((*cur).valp as *mut libc::c_int) = 2 as libc::c_int;
+                    }
+                }
+                CONF_BOOL => {
+                    *((*cur).valp as *mut libc::c_int) =
+                        (sudo_strtobool_v1(value) == 1 as libc::c_int) as libc::c_int;
+                }
+                CONF_INT => {
+                    *((*cur).valp as *mut libc::c_int) = sudo_strtonum(
+                        value,
+                        (-(2147483647 as libc::c_int) - 1 as libc::c_int) as libc::c_longlong,
+                        2147483647 as libc::c_int as libc::c_longlong,
+                        &mut errstr,
+                    ) as libc::c_int;
+                    if !errstr.is_null() {
+                        sudo_warnx!(
+                            b"%s: %s: %s: %s\0" as *const u8 as *const libc::c_char,
+                            path_ldap_conf,
+                            keyword,
+                            value,
+                            errstr,
+                        );
+                    }
+                }
+                CONF_STR => {
+                    let mut cp: *mut libc::c_char = 0 as *mut libc::c_char;
+                    free(*((*cur).valp as *mut *mut libc::c_char) as *mut libc::c_void);
+                    if *value as libc::c_int != 0 && {
+                        cp = strdup(value);
+                        cp.is_null()
+                    } {
+                        sudo_warnx!(
+                            b"%s: %s\0" as *const u8 as *const libc::c_char,
+                            get_function_name!(),
+                            b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                        );
+                        debug_return_bool!(false);
+                    }
+                    let ref mut fresh0 = *((*cur).valp as *mut *mut libc::c_char);
+                    *fresh0 = cp;
+                }
+                CONF_LIST_STR => {
+                    let mut head: *mut ldap_config_str_list = 0 as *mut ldap_config_str_list;
+                    let mut str0: *mut ldap_config_str = 0 as *mut ldap_config_str;
+                    let mut len: size_t = strlen(value);
+                    if len > 0 as libc::c_int as libc::c_ulong {
+                        head = (*cur).valp as *mut ldap_config_str_list;
+                        str0 = malloc(
+                            (::std::mem::size_of::<ldap_config_str>() as libc::c_ulong)
+                                .wrapping_add(len),
+                        ) as *mut ldap_config_str;
+                        if str0.is_null() {
+                            sudo_warnx!(
+                                b"%s: %s\0" as *const u8 as *const libc::c_char,
+                                get_function_name!(),
+                                b"unable to allocate memory\0" as *const u8 as *const libc::c_char
+                            );
+                            debug_return_bool!(false);
+                        }
+                        memcpy(
+                            ((*str0).val).as_mut_ptr() as *mut libc::c_void,
+                            value as *const libc::c_void,
+                            len.wrapping_add(1 as libc::c_int as libc::c_ulong),
+                        );
+                        let ref mut fresh1 = (*str0).entries.stqe_next;
+                        *fresh1 = 0 as *mut ldap_config_str;
+                        let ref mut fresh2 = *(*head).stqh_last;
+                        *fresh2 = str0;
+                        let ref mut fresh3 = (*head).stqh_last;
+                        *fresh3 = &mut (*str0).entries.stqe_next;
+                    }
+                }
+                _ => {}
+            } // match
+            debug_return_bool!(true);
+        } // if
+        cur = cur.offset(1);
+    } //while
+    debug_return_bool!(false);
+}
 
 
 
