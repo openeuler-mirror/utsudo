@@ -1407,4 +1407,168 @@ pub unsafe extern "C" fn sudo_ldap_read_config() -> bool {
     debug_return_bool!(true);
 }
 
+unsafe extern "C" fn sudo_ldap_set_options_table(
+    mut ld: *mut LDAP,
+    mut table: *mut ldap_config_table,
+) -> libc::c_int {
+    let mut cur: *mut ldap_config_table = 0 as *mut ldap_config_table;
+    let mut ival: libc::c_int = 0;
+    let mut rc: libc::c_int = 0;
+    let mut errors: libc::c_int = 0 as libc::c_int;
+    let mut sval: *mut libc::c_char = 0 as *mut libc::c_char;
+    debug_decl!(SUDOERS_DEBUG_LDAP!());
+    cur = table;
+    while !((*cur).conf_str).is_null() {
+        if (*cur).opt_val == -(1 as libc::c_int) {
+            cur = cur.offset(1);
+            continue;
+        }
+        match (*cur).type_0 {
+            CONF_BOOL | CONF_INT => {
+                ival = *((*cur).valp as *mut libc::c_int);
+                if ival >= 0 as libc::c_int {
+                    dprintf1!(
+                        b"ldap_set_option: %s -> %d\0" as *const u8 as *const libc::c_char,
+                        (*cur).conf_str,
+                        ival
+                    );
+                    rc = ldap_set_option(
+                        ld,
+                        (*cur).opt_val,
+                        &mut ival as *mut libc::c_int as *const libc::c_void,
+                    );
+                    if rc != LDAP_OPT_SUCCESS as libc::c_int {
+                        sudo_warnx!(
+                            b"ldap_set_option: %s -> %d: %s\0" as *const u8 as *const libc::c_char,
+                            (*cur).conf_str,
+                            ival,
+                            ldap_err2string(rc)
+                        );
+                        errors += 1;
+                    }
+                }
+            }
+            CONF_STR => {
+                sval = *((*cur).valp as *mut *mut libc::c_char);
+                if !sval.is_null() {
+                    dprintf1!(
+                        b"ldap_set_option: %s -> %s\0" as *const u8 as *const libc::c_char,
+                        (*cur).conf_str,
+                        sval
+                    );
+                    rc = ldap_set_option(
+                        ld,
+                        (*cur).opt_val,
+                        sval as *mut libc::c_int as *const libc::c_void,
+                    );
+                    if rc != LDAP_OPT_SUCCESS as libc::c_int {
+                        sudo_warnx!(
+                            b"ldap_set_option: %s -> %s: %s\0" as *const u8 as *const libc::c_char,
+                            (*cur).conf_str,
+                            sval,
+                            ldap_err2string(rc)
+                        );
+                        errors += 1;
+                    }
+                }
+            }
+            _ => {}
+        }
+        cur = cur.offset(1);
+    } //end of while same as c:for
+    debug_return_int!(if errors != 0 { -1 } else { LDAP_SUCCESS });
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ldap_set_options_global() -> libc::c_int {
+    let mut ret: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_LDAP!());
+    if ldap_conf.ldap_debug != 0 {
+        ber_set_option(
+            0 as *mut libc::c_void,
+            LBER_OPT_DEBUG_LEVEL as libc::c_int,
+            &mut ldap_conf.ldap_debug as *mut libc::c_int as *const libc::c_void,
+        );
+    }
+    ret = sudo_ldap_set_options_table(0 as *mut LDAP, ldap_conf_global.as_mut_ptr());
+    debug_return_int!(ret);
+}
+#[no_mangle]
+pub unsafe extern "C" fn sudo_ldap_set_options_conn(mut ld: *mut LDAP) -> libc::c_int {
+    let mut rc: libc::c_int = 0;
+    debug_decl!(SUDOERS_DEBUG_LDAP!());
+    rc = sudo_ldap_set_options_table(ld, ldap_conf_conn.as_mut_ptr());
+    if rc == -(1 as libc::c_int) {
+        debug_return_int!(-1);
+    }
+    if ldap_conf.timeout > 0 as libc::c_int {
+        let mut tv: timeval = timeval {
+            tv_sec: 0,
+            tv_usec: 0,
+        };
+        tv.tv_sec = ldap_conf.timeout as __time_t;
+        tv.tv_usec = 0 as libc::c_int as __suseconds_t;
+        dprintf1!(
+            b"ldap_set_option(LDAP_OPT_TIMEOUT, %d)\0" as *const u8 as *const libc::c_char,
+            ldap_conf.timeout
+        );
+        rc = ldap_set_option(
+            ld,
+            LDAP_OPT_TIMEOUT,
+            &mut tv as *mut timeval as *const libc::c_void,
+        );
+        if rc != LDAP_OPT_SUCCESS as libc::c_int {
+            sudo_warnx!(
+                b"ldap_set_option(TIMTOUT, %d): %s\0" as *const u8 as *const libc::c_char,
+                ldap_conf.timeout,
+                ldap_err2string(rc)
+            );
+        }
+    }
+    if ldap_conf.bind_timelimit > 0 as libc::c_int {
+        let mut tv_0: timeval = timeval {
+            tv_sec: 0,
+            tv_usec: 0,
+        };
+        tv_0.tv_sec = (ldap_conf.bind_timelimit / 1000 as libc::c_int) as __time_t;
+        tv_0.tv_usec = 0 as libc::c_int as __suseconds_t;
+        dprintf1!(
+            b"ldap_set_option(LDAP_OPT_NETWORK_TIMEOUT, %d)\0" as *const u8 as *const libc::c_char,
+            ldap_conf.bind_timelimit / 1000
+        );
+        rc = ldap_set_option(
+            ld,
+            LDAP_OPT_NETWORK_TIMEOUT,
+            &mut tv_0 as *mut timeval as *const libc::c_void,
+        );
+        if rc != LDAP_OPT_SUCCESS as libc::c_int {
+            sudo_warnx!(
+                b"ldap_set_option(NETWORK_TIMEOUT, %d): %s\0" as *const u8 as *const libc::c_char,
+                ldap_conf.bind_timelimit / 1000,
+                ldap_err2string(rc)
+            );
+        }
+    }
+    if ldap_conf.ssl_mode == SUDO_LDAP_SSL as libc::c_int {
+        let mut val: libc::c_int = LDAP_OPT_X_TLS_HARD as libc::c_int;
+        dprintf1!(
+            b"ldap_set_option(LDAP_OPT_X_TLS, LDAP_OPT_X_TLS_HARD)\0" as *const u8
+                as *const libc::c_char,
+        );
+        rc = ldap_set_option(
+            ld,
+            LDAP_OPT_X_TLS,
+            &mut val as *mut libc::c_int as *const libc::c_void,
+        );
+        if rc != LDAP_SUCCESS as libc::c_int {
+            sudo_warnx!(
+                b"ldap_set_option(LDAP_OPT_X_TLS, LDAP_OPT_X_TLS_HARD): %s\0" as *const u8
+                    as *const libc::c_char,
+                ldap_err2string(rc)
+            );
+            debug_return_int!(-1);
+        }
+    }
+    debug_return_int!(LDAP_SUCCESS);
+}
+
 
